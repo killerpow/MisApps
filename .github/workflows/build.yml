@@ -42,6 +42,24 @@ jobs:
         with:
           name: MisApps
           path: salida/*.apk
+      - name: Publicar por separado las apps que han cambiado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in salida/*.apk; do
+            id=$(basename "$f" .apk)
+            # "Huella" de todo lo que forma la app: si no cambia, no se publica versión nueva
+            h=$(find "apps/$id" "app/src/$id/res" app/src/main app/build.gradle -type f | sort | xargs sha256sum | sha256sum | cut -c1-16)
+            tag=$(gh release list --limit 300 --json tagName,name -q ".[] | select(.name | startswith(\"$id v\")) | .tagName" | head -1)
+            old=""
+            if [ -n "$tag" ]; then old=$(gh release view "$tag" --json body -q .body | grep -o 'huella: [0-9a-f]*' | cut -d' ' -f2); fi
+            if [ "$h" != "$old" ]; then
+              gh release create "$id-v${{ github.run_number }}" "$f" --title "$id v${{ github.run_number }}" --notes "huella: $h" --latest=false
+              echo "$id: versión nueva"
+            else
+              echo "$id: sin cambios"
+            fi
+          done
       - name: Publicar versión
         uses: softprops/action-gh-release@v2
         with:
