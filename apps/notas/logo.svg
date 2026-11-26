@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="oro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF1C1"/>
+      <stop offset="0.35" stop-color="#E5BE4F"/>
+      <stop offset="0.7" stop-color="#C08F1C"/>
+      <stop offset="1" stop-color="#8A6208"/>
+    </linearGradient>
+    <linearGradient id="oroV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF1C1"/>
+      <stop offset="0.5" stop-color="#D9AE3E"/>
+      <stop offset="1" stop-color="#9A700E"/>
+    </linearGradient>
+    <linearGradient id="agua" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BDE9FF"/>
+      <stop offset="1" stop-color="#2F8FD8"/>
+    </linearGradient>
+    <radialGradient id="fondo" cx="0.5" cy="0.4" r="0.65">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Medallón -->
+  <circle cx="256" cy="256" r="246" fill="url(#fondo)"/>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="url(#oro)" stroke-width="10"/>
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#C08F1C" stroke-width="2" opacity=".7"/>
+
+  <!-- Tubería de fondo con llave de paso -->
+  <g opacity=".22" stroke="#E5BE4F" fill="none">
+    <path d="M 40 256 H 472" stroke-width="16"/>
+  </g>
+
+  <g transform="translate(14,0)">
+  <!-- Monograma J M A J entrelazado (cada trazo con un borde oscuro para el efecto de cruce) -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- J izquierda: tubo con codo -->
+    <path d="M 140 128 V 300 A 46 46 0 0 1 48 300" stroke="#0B1220" stroke-width="40"/>
+    <path d="M 140 128 V 300 A 46 46 0 0 1 48 300" stroke="url(#oroV)" stroke-width="26"/>
+
+    <!-- M -->
+    <path d="M 172 330 V 150 L 226 250 L 280 150 V 330" stroke="#0B1220" stroke-width="36"/>
+    <path d="M 172 330 V 150 L 226 250 L 280 150 V 330" stroke="url(#oro)" stroke-width="24"/>
+
+    <!-- A (comparte el pie derecho de la M) -->
+    <path d="M 280 330 L 326 150 L 372 330 M 296 262 H 356" stroke="#0B1220" stroke-width="36"/>
+    <path d="M 280 330 L 326 150 L 372 330 M 296 262 H 356" stroke="url(#oro)" stroke-width="24"/>
+
+    <!-- J derecha: tubo que abraza la A por debajo -->
+    <path d="M 408 128 V 320 A 56 56 0 0 1 308 352" stroke="#0B1220" stroke-width="40"/>
+    <path d="M 408 128 V 320 A 56 56 0 0 1 308 352" stroke="url(#oroV)" stroke-width="26"/>
+  </g>
+
+  <!-- Racores (uniones de tubería) en las J -->
+  <g fill="url(#oro)" stroke="#0B1220" stroke-width="4">
+    <rect x="118" y="112" width="44" height="22" rx="5"/>
+    <rect x="386" y="112" width="44" height="22" rx="5"/>
+    <rect x="124" y="200" width="32" height="14" rx="4"/>
+    <rect x="392" y="210" width="32" height="14" rx="4"/>
+  </g>
+
+</g>
+  <!-- Gota de agua que cae del tubo derecho -->
+  <path d="M 256 380 C 240 404 232 420 232 434 A 24 24 0 0 0 280 434 C 280 420 272 404 256 380 Z"
+        fill="url(#agua)" stroke="#0B1220" stroke-width="4"/>
+  <path d="M 246 424 Q 246 438 256 444" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+
+  <!-- Estrellitas -->
+  <g fill="#E5BE4F">
+    <path d="M 256 70 l 6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6 z"/>
+  </g>
+</svg>
