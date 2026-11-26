@@ -251,6 +251,25 @@ function monthBar(){
 }
 function bindMonth(){ document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ monthOff+=Number(b.dataset.m); render(); }); }
 
+/* ============ WhatsApp a clientes ============ */
+function waPhone(c){ let d=String(c.phone||'').replace(/\D/g,''); if(d.startsWith('00')) d=d.slice(2); if(d.length===9) d='34'+d; return d; }
+function waText(c){
+  const t=todayStr(), deb=debtOf(c), dd=c.next?daysBetween(t,c.next):null;
+  let m=`Hola ${String(c.name).trim()}, `;
+  if(deb>0) m+=`te recuerdo que tienes pendiente ${fmt(deb)} del servicio de IPTV${c.debtNote&&!/^pendiente/i.test(c.debtNote)?' ('+c.debtNote+')':''}.`;
+  else if(dd!==null&&dd<0) m+=`tu servicio de IPTV venció el ${fmtD(c.next)} (${fmt(c.price)}). Cuando puedas me lo pagas. `;
+  else if(dd===0) m+=`hoy vence tu servicio de IPTV (${fmt(c.price)}).`;
+  else m+=`te recuerdo que el ${fmtD(c.next)} vence tu servicio de IPTV (${fmt(c.price)}).`;
+  return m+' ¡Gracias!';
+}
+function waUrl(c){ return 'https://wa.me/'+waPhone(c)+'?text='+encodeURIComponent(waText(c)); }
+function waBtn(c){ if(!waPhone(c)) return ''; const av=c.avisado===todayStr();
+  return `<button class="btn sm ${av?'ghost':''}" style="${av?'':'background:#25D366'}" data-wa="${c.id}" aria-label="Avisar por WhatsApp">${av?'✓ 💬':'💬'}</button>`; }
+function sendWA(id){ const c=S.items[id]; if(!c) return; const u=waUrl(c);
+  if(window.AndroidApp&&window.AndroidApp.openExternal) window.AndroidApp.openExternal(u);
+  else { try{ if(!window.open(u)) location.href=u; }catch(e){ location.href=u; } }
+  save({...c, avisado:todayStr()}); toast('Abriendo WhatsApp de '+String(c.name).trim()); }
+
 /* ============ Avisos en el móvil (aunque la app esté cerrada) ============ */
 function programarAvisos(){
   const A=window.AndroidApp; if(!A||!A.programarAviso) return;
@@ -282,6 +301,7 @@ function render(){
   document.querySelectorAll('[data-client]').forEach(e=>e.onclick=()=>clientDetail(e.dataset.client));
   document.querySelectorAll('[data-prov]').forEach(e=>e.onclick=()=>providerDetail(e.dataset.prov));
   document.querySelectorAll('[data-pay]').forEach(e=>e.onclick=ev=>{ ev.stopPropagation(); payForm(e.dataset.pay); });
+  document.querySelectorAll('[data-wa]').forEach(e=>e.onclick=ev=>{ ev.stopPropagation(); sendWA(e.dataset.wa); });
   document.querySelectorAll('[data-paydebt]').forEach(e=>e.onclick=ev=>{ ev.stopPropagation(); debtPayForm(e.dataset.paydebt); });
   document.querySelectorAll('[data-delmove]').forEach(e=>e.onclick=()=>askUndo(e.dataset.delmove));
   const sq=$('#cSearch'); if(sq){ sq.oninput=()=>{ cQuery=sq.value; const pos=sq.selectionStart; render(); const n=$('#cSearch'); n.focus(); n.setSelectionRange(pos,pos); }; }
@@ -328,15 +348,16 @@ function viewResumen(){
   </div>`;
 
   h+=`<h2>Cobros a clientes · próximos 7 días</h2>`;
+  if(dueC.some(c=>waPhone(c))||debtors.some(c=>waPhone(c))) h+=`<div class="hint" style="margin:-4px 2px 8px">Pulsa 💬 para mandarle el recordatorio por WhatsApp. Sale ✓ cuando ya le has avisado hoy.</div>`;
   if(!dueC.length) h+=`<div class="card empty">Nada pendiente. 👌</div>`;
   dueC.forEach(c=>{ const st=status(c.next);
     h+=`<div class="card item" data-client="${c.id}"><div class="main"><div class="t">${esc(c.name)}</div><div class="d">${fmtD(c.next)} · <span class="pill ${st.cls}">${st.txt}</span></div></div>
-    <div class="amt">${fmt(c.price)}</div><button class="btn sm ok" data-pay="${c.id}">Cobrar</button></div>`; });
+    <div class="amt">${fmt(c.price)}</div>${waBtn(c)}<button class="btn sm ok" data-pay="${c.id}">Cobrar</button></div>`; });
 
   if(debtors.length){
     h+=`<h2>Atrasos · ${fmt(debtSum)}</h2>`;
     debtors.forEach(c=>{ h+=`<div class="card item" data-client="${c.id}"><div class="main"><div class="t">${esc(c.name)}</div><div class="d">${c.debtNote?esc(c.debtNote):'Pendiente de meses anteriores'}</div></div>
-      <div class="amt neg">${fmt(debtOf(c))}</div><button class="btn sm ok" data-paydebt="${c.id}">Cobrar</button></div>`; });
+      <div class="amt neg">${fmt(debtOf(c))}</div>${waBtn(c)}<button class="btn sm ok" data-paydebt="${c.id}">Cobrar</button></div>`; });
   }
   h+=`<h2>Pagos a proveedores · próximos 7 días</h2>`;
   if(!dueP.length) h+=`<div class="card empty">Sin pagos próximos.</div>`;
@@ -363,7 +384,7 @@ function viewClientes(){
   cs.forEach(c=>{ const st=status(c.next,c.active!==false); const m=(Number(c.price)||0)-(Number(c.cost)||0);
     h+=`<div class="card item" data-client="${c.id}"><div class="main"><div class="t">${esc(c.name)}</div>
       <div class="d"><span class="pill ${st.cls}">${st.txt}</span>${debtOf(c)>0?` <span class="pill p-bad">Debe ${fmt(debtOf(c))}</span>`:''} · ${c.next?fmtD(c.next):'—'} · ${esc(provName(c.provider))}</div></div>
-      <div class="amt">${fmt(c.price)}<small>${freqTxt(c.freq)} · <span class="${m>=0?'pos':'neg'}">${m>=0?'+':''}${fmt(m)}</span></small></div></div>`; });
+      <div class="amt">${fmt(c.price)}<small>${freqTxt(c.freq)} · <span class="${m>=0?'pos':'neg'}">${m>=0?'+':''}${fmt(m)}</span></small></div>${isLate(c,t)||(c.next&&daysBetween(t,c.next)<=7&&c.active!==false)?waBtn(c):''}</div>`; });
   return h;
 }
 
@@ -485,11 +506,12 @@ function clientDetail(id){
   </div>
   ${debtOf(c)>0?`<div class="cred" style="border-color:#5a2a2a;background:rgba(239,91,91,.08)"><div class="grow"><div class="k">Debe (atrasado)</div><div style="font-weight:700;font-size:18px" class="neg">${fmt(debtOf(c))}</div>${c.debtNote?`<div class="hint" style="margin:0">${esc(c.debtNote)}</div>`:''}</div><button class="btn sm ok" id="payDebt">Cobrar atraso</button></div>`:''}
   ${c.notes?`<div class="hint" style="white-space:pre-wrap;margin-bottom:10px">📝 ${esc(c.notes)}</div>`:''}
-  ${phone?`<a class="wa" href="https://wa.me/${phone}?text=${msg}" target="_blank" rel="noopener">💬 Enviar recordatorio por WhatsApp</a>`:''}
+  ${waPhone(c)?`<button class="btn full" style="background:#25D366;width:100%" data-wa="${c.id}">💬 Enviar recordatorio por WhatsApp${c.avisado?' · último aviso '+fmtD(c.avisado):''}</button>`:'<div class="hint">Añade su teléfono (Editar) para poder avisarle por WhatsApp.</div>'}
   <h2 style="margin-top:16px">Últimos cobros</h2>
   ${hist.length?hist.map(m=>`<div class="mv" style="padding:6px 0"><div style="flex:1">${fmtD(m.date)}${m.note?' · <span class="hint">'+esc(m.note)+'</span>':''}</div><b class="pos">${fmt(m.amount)}</b><button class="btn sm bad" data-undo="${m.id}">Anular</button></div>`).join(''):'<div class="hint">Todavía no hay cobros registrados.</div>'}
   <div class="actions"><button class="btn bad" id="del">Eliminar</button><button class="btn ghost" id="edit">Editar</button>${c.active!==false?'<button class="btn ok" id="pay">Registrar cobro</button>':''}</div>`,
   r=>{
+    r.querySelectorAll('[data-wa]').forEach(b=>b.onclick=()=>{ sendWA(b.dataset.wa); closeModal(); });
     r.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copy(b.dataset.copy));
     r.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{ const v=b.parentNode.querySelector('.val'); const shown=v.textContent!=='••••••••'; v.textContent=shown?'••••••••':v.dataset.v; b.textContent=shown?'Ver':'Ocultar'; });
     const ca=r.querySelector('#copyAll'); if(ca) ca.onclick=()=>copy(`Usuario: ${c.user}\nContraseña: ${c.pass}${c.url?'\nServidor: '+c.url:''}`);
