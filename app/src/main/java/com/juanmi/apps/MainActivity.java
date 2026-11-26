@@ -8,6 +8,12 @@ import android.content.ClipboardManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ShortcutInfo;
+import android.content.pm.ShortcutManager;
+import android.database.Cursor;
+import android.graphics.drawable.Icon;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -34,7 +40,20 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.URLDecoder;
@@ -47,7 +66,12 @@ import java.nio.charset.StandardCharsets;
  */
 public class MainActivity extends Activity {
 
-    private static final int REQ_FILE = 10, REQ_LOC = 11;
+    private static final int REQ_FILE = 10, REQ_LOC = 11, REQ_RESTORE = 12, REQ_STORAGE = 13;
+    private static final String ACT_RESTORE = "com.juanmi.apps.RESTAURAR", ACT_BACKUP = "com.juanmi.apps.COPIA";
+    private static final int KEEP_DAYS = 7;
+    /** Lee todo lo que la app tiene guardado (localStorage) como JSON. */
+    private static final String DUMP_JS = "(function(){var o={};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);o[k]=localStorage.getItem(k);}}catch(e){}return JSON.stringify(o);})()";
+    private SharedPreferences prefs;
 
     private WebView web;
     private FrameLayout root;
@@ -92,8 +116,215 @@ public class MainActivity extends Activity {
             else openExternal(url);
         });
 
+        prefs = getSharedPreferences("misapps", MODE_PRIVATE);
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl("file:///android_asset/" + startPage());
+
+        setupShortcuts();
+        if (Build.VERSION.SDK_INT < 29 && checkSelfPermissionCompat()) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_STORAGE);
+        }
+        if (!handleAction(getIntent()) && !prefs.getBoolean("preguntado", false)) {
+            prefs.edit().putBoolean("preguntado", true).apply();
+            web.postDelayed(this::askFirstRestore, 900);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleAction(intent);
+    }
+
+    private boolean checkSelfPermissionCompat() {
+        return Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+    }
+
+    // ---------- Copia de seguridad automática ----------
+
+    private String backupFolder() {
+        return Environment.DIRECTORY_DOWNLOADS + "/MisApps/" + getString(R.string.app_name);
+    }
+
+    private boolean handleAction(Intent i) {
+        if (i == null || i.getAction() == null) return false;
+        if (ACT_RESTORE.equals(i.getAction())) { web.postDelayed(this::pickBackup, 600); return true; }
+        if (ACT_BACKUP.equals(i.getAction())) { web.postDelayed(() -> doBackup(true), 1200); return true; }
+        return false;
+    }
+
+    /** Accesos directos al mantener pulsado el icono: guardar copia / restaurar copia. */
+    private void setupShortcuts() {
+        if (Build.VERSION.SDK_INT < 25) return;
+        try {
+            ShortcutManager sm = getSystemService(ShortcutManager.class);
+            if (sm == null) return;
+            ShortcutInfo a = new ShortcutInfo.Builder(this, "copia")
+                    .setShortLabel("Guardar copia")
+                    .setIcon(Icon.createWithResource(this, android.R.drawable.ic_menu_save))
+                    .setIntent(new Intent(ACT_BACKUP).setClass(this, MainActivity.class)).build();
+            ShortcutInfo b = new ShortcutInfo.Builder(this, "restaurar")
+                    .setShortLabel("Restaurar copia")
+                    .setIcon(Icon.createWithResource(this, android.R.drawable.ic_menu_revert))
+                    .setIntent(new Intent(ACT_RESTORE).setClass(this, MainActivity.class)).build();
+            sm.setDynamicShortcuts(Arrays.asList(a, b));
+        } catch (Exception ignored) { }
+    }
+
+    private void askFirstRestore() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("¿Recuperar tus datos?")
+                .setMessage("Si ya usabas esta app y tienes una copia de seguridad (en Descargas/MisApps), puedes recuperarla ahora.\n\n"
+                        + "Desde ahora la app guardará sola una copia cada día en Descargas/MisApps/" + getString(R.string.app_name) + ".")
+                .setPositiveButton("Elegir copia", (d, w) -> pickBackup())
+                .setNegativeButton("Empezar de cero", null)
+                .show();
+    }
+
+    /** Guarda una copia si algo ha cambiado desde la última (o siempre, si force). */
+    private void doBackup(boolean force) {
+        web.evaluateJavascript(DUMP_JS, res -> {
+            try {
+                if (res == null || res.equals("null")) return;
+                String json = (String) new JSONTokener(res).nextValue();
+                JSONObject datos = new JSONObject(json);
+                if (datos.length() == 0) { if (force) toast("Todavía no hay datos que guardar"); return; }
+                int hash = json.hashCode();
+                if (!force && hash == prefs.getInt("hash", 0)) return;
+                JSONObject w = new JSONObject();
+                w.put("copiaMisApps", 1);
+                w.put("app", getString(R.string.app_name));
+                w.put("paquete", getPackageName());
+                w.put("fecha", new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date()));
+                w.put("datos", datos);
+                String name = "copia-" + new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()) + ".json";
+                byte[] bytes = w.toString().getBytes(StandardCharsets.UTF_8);
+                new Thread(() -> {
+                    boolean ok = writeBackup(name, bytes);
+                    if (ok) {
+                        prefs.edit().putInt("hash", hash).apply();
+                        cleanOldBackups();
+                    }
+                    if (force) toast(ok ? "Copia guardada en Descargas/MisApps/" + getString(R.string.app_name)
+                            : "No se pudo guardar la copia");
+                }).start();
+            } catch (Exception e) {
+                if (force) toast("No se pudo guardar la copia");
+            }
+        });
+    }
+
+    private boolean writeBackup(String name, byte[] bytes) {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                String rel = backupFolder() + "/";
+                Uri found = null;
+                try (Cursor c = getContentResolver().query(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        new String[]{MediaStore.MediaColumns._ID},
+                        MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                        new String[]{name, rel}, null)) {
+                    if (c != null && c.moveToFirst())
+                        found = Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, String.valueOf(c.getLong(0)));
+                }
+                if (found == null) {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                    v.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                    v.put(MediaStore.MediaColumns.RELATIVE_PATH, rel);
+                    found = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                }
+                if (found == null) return false;
+                try (OutputStream out = getContentResolver().openOutputStream(found, "wt")) {
+                    if (out == null) return false;
+                    out.write(bytes);
+                }
+                return true;
+            } else {
+                File dir = checkSelfPermissionCompat()
+                        ? new File(getExternalFilesDir(null), "MisApps")
+                        : new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                        "MisApps/" + getString(R.string.app_name));
+                dir.mkdirs();
+                try (FileOutputStream out = new FileOutputStream(new File(dir, name))) { out.write(bytes); }
+                return true;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Deja solo las copias de los últimos días. */
+    private void cleanOldBackups() {
+        try {
+            String limit = "copia-" + new SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    .format(new Date(System.currentTimeMillis() - KEEP_DAYS * 86400000L)) + ".json";
+            if (Build.VERSION.SDK_INT >= 29) {
+                List<Long> old = new ArrayList<>();
+                try (Cursor c = getContentResolver().query(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME},
+                        MediaStore.MediaColumns.RELATIVE_PATH + "=?", new String[]{backupFolder() + "/"}, null)) {
+                    while (c != null && c.moveToNext()) {
+                        String n = c.getString(1);
+                        if (n != null && n.startsWith("copia-") && n.compareTo(limit) < 0) old.add(c.getLong(0));
+                    }
+                }
+                for (long id : old)
+                    getContentResolver().delete(Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, String.valueOf(id)), null, null);
+            } else {
+                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                        "MisApps/" + getString(R.string.app_name));
+                File[] fs = dir.listFiles();
+                if (fs != null) for (File f : fs)
+                    if (f.getName().startsWith("copia-") && f.getName().compareTo(limit) < 0) f.delete();
+            }
+        } catch (Exception ignored) { }
+    }
+
+    private void pickBackup() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+        try {
+            startActivityForResult(i, REQ_RESTORE);
+        } catch (Exception e) {
+            try {
+                startActivityForResult(new Intent(Intent.ACTION_GET_CONTENT).setType("*/*"), REQ_RESTORE);
+            } catch (Exception e2) { toast("No hay explorador de archivos"); }
+        }
+    }
+
+    private void restoreFrom(Uri uri) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            try (InputStream in = getContentResolver().openInputStream(uri);
+                 BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line).append('\n');
+            }
+            JSONObject w = new JSONObject(sb.toString());
+            if (!w.has("copiaMisApps") || !w.has("datos")) {
+                toast("Ese archivo no es una copia automática. Si es una copia de la propia app, usa su botón «Restaurar».");
+                return;
+            }
+            JSONObject datos = w.getJSONObject("datos");
+            String origen = w.optString("app", "");
+            String msg = "Copia del " + w.optString("fecha", "?")
+                    + (origen.isEmpty() || origen.equals(getString(R.string.app_name)) ? "" : "\n⚠️ Es de la app «" + origen + "».")
+                    + "\n\nSe sustituirán los datos actuales por los de la copia.";
+            new AlertDialog.Builder(this)
+                    .setTitle("¿Restaurar esta copia?")
+                    .setMessage(msg)
+                    .setPositiveButton("Restaurar", (d, x) -> {
+                        prefs.edit().putInt("hash", 0).apply();
+                        web.evaluateJavascript("(function(d){try{localStorage.clear();for(var k in d)localStorage.setItem(k,d[k]);}catch(e){}location.reload();})("
+                                + datos.toString() + ")", null);
+                        toast("Copia restaurada");
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        } catch (Exception e) {
+            toast("No se pudo leer la copia");
+        }
     }
 
     /** En el televisor usa la versión para TV si la app la trae. */
@@ -125,6 +356,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        doBackup(false);
         web.onPause();
     }
 
@@ -253,6 +485,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_RESTORE) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) restoreFrom(data.getData());
+            return;
+        }
         if (requestCode != REQ_FILE || fileCallback == null) return;
         Uri[] result = null;
         if (resultCode == RESULT_OK && data != null) {
