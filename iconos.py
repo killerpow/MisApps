@@ -32,7 +32,20 @@ def make_icon(a):
     ImageDraw.Draw(mask).rounded_rectangle([8, 8, big - 8, big - 8], radius=120, fill=255)
     if os.path.exists(custom):
         src = Image.open(custom).convert('RGBA')
-        s = min(src.size); src = src.crop(((src.width - s) // 2, (src.height - s) // 2, (src.width + s) // 2, (src.height + s) // 2))
+        flat = Image.new('RGBA', src.size, (255, 255, 255, 255)); flat.alpha_composite(src); src = flat
+        c = src.getpixel((2, 2))
+        if all(v > 225 for v in c[:3]):
+            # Fondo claro: recortar el margen y centrar el dibujo en un cuadrado blanco
+            from PIL import ImageChops
+            diff = ImageChops.difference(src.convert('RGB'), Image.new('RGB', src.size, c[:3])).convert('L').point(lambda v: 255 if v > 40 else 0)
+            box = diff.getbbox() or (0, 0, src.width, src.height)
+            src = src.crop(box)
+            side = int(max(src.size) * 1.16)
+            sq = Image.new('RGBA', (side, side), (255, 255, 255, 255))
+            sq.paste(src, ((side - src.width) // 2, (side - src.height) // 2))
+            src = sq
+        else:
+            s = min(src.size); src = src.crop(((src.width - s) // 2, (src.height - s) // 2, (src.width + s) // 2, (src.height + s) // 2))
         bg = src.resize((big, big), Image.LANCZOS)
     else:
         bg = gradient(big, big, rgb(a['color']), rgb(a['color2'])).convert('RGBA')
@@ -56,7 +69,17 @@ for a in json.load(open('apps.json', encoding='utf-8')):
     for d, s in SIZES.items():
         o = os.path.join(base, 'mipmap-' + d); os.makedirs(o, exist_ok=True)
         icon.resize((s, s), Image.LANCZOS).save(os.path.join(o, 'ic_launcher.png'))
-    # Banner TV
+    # Banner TV (si hay apps/<id>/banner.png se usa esa imagen)
+    cb = os.path.join('apps', a['id'], 'banner.png')
+    if os.path.exists(cb):
+        from PIL import ImageFilter
+        src = Image.open(cb).convert('RGB')
+        fondo = src.resize((640, 360), Image.LANCZOS).filter(ImageFilter.GaussianBlur(18))
+        k = 360 / src.height; im = src.resize((int(src.width * k), 360), Image.LANCZOS)
+        fondo.paste(im, ((640 - im.width) // 2, 0))
+        o = os.path.join(base, 'drawable-xhdpi'); os.makedirs(o, exist_ok=True)
+        fondo.save(os.path.join(o, 'banner.png'))
+        print('icono:', a['id']); continue
     b = gradient(640, 360, rgb(a['color']), rgb(a['color2'])).convert('RGBA')
     ic = icon.resize((220, 220), Image.LANCZOS); b.paste(ic, (40, 70), ic)
     d = ImageDraw.Draw(b); f = ImageFont.truetype(BOLD, 52); name = a['name']
