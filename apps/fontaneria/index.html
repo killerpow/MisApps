@@ -38,6 +38,8 @@
   .mover button:disabled{opacity:.25}
   .mover button:active{background:var(--naranja-claro)}
   .b-urg{background:var(--rojo);color:#fff}
+  .b-volver{background:#7c3aed;color:#fff}
+  .volver{background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px;white-space:pre-wrap}
   .btn-urg-on{background:var(--rojo-claro);color:var(--rojo);border:1px solid var(--rojo)}
   .ficha.hecho .motivo{text-decoration:line-through;color:var(--gris)}
   .ficha-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
@@ -219,6 +221,22 @@
   </div>
 </div>
 
+<div class="capa" id="capaVolver">
+  <div class="hoja">
+    <h2>🔁 Hay que volver</h2>
+    <div class="hoy" id="vuCliente"></div>
+    <label for="vuNota">¿Qué ha quedado pendiente?</label>
+    <textarea id="vuNota" rows="4" placeholder="Ej: falta cambiar la llave de paso, traer el latiguillo de 40 cm…"></textarea>
+    <label for="vuFecha">¿Cuándo volvemos? (opcional)</label>
+    <input id="vuFecha" type="date">
+    <div class="pie">
+      <button class="btn btn-sec" id="vuCerrar">Cancelar</button>
+      <button class="btn btn-prim" id="vuGuardar">Guardar</button>
+    </div>
+    <button class="btn btn-sec" id="vuQuitar" style="width:100%;margin-top:10px">✔ Ya hemos vuelto (quitar aviso)</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -345,7 +363,9 @@
         </div>
         ${t.motivo?`<div class="etiqueta">Motivo</div><div class="motivo">${esc(t.motivo)}</div>`:''}
         ${mats.length?`<div class="etiqueta">Materiales</div><ul class="mats">${mats.map(m=>`<li>${m.cant?esc(m.cant)+' × ':''}${esc(m.nombre)}</li>`).join('')}</ul>`:''}
+        ${t.volver&&t.volver.nota&&!t.completado?`<div class="etiqueta">Queda pendiente</div><div class="volver">${esc(t.volver.nota)}</div>`:''}
         <div class="badges">
+          ${t.volver&&!t.completado?`<span class="badge b-volver">🔁 Hay que volver${t.volver.fecha?' · '+cap(diaVolver(t.volver.fecha)):''}</span>`:''}
           ${t.urgente?'<span class="badge b-urg">🔥 URGENTE</span>':''}
           <span class="badge ${t.completado?'b-hecho':'b-pend'}">${t.completado?'✔ Completado':'⏳ Pendiente'}</span>
           <span class="badge ${t.cobro==='cobrado'?'b-cobrado':'b-cobrar'}">${t.cobro==='cobrado'?'💶 Cobrado':'💶 Pendiente de cobrar'}</span>
@@ -357,6 +377,7 @@
           <button class="btn btn-sec btn-peq" data-a="borrar" data-id="${t.id}" style="color:var(--rojo)">🗑 Eliminar</button>
         </div>`:`<div class="botones">
           ${!t.completado?`<button class="btn btn-wa btn-peq" data-a="avisar" data-id="${t.id}" style="flex:1 1 100%;width:100%">💬 Avisar al cliente por WhatsApp</button>`:''}
+          ${!t.completado?`<button class="btn btn-sec btn-peq" data-a="volver" data-id="${t.id}" style="flex:1 1 100%;width:100%;color:#7c3aed;border-color:#ddd6fe">🔁 ${t.volver?'Cambiar lo que queda pendiente':'Hay que volver otro día'}</button>`:''}
           <button class="btn btn-prim btn-peq" data-a="terminar" data-id="${t.id}" style="flex:1 1 100%;width:100%;background:#16a34a">✅ Hecho y cobrado → Historial</button>
           <button class="btn ${t.completado?'btn-sec':'btn-prim'} btn-peq" data-a="hecho" data-id="${t.id}">${t.completado?'↩ Marcar pendiente':'✔ Completado'}</button>
           <button class="btn btn-sec btn-peq" data-a="cobro" data-id="${t.id}">${t.cobro==='cobrado'?'Marcar sin cobrar':'Marcar cobrado'}</button>
@@ -388,6 +409,7 @@
     if(a==='borrar'){ pedirBorrar(t); }
     if(a==='terminar'){ guardar({...t, completado:true, completadoEl:t.completadoEl||Date.now(), cobro:'cobrado', archivado:true, archivadoEl:Date.now()}); toast('✅ Hecho y cobrado: pasado al historial'); }
     if(a==='avisar'){ abrirAviso(t); }
+    if(a==='volver'){ abrirVolver(t); }
     if(a==='desarchivar'){ guardar({...t, archivado:false, archivadoEl:null}); toast('Vuelve a la lista principal'); }
   });
 
@@ -451,6 +473,36 @@
   $('#noBorrar').onclick=()=>{ $('#capaBorrar').classList.remove('ver'); aBorrar=null; };
   $('#siBorrar').onclick=()=>{ if(aBorrar) borrar(aBorrar.id); $('#capaBorrar').classList.remove('ver'); toast('Trabajo eliminado'); aBorrar=null; };
 
+  // ---------- Hay que volver ----------
+  const diaVolver = iso => { const [y,m,d]=iso.split('-').map(Number); const f=new Date(y,m-1,d);
+    const hoy=new Date(); hoy.setHours(0,0,0,0); const dif=Math.round((f-hoy)/864e5);
+    if(dif===0) return 'hoy'; if(dif===1) return 'mañana';
+    return `${DIAS[f.getDay()]} ${d} de ${MESES[m-1]}`; };
+  let vuT=null;
+  function abrirVolver(t){
+    vuT=t;
+    $('#vuCliente').textContent=t.cliente||'Cliente sin nombre';
+    $('#vuNota').value=(t.volver&&t.volver.nota)||'';
+    $('#vuFecha').value=(t.volver&&t.volver.fecha)||'';
+    $('#vuQuitar').style.display=t.volver?'':'none';
+    $('#capaVolver').classList.add('ver');
+    setTimeout(()=>$('#vuNota').focus(),100);
+  }
+  $('#vuCerrar').onclick=()=>$('#capaVolver').classList.remove('ver');
+  $('#vuGuardar').onclick=()=>{
+    if(!vuT) return;
+    const nota=$('#vuNota').value.trim(), fecha=$('#vuFecha').value;
+    if(!nota && !fecha){ toast('Escribe qué queda pendiente o pon la fecha'); return; }
+    guardar({...vuT, completado:false, volver:{nota, fecha, desde:Date.now()}});
+    $('#capaVolver').classList.remove('ver'); toast('🔁 Apuntado: hay que volver');
+  };
+  $('#vuQuitar').onclick=()=>{
+    if(!vuT) return;
+    const {volver, ...resto}=vuT;
+    guardar({...resto, volver:null});
+    $('#capaVolver').classList.remove('ver'); toast('Aviso de volver quitado');
+  };
+
   // ---------- Avisar al cliente ----------
   let avT=null;
   function saludo(){ const h=new Date().getHours(); return h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches'; }
@@ -465,6 +517,11 @@
       ['De camino', `${s} Vamos de camino para hacer el trabajo${que}. Llegamos en unos 15 minutos.`],
       ['¿Cuándo?', `${s} ¿Cuándo le vendría bien que pasemos a hacer el trabajo${que}?`]
     ];
+    if(t.volver){
+      const dia=t.volver.fecha?diaVolver(t.volver.fecha):'';
+      const pend=t.volver.nota?` (nos queda: ${t.volver.nota.trim().replace(/\s+/g,' ').replace(/\.$/,'')})`:'';
+      ops.unshift(['🔁 Volver para terminar', `${s} ¿Le va bien que volvamos${dia?' '+(dia==='hoy'||dia==='mañana'?dia:'el '+dia):' otro día'} para terminar el trabajo${pend}?`]);
+    }
     $('#avCliente').textContent=t.cliente||'Cliente sin nombre';
     $('#avTel').value=t.tel||'';
     $('#avOpciones').innerHTML=ops.map((o,i)=>`<button type="button" class="btn btn-sec btn-peq" data-i="${i}" style="justify-content:flex-start;text-align:left">${o[0]}</button>`).join('');
@@ -494,6 +551,7 @@
       if(t.tel) s+=`📞 *Tel:* ${t.tel}\n`;
       if(t.dir) s+=`📍 *Dirección:* ${t.dir}\n`;
       if(t.motivo) s+=`🔧 *Trabajo:* ${t.motivo}\n`;
+      if(t.volver) s+=`🔁 *Hay que volver*${t.volver.fecha?' ('+diaVolver(t.volver.fecha)+')':''}${t.volver.nota?': '+t.volver.nota:''}\n`;
       const mats=(t.materiales||[]).filter(m=>m.nombre);
       if(mats.length){ s+=`📦 *Materiales:*\n`; mats.forEach(m=>{ s+=`   - ${m.cant?m.cant+' x ':''}${m.nombre}\n`;
         const k=m.nombre.toLowerCase(); const n=parseFloat(String(m.cant).replace(',','.'));
