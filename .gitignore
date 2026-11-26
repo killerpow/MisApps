@@ -2,3 +2,4 @@
 !/app/src/main/assets/
 build/
 .gradle/
+/firma.jks

@@ -21,9 +21,14 @@ jobs:
           gradle-version: '8.9'
       - name: Preparar apps
         run: python3 preparar.py
+      - name: Preparar firma (si existe el secreto)
+        env:
+          FIRMA_B64: ${{ secrets.FIRMA_B64 }}
+        run: if [ -n "$FIRMA_B64" ]; then echo "$FIRMA_B64" | base64 -d > firma.jks; echo "Firma fija"; else echo "Sin firma fija"; fi
       - name: Compilar
         env:
           VERSION_CODE: ${{ github.run_number }}
+          FIRMA_PASS: ${{ secrets.FIRMA_PASS }}
         run: gradle assembleDebug --no-daemon
       - name: Reunir APKs
         run: |

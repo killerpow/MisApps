@@ -17,31 +17,8 @@
   }
   window.__androidSave = saveAny;
 
-  /* Funciones de Claude: descargas sí; guardado en la nube no (los datos quedan en el móvil) */
-  window.claude = window.claude || {};
-  window.claude.use = function (cap) {
-    if (cap === 'downloads') {
-      return Promise.resolve({
-        save: function (o) {
-          return new Promise(function (res, rej) {
-            o = o || {};
-            var name = o.filename || o.name || 'archivo';
-            var data = o.data != null ? o.data : (o.content != null ? o.content : o.text);
-            try {
-              if (typeof Blob !== 'undefined' && data instanceof Blob) {
-                toDataUrl(data, function (d) { B.saveDataUrl(name, d); res({ status: 'delivered' }); });
-              } else {
-                B.saveText(name, typeof data === 'string' ? data : JSON.stringify(data, null, 1),
-                  o.mimeType || o.type || 'application/octet-stream');
-                res({ status: 'delivered' });
-              }
-            } catch (e) { rej({ code: 'error', message: String(e) }); }
-          });
-        }
-      });
-    }
-    return Promise.resolve(null);
-  };
+  /* Guardar un archivo directamente (lo usan las apps para sus copias de seguridad) */
+  window.androidSaveFile = function (name, text, mime) { B.saveText(name, String(text), mime || 'application/json'); };
 
   /* Almacenamiento persistente de Claude -> localStorage */
   if (!window.storage) {

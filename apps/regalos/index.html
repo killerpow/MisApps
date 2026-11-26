@@ -318,6 +318,7 @@ function backupJSON(){return JSON.stringify({app:'regalos-clientes',version:1,fe
 function backupFallback(txt){openModal('<h2>Copia de seguridad</h2><div class="meta" style="margin-bottom:10px">No se ha podido guardar el archivo desde aquí. Copia este texto y guárdalo en una nota o envíatelo por correo; luego podrás restaurarlo pegándolo.</div><textarea id="sumt" readonly>'+esc(txt)+'</textarea><div class="mact"><span class="sp"></span><button class="btn ghost" data-act="close">Cerrar</button><button class="btn" data-act="copy">Copiar</button></div>');}
 function doBackup(){var txt=backupJSON(),d=new Date(),p=function(n){return (n<10?'0':'')+n;};
  var fn='regalos-copia-'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'.json';
+ if(window.androidSaveFile){window.androidSaveFile(fn,txt);return;}
  getDL().then(function(dl){if(!dl){backupFallback(txt);return;}
   return dl.save({filename:fn,data:txt}).then(function(r){if(!r||r.status!=='delivered')toast('Copia guardada');},function(e){var c=e&&e.code;
    if(c==='declined')toast('Copia cancelada');else if(c==='rate_limited')toast('Espera un momento y vuelve a intentarlo');else backupFallback(txt);});});}
