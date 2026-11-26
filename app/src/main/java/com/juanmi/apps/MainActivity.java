@@ -138,6 +138,14 @@ public class MainActivity extends Activity {
         handleAction(intent);
     }
 
+    private boolean pedidoNotif = false;
+    private void pedirPermisoNotificaciones() {
+        if (Build.VERSION.SDK_INT < 33 || pedidoNotif) return;
+        pedidoNotif = true;
+        if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
+            runOnUiThread(() -> requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 14));
+    }
+
     private boolean checkSelfPermissionCompat() {
         return Build.VERSION.SDK_INT >= 23
                 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
@@ -690,6 +698,17 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void openExternal(String url) {
             runOnUiThread(() -> MainActivity.this.openExternal(url));
+        }
+
+        @JavascriptInterface
+        public void programarAviso(String id, double when, String title, String text) {
+            pedirPermisoNotificaciones();
+            Avisos.programar(MainActivity.this, id, (long) when, title, text);
+        }
+
+        @JavascriptInterface
+        public void cancelarAviso(String id) {
+            Avisos.cancelar(MainActivity.this, id);
         }
 
         @JavascriptInterface

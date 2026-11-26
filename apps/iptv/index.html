@@ -215,6 +215,10 @@ function remove(id){
 const all = kind => Object.values(S.items).filter(x=>x.kind===kind);
 const clients = () => all('client').sort((a,b)=>a.name.localeCompare(b.name,'es'));
 const providers = () => all('provider').sort((a,b)=>a.name.localeCompare(b.name,'es'));
+/* Mes al que cuenta un movimiento: los pagos por adelantado al proveedor cuentan para el mes siguiente */
+const mesDe = m => m.forMonth || (m.date||'').slice(0,7);
+const nextMonthOf = s => { const d=parseD(s||todayStr()); return monthKey(new Date(d.getFullYear(), d.getMonth()+1, 1)); };
+const mesNombre = k => { const [y,m]=k.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('es-ES',{month:'long',year:'numeric'}); };
 const moves = () => all('move').sort((a,b)=> b.date.localeCompare(a.date) || (b.created||0)-(a.created||0));
 
 /* ============ Lógica ============ */
@@ -247,6 +251,19 @@ function monthBar(){
 }
 function bindMonth(){ document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ monthOff+=Number(b.dataset.m); render(); }); }
 
+/* ============ Avisos en el móvil (aunque la app esté cerrada) ============ */
+function programarAvisos(){
+  const A=window.AndroidApp; if(!A||!A.programarAviso) return;
+  providers().forEach(p=>{
+    const ids=['prov-'+p.id+'-pre','prov-'+p.id+'-dia'];
+    if(p.active===false||!p.next){ ids.forEach(i=>A.cancelarAviso(i)); return; }
+    const d=parseD(p.next), pre=new Date(d.getFullYear(),d.getMonth(),d.getDate()-2,10,0), dia=new Date(d.getFullYear(),d.getMonth(),d.getDate(),10,0);
+    const txt=`${p.name}: ${fmt(p.amount)} el ${fmtD(p.next)}${p.adelantado!==false?' (para '+mesNombre(nextMonthOf(p.next))+')':''}`;
+    A.programarAviso(ids[0], pre.getTime(), '🔔 Pago al proveedor en 2 días', txt);
+    A.programarAviso(ids[1], dia.getTime(), '🔔 Hoy toca pagar al proveedor', txt);
+  });
+}
+
 /* ============ Render ============ */
 function render(){
   const app=$('#app');
@@ -261,6 +278,7 @@ function render(){
   if(tab==='movimientos') h+=viewMovimientos();
   app.innerHTML=h;
   bindMonth();
+  try{ programarAvisos(); }catch(e){}
   document.querySelectorAll('[data-client]').forEach(e=>e.onclick=()=>clientDetail(e.dataset.client));
   document.querySelectorAll('[data-prov]').forEach(e=>e.onclick=()=>providerDetail(e.dataset.prov));
   document.querySelectorAll('[data-pay]').forEach(e=>e.onclick=ev=>{ ev.stopPropagation(); payForm(e.dataset.pay); });
@@ -277,7 +295,7 @@ function viewResumen(){
   const cs=clients(), act=cs.filter(c=>c.active!==false);
   let inc=0,cost=0; act.forEach(c=>{ const m=monthly(c); inc+=m.inc; cost+=m.cost; });
   const mk=monthKey(selMonth());
-  const mm=moves().filter(m=>m.date.startsWith(mk));
+  const mm=moves().filter(m=>mesDe(m)===mk);
   const cob=mm.filter(m=>m.type==='in').reduce((s,m)=>s+Number(m.amount),0);
   const pag=mm.filter(m=>m.type==='out').reduce((s,m)=>s+Number(m.amount),0);
   const ben=cob-pag;
@@ -291,7 +309,11 @@ function viewResumen(){
   const debtSum=debtors.reduce((s,c)=>s+debtOf(c),0);
   const overAmt=overdue.reduce((s,c)=>s+Number(c.price||0),0)+debtSum;
 
-  let h=monthBar();
+  let h='';
+  providers().filter(p=>p.active!==false&&p.next&&daysBetween(t,p.next)<=3).forEach(p=>{ const dd=daysBetween(t,p.next);
+    const cuando=dd<0?`¡Vencido hace ${-dd} d!`:dd===0?'¡Es hoy!':dd===1?'Mañana':`En ${dd} días`;
+    h+=`<div class="banner ${dd<0?'err':''} row" style="align-items:center"><div style="flex:1">🔔 <b>Pago al proveedor ${esc(p.name)}</b><br>${cuando} · ${fmtD(p.next)} · <b>${fmt(p.amount)}</b>${p.adelantado!==false?' (para '+esc(mesNombre(nextMonthOf(p.next)))+')':''}</div><button class="btn sm" data-pay="${p.id}">Pagar</button></div>`; });
+  h+=monthBar();
   h+=`<div class="grid k4">
     <div class="kpi"><div class="l">Cobrado</div><div class="v pos">${fmt(cob)}</div><div class="s">${mm.filter(m=>m.type==='in').length} cobros</div></div>
     <div class="kpi"><div class="l">Pagado</div><div class="v neg">${fmt(pag)}</div><div class="s">${mm.filter(m=>m.type==='out').length} pagos</div></div>
@@ -359,7 +381,7 @@ function viewProveedores(){
 
 function viewMovimientos(){
   const mk=monthKey(selMonth());
-  let mm=moves().filter(m=>m.date.startsWith(mk));
+  let mm=moves().filter(m=>mesDe(m)===mk);
   const tin=mm.filter(m=>m.type==='in').reduce((s,m)=>s+Number(m.amount),0);
   const tout=mm.filter(m=>m.type==='out').reduce((s,m)=>s+Number(m.amount),0);
   if(mFilter==='in') mm=mm.filter(m=>m.type==='in');
@@ -370,7 +392,7 @@ function viewMovimientos(){
   if(!mm.length) return h+`<div class="card empty">Sin movimientos este mes.</div>`;
   h+=`<div class="card">`;
   mm.forEach(m=>{ h+=`<div class="mv"><div class="dot ${m.type==='in'?'in-dot':'out-dot'}">${m.type==='in'?'↓':'↑'}</div>
-    <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(m.label)}</div><div class="hint" style="margin:0">${fmtD(m.date)}${m.note?' · '+esc(m.note):''}</div></div>
+    <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(m.label)}</div><div class="hint" style="margin:0">${fmtD(m.date)}${m.forMonth&&m.forMonth!==m.date.slice(0,7)?' · cuenta para '+esc(mesNombre(m.forMonth)):''}${m.note?' · '+esc(m.note):''}</div></div>
     <div style="font-weight:600" class="${m.type==='in'?'pos':'neg'}">${m.type==='in'?'+':'−'}${fmt(m.amount)}</div>
     <button class="iconbtn" style="width:30px;height:30px" data-delmove="${m.id}" aria-label="Eliminar">×</button></div>`; });
   return h+`</div>`;
@@ -492,13 +514,14 @@ function providerForm(id){
   ${id?`<div class="hint" style="margin:-6px 0 12px">Suma del coste de sus líneas activas en este periodo: <b>${fmt(lc)}</b> <button class="btn sm ghost" id="useSum">Usar</button></div>`:''}
   <div class="f"><label>Próximo día de pago</label><input id="next" type="date" value="${esc(p.next)}"></div>
   <div class="f"><label>Notas</label><textarea id="notes" rows="2">${esc(p.notes)}</textarea></div>
+  <div class="f"><label><input type="checkbox" id="adel" ${p.adelantado!==false?'checked':''} style="width:auto;margin-right:6px">Pago por adelantado: lo que pago cuenta para el mes siguiente</label><div class="hint">Ej.: lo que pagas el 24 de noviembre cuenta en diciembre (beneficio, pagos y resumen).</div></div>
   <div class="f"><label><input type="checkbox" id="active" ${p.active!==false?'checked':''} style="width:auto;margin-right:6px">Proveedor activo</label></div>
   <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn" id="ok">Guardar</button></div>`,
   r=>{ const us=r.querySelector('#useSum'); if(us) us.onclick=()=>{ r.querySelector('#amount').value=lc.toFixed(2); };
     r.querySelector('#ok').onclick=()=>{
       const name=val(r,'name'); if(!name){ toast('Pon el nombre del proveedor'); return; }
       const nx=val(r,'next');
-      save({...p,id:id||uid('p'),kind:'provider',name,contact:val(r,'contact'),amount:num(r,'amount'),freq:Number(val(r,'freq')),next:nx,day:nx?parseD(nx).getDate():null,notes:val(r,'notes'),active:r.querySelector('#active').checked,created:p.created||Date.now()});
+      save({...p,id:id||uid('p'),kind:'provider',name,contact:val(r,'contact'),amount:num(r,'amount'),freq:Number(val(r,'freq')),next:nx,day:nx?parseD(nx).getDate():null,notes:val(r,'notes'),adelantado:r.querySelector('#adel').checked,active:r.querySelector('#active').checked,created:p.created||Date.now()});
       closeModal(); toast(id?'Proveedor actualizado':'Proveedor añadido'); };
   });
 }
@@ -540,6 +563,7 @@ function payForm(id){
     <div class="f"><label>Importe (€)</label><input id="amount" inputmode="decimal" value="${isC?(x.price??''):(x.amount??'')}"></div>
     <div class="f"><label>Fecha</label><input id="date" type="date" value="${todayStr()}"></div>
   </div>
+  ${isC?'':`<div class="f"><label>Cuenta para el mes de</label><input id="fm" type="month" value="${x.adelantado!==false?nextMonthOf(todayStr()):todayStr().slice(0,7)}"><div class="hint">Para el resumen, el beneficio y los movimientos de ese mes.</div></div>`}
   <div class="f"><label>Nota (opcional)</label><input id="note" placeholder="${isC?'Bizum, efectivo, transferencia…':'Método de pago…'}"></div>
   <div class="f"><label><input type="checkbox" id="adv" checked style="width:auto;margin-right:6px">Pasar ${isC?'el próximo cobro':'el próximo pago'} al <b>${fmtD(newNext)}</b></label></div>
   ${isC?`<div class="f" id="shortWrap" style="display:none"><label><input type="checkbox" id="addDebt" checked style="width:auto;margin-right:6px">Paga menos: sumar lo que falta (<b id="shortAmt"></b>) a lo que debe</label></div>`:''}
@@ -553,7 +577,8 @@ function payForm(id){
       const adv=r.querySelector('#adv').checked && newNext;
       const mid=uid('m');
       const sh=short(); const debtAdded=(isC&&sh>0&&r.querySelector('#addDebt').checked)?sh:0;
-      save({id:mid,kind:'move',type:isC?'in':'out',ref:id,label:(isC?'Cobro · ':'Pago · ')+x.name,amount,date,note:val(r,'note'),created:Date.now(),
+      const fmEl=r.querySelector('#fm'); const forMonth=fmEl&&fmEl.value?fmEl.value:undefined;
+      save({id:mid,kind:'move',type:isC?'in':'out',ref:id,label:(isC?'Cobro · ':'Pago · ')+x.name,amount,date,note:val(r,'note'),created:Date.now(),forMonth,
         prevNext:x.next||'', newNext:adv?newNext:'', debtAdded});
       if(adv||debtAdded) save({...x, next:adv?newNext:x.next, debt:r2(debtOf(x)+debtAdded)});
       closeModal(); actionToast((isC?'Cobro registrado · ':'Pago registrado · ')+x.name,'Deshacer',()=>{ undoMove(mid); toast('Anulado'); }); };
@@ -585,10 +610,12 @@ function moveForm(){
   <div class="f"><label>Tipo</label><select id="type"><option value="out">Gasto / pago</option><option value="in">Ingreso / cobro</option></select></div>
   <div class="f"><label>Concepto *</label><input id="label" placeholder="Ej.: créditos extra, panel, alta nueva…"></div>
   <div class="f2"><div class="f"><label>Importe (€)</label><input id="amount" inputmode="decimal"></div><div class="f"><label>Fecha</label><input id="date" type="date" value="${todayStr()}"></div></div>
+  <div class="f"><label>Cuenta para el mes de</label><input id="fm" type="month" value="${todayStr().slice(0,7)}"></div>
   <div class="f"><label>Nota</label><input id="note"></div>
   <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn" id="ok">Guardar</button></div>`,
   r=>{ r.querySelector('#ok').onclick=()=>{ const label=val(r,'label'); if(!label){ toast('Pon un concepto'); return; }
-      save({id:uid('m'),kind:'move',type:val(r,'type'),ref:'',label,amount:num(r,'amount'),date:val(r,'date')||todayStr(),note:val(r,'note'),created:Date.now()});
+      const dt=val(r,'date')||todayStr(), fm=val(r,'fm');
+      save({id:uid('m'),kind:'move',type:val(r,'type'),ref:'',label,amount:num(r,'amount'),date:dt,note:val(r,'note'),created:Date.now(),forMonth:fm&&fm!==dt.slice(0,7)?fm:undefined});
       closeModal(); toast('Movimiento guardado'); }; });
 }
 
