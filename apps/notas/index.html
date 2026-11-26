@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nota de Trabajo - Fontanería Jumianje</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2pdf Library for Direct PDF Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#D4AF37',
+                            500: '#C5A028',
+                            600: '#A38118',
+                        },
+                        slate: {
+                            850: '#151f32',
+                            900: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        brand: ['Cinzel', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .metallic-text {
+            background: linear-gradient(135deg, #f3e7e1 0%, #d4af37 40%, #aa7c11 70%, #fef1c9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
+        }
+        .logo-glow {
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.2);
+        }
+        
+        /* Estilos limpios y directos para renderizado en PDF */
+        .pdf-render-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 800px;
+            z-index: -9999;
+            opacity: 0;
+            pointer-events: none;
+            background: #ffffff;
+        }
+
+        #pdf-container-clean {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111827;
+            background: #ffffff;
+            width: 750px;
+            padding: 35px;
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
+        #pdf-container-clean table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        #pdf-container-clean th {
+            border-bottom: 2px solid #d4af37;
+            text-align: left;
+            padding: 8px 4px;
+            font-size: 12px;
+            color: #4b5563;
+            text-transform: uppercase;
+        }
+        #pdf-container-clean td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 4px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8 font-sans">
+
+    <div id="main-app" class="max-w-4xl mx-auto space-y-6">
+
+        <!-- Header / Logo Integration Area -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center relative overflow-hidden logo-glow">
+            <div class="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/10 pointer-events-none"></div>
+            
+            <!-- Branding Container -->
+            <div class="inline-flex flex-col items-center justify-center space-y-2">
+                <!-- Subtitle Top -->
+                <span class="font-brand text-xl sm:text-2xl md:text-3xl font-extrabold tracking-[0.25em] text-amber-400 uppercase drop-shadow">
+                    FONTANERÍA
+                </span>
+                
+                <!-- Center Emblem Logo -->
+                <div class="relative group my-1">
+                    <div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-2 border-amber-500/40 p-1 flex items-center justify-center bg-slate-900/80 shadow-inner overflow-hidden">
+                        <img id="logo-img" 
+                             src="203089_3.jpg" 
+                             alt="Logo Fontanería Jumianje" 
+                             class="w-full h-full object-contain rounded-full shadow-md">
+                    </div>
+                </div>
+
+                <!-- Subtitle Bottom -->
+                <span class="font-brand text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-widest metallic-text uppercase">
+                    JUMIANJE
+                </span>
+            </div>
+
+            <p class="mt-2 text-xs text-slate-400 font-medium">Nota de Trabajo / Presupuesto de Servicio</p>
+        </div>
+
+        <!-- Barra de trabajos guardados -->
+        <div class="flex flex-wrap gap-3 no-print">
+            <button type="button" onclick="openHistory()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-folder-open"></i> Mis trabajos <span id="jobs-count" class="bg-amber-500 text-slate-950 text-xs font-extrabold rounded-full px-2 py-0.5">0</span>
+            </button>
+            <button type="button" onclick="newJob()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-file-circle-plus"></i> Nuevo trabajo
+            </button>
+        </div>
+        <p id="editing-label" class="hidden text-xs text-amber-400 text-center -mt-3"></p>
+
+        <!-- Form & Invoice Container -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl p-6 sm:p-8 print-card">
+            
+            <!-- Metadata & Date -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-700 pb-4 mb-6 gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice text-amber-400"></i> NOTA DE TRABAJO
+                    </h2>
+                    <p class="text-xs text-slate-400">Rellene los datos de la intervención</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label class="text-sm font-medium text-slate-300">Fecha:</label>
+                    <input type="date" id="work-date" class="bg-slate-900 border border-slate-700 text-amber-400 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none w-full sm:w-auto">
+                </div>
+            </div>
+
+            <!-- Client Section -->
+            <div class="mb-8">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-user text-xs"></i> Datos del Cliente
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">Nombre completo / Empresa</label>
+                        <input type="text" id="client-name" placeholder="Ej: Juan Pérez" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">Teléfono de contacto</label>
+                        <input type="tel" id="client-phone" placeholder="Ej: 612345678" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">Dirección del trabajo</label>
+                        <input type="text" id="client-address" placeholder="Ej: Calle Mayor 12, 2ºA" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Concepts Section -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <i class="fa-solid fa-wrench text-xs"></i> Conceptos y Trabajos Realizados
+                    </h3>
+                    <button type="button" onclick="addConceptRow()" class="no-print bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus"></i> Añadir Concepto
+                    </button>
+                </div>
+
+                <!-- Concept Rows Header -->
+                <div class="hidden sm:grid grid-cols-12 gap-3 pb-2 text-xs font-semibold text-slate-400 uppercase border-b border-slate-700">
+                    <div class="col-span-8">Descripción del trabajo / Material</div>
+                    <div class="col-span-3 text-right">Subtotal (€)</div>
+                    <div class="col-span-1 text-center no-print">Acción</div>
+                </div>
+
+                <!-- Container for Rows -->
+                <div id="concepts-container" class="space-y-3 mt-3">
+                    <!-- Dynamic Rows Will Go Here -->
+                </div>
+            </div>
+
+            <!-- Total Calculation Section -->
+            <div class="border-t border-slate-700 pt-4 flex flex-col items-end">
+                <div class="w-full sm:w-72 space-y-2 bg-slate-900/60 p-4 rounded-xl border border-slate-700/80">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Suma Conceptos:</span>
+                        <span id="subtotal-sum" class="font-medium text-white">0.00 €</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                        <span class="text-lg font-bold text-amber-400">TOTAL:</span>
+                        <span id="total-amount" class="text-xl font-extrabold text-amber-400">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <label class="mt-8 flex items-center gap-2 text-sm text-slate-300 no-print cursor-pointer">
+                <input type="checkbox" id="autosave-pdf" class="w-4 h-4 accent-amber-500" onchange="savePref()">
+                Guardar también una copia del PDF en el móvil al enviar
+            </label>
+            <div class="mt-4 border-t border-slate-700 pt-6 flex flex-wrap justify-end gap-3 no-print">
+                <button type="button" onclick="saveJob()" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar trabajo
+                </button>
+                <button type="button" onclick="openPDFPreview()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg">
+                    <i class="fa-solid fa-file-pdf"></i> Previsualizar / PDF
+                </button>
+                <button type="button" onclick="sendWhatsApp()" class="btn-send-pdf w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg hover:shadow-emerald-600/30 flex items-center justify-center gap-2 transition">
+                    <i class="fa-brands fa-whatsapp text-xl"></i> Enviar PDF por WhatsApp
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-slate-500 no-print">
+            <p>Fontanería Jumianje &copy; <span id="year"></span> - Todos los derechos reservados.</p>
+        </footer>
+
+    </div>
+
+    <!-- Modal Previsualización Documento PDF -->
+    <div id="preview-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
+        <div class="bg-white text-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full p-6 sm:p-10 relative border border-slate-200">
+            <!-- Modal Header Actions -->
+            <div class="flex flex-wrap justify-between items-center pb-4 mb-6 border-b border-slate-200 gap-3 no-print">
+                <button type="button" onclick="closePDFPreview()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-arrow-left"></i> Volver a la página principal
+                </button>
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-eye text-amber-600"></i> Vista Previa de Nota de Trabajo
+                </h3>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="shareOrSendPDF()" class="btn-send-pdf bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition shadow">
+                        <i class="fa-brands fa-whatsapp text-sm"></i> Enviar PDF (WhatsApp / Compartir)
+                    </button>
+                    <button type="button" onclick="downloadPDF()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition shadow">
+                        <i class="fa-solid fa-download"></i> Descargar PDF Directo
+                    </button>
+                    <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-print"></i> Imprimir
+                    </button>
+                    <button type="button" onclick="closePDFPreview()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PDF Content Sheet -->
+            <div id="pdf-content" class="space-y-6">
+                <!-- Branding Header PDF -->
+                <div class="text-center border-b-2 border-amber-500/30 pb-4">
+                    <span class="font-brand text-xl font-bold tracking-[0.2em] text-amber-600 uppercase block">
+                        FONTANERÍA
+                    </span>
+                    <div class="my-2 inline-block">
+                        <div class="w-24 h-24 rounded-full border border-amber-500/40 p-1 mx-auto flex items-center justify-center bg-slate-900/10">
+                            <img id="modal-logo-img" src="203089_3.jpg" alt="Logo Fontanería Jumianje" class="w-full h-full object-contain rounded-full">
+                        </div>
+                    </div>
+                    <span class="font-brand text-2xl font-extrabold tracking-widest text-slate-900 uppercase block">
+                        JUMIANJE
+                    </span>
+                    <p class="text-xs text-slate-500 font-medium mt-1">Servicios de Fontanería e Instalaciones</p>
+                </div>
+
+                <!-- Info Header PDF -->
+                <div class="flex justify-between items-start text-sm">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-base">NOTA DE TRABAJO</h4>
+                        <p class="text-slate-500 text-xs" id="pdf-doc-date">Fecha: --/--/----</p>
+                    </div>
+                </div>
+
+                <!-- Client Details Box -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 text-sm">
+                    <p class="text-xs uppercase font-semibold text-amber-700">Cliente:</p>
+                    <p class="font-bold text-slate-800" id="pdf-client-name">----------------</p>
+                    <p class="text-slate-600 text-xs" id="pdf-client-phone">Teléfono: -</p>
+                    <p class="text-slate-600 text-xs" id="pdf-client-address">Dirección: -</p>
+                </div>
+
+                <!-- Concepts Table PDF -->
+                <div>
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-slate-200 text-xs text-slate-500 uppercase">
+                                <th class="py-2">Descripción del trabajo / Material</th>
+                                <th class="py-2 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdf-concepts-list" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total PDF -->
+                <div class="flex justify-end pt-4 border-t border-slate-200">
+                    <div class="text-right space-y-1">
+                        <span class="text-xs text-slate-500 font-medium uppercase block">Total a Pagar</span>
+                        <span id="pdf-total-amount" class="text-2xl font-extrabold text-amber-600">0.00 €</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor optimizado para renderizar PDF de forma limpia y directa -->
+    <div class="pdf-render-wrapper">
+        <div id="pdf-container-clean">
+            <div style="text-align: center; border-bottom: 2px solid #d4af37; padding-bottom: 12px; margin-bottom: 15px;">
+                <div style="font-size: 16px; font-weight: bold; letter-spacing: 2px; color: #b45309;">FONTANERÍA</div>
+                
+                <!-- Logo limpio optimizado para exportación PDF -->
+                <div style="width: 80px; height: 80px; margin: 8px auto; border: 1px solid #d4af37; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center; background-color: #fcfcfc;">
+                    <img id="clean-pdf-logo-img" src="203089_3.jpg" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;" alt="Logo">
+                </div>
+
+                <div style="font-size: 22px; font-weight: 800; letter-spacing: 3px; color: #111827; margin: 4px 0;">JUMIANJE</div>
+                <div style="font-size: 11px; color: #6b7280;">Servicios de Fontanería e Instalaciones</div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong style="font-size: 14px; color: #111827;">NOTA DE TRABAJO</strong><br>
+                <span id="clean-pdf-date" style="font-size: 11px; color: #6b7280;">Fecha: --/--/----</span>
+            </div>
+
+            <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                <div style="font-size: 10px; font-weight: bold; color: #b45309; text-transform: uppercase; margin-bottom: 4px;">DATOS DEL CLIENTE</div>
+                <div id="clean-pdf-client-name" style="font-size: 14px; font-weight: bold; color: #111827;">-</div>
+                <div id="clean-pdf-client-phone" style="font-size: 12px; color: #4b5563;">Teléfono: -</div>
+                <div id="clean-pdf-client-address" style="font-size: 12px; color: #4b5563;">Dirección: -</div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 75%;">Descripción del trabajo / Material</th>
+                            <th style="width: 25%; text-align: right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clean-pdf-concepts-list">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="text-align: right; border-top: 2px solid #e5e7eb; padding-top: 10px;">
+                <span style="font-size: 11px; color: #6b7280; text-transform: uppercase;">Total a Pagar</span><br>
+                <span id="clean-pdf-total" style="font-size: 22px; font-weight: bold; color: #b45309;">0.00 €</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Mis trabajos -->
+    <div id="history-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full mx-auto p-5 sm:p-6">
+            <button type="button" onclick="closeHistory()" class="w-full mb-4 bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-arrow-left"></i> Volver a la página principal
+            </button>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-folder-open text-amber-400"></i> Mis trabajos</h3>
+                <button type="button" onclick="closeHistory()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <input type="search" id="history-search" oninput="renderHistory()" placeholder="Buscar por cliente, teléfono, dirección o trabajo..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none mb-3">
+            <div id="history-summary" class="text-xs text-slate-400 mb-3"></div>
+            <div id="history-list" class="space-y-3"></div>
+            <div class="mt-6 pt-4 border-t border-slate-700">
+                <p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-shield-halved text-amber-400"></i> Haz una copia de vez en cuando por si cambias de móvil o borras los datos del navegador.</p>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="exportBackup()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2"><i class="fa-solid fa-download"></i> Guardar copia en archivo</button>
+                    <button type="button" onclick="document.getElementById('import-file').click()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2"><i class="fa-solid fa-upload"></i> Recuperar copia</button>
+                    <input type="file" id="import-file" accept=".json,application/json" class="hidden" onchange="importBackup(event)">
+                </div>
+            </div>
+            <button type="button" onclick="closeHistory()" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-arrow-left"></i> Volver a la página principal
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-2xl z-[70]"></div>
+
+    <!-- Aviso: PDF listo para enviar -->
+    <div id="share-ready-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <i class="fa-solid fa-file-pdf text-4xl text-amber-400 mb-3"></i>
+            <h3 class="text-lg font-bold text-white mb-1">PDF listo</h3>
+            <p id="share-ready-name" class="text-xs text-slate-400 mb-5 break-all"></p>
+            <button type="button" onclick="sharePendingFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition">
+                <i class="fa-brands fa-whatsapp text-xl"></i> Enviar por WhatsApp
+            </button>
+            <button type="button" onclick="hideShareReady()" class="mt-3 text-sm text-slate-400 hover:text-slate-200">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Set Default Date to Today
+        document.getElementById('work-date').valueAsDate = new Date();
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Clear, readable & elegant SVG Monogram Logo Fallback
+        const svgLogoFallback = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+            <defs>
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="%23FFF2C6"/>
+                    <stop offset="30%" stop-color="%23E2B743"/>
+                    <stop offset="70%" stop-color="%23C59419"/>
+                    <stop offset="100%" stop-color="%237E5806"/>
+                </linearGradient>
+                <linearGradient id="goldDarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="%23C59419"/>
+                    <stop offset="100%" stop-color="%233A2701"/>
+                </linearGradient>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="%23000000" flood-opacity="0.6"/>
+                </filter>
+            </defs>
+            <g filter="url(%23shadow)">
+                <circle cx="250" cy="225" r="170" fill="none" stroke="url(%23goldGrad)" stroke-width="8"/>
+                <circle cx="250" cy="225" r="158" fill="none" stroke="url(%23goldDarkGrad)" stroke-width="2.5" opacity="0.8"/>
+                <path d="M 250 375 C 230 405 230 440 250 455 C 270 440 270 405 250 375 Z" fill="url(%23goldGrad)" stroke="%233A2701" stroke-width="2"/>
+                <g stroke="%233A2701" stroke-width="1.5" stroke-linejoin="round">
+                    <path d="M 85 140 L 125 140 L 125 245 C 125 285 85 285 70 255 C 65 240 80 230 90 240 C 100 250 90 262 84 262 C 82 262 106 266 106 245 L 106 160 L 85 160 Z" fill="url(%23goldGrad)"/>
+                    <path d="M 135 140 L 160 140 L 195 215 L 225 150 L 250 150 L 250 285 L 225 285 L 225 190 L 195 255 L 160 190 L 160 285 L 135 285 Z" fill="url(%23goldGrad)"/>
+                    <path d="M 265 285 L 305 140 L 330 140 L 370 285 L 342 285 L 328 230 L 282 230 L 272 285 Z M 290 200 L 320 200 L 305 152 Z" fill="url(%23goldGrad)"/>
+                    <path d="M 380 140 L 420 140 L 420 245 C 420 285 380 285 365 255 C 360 240 375 230 385 240 C 395 250 385 262 379 262 C 377 262 401 266 401 245 L 401 160 L 380 160 Z" fill="url(%23goldGrad)"/>
+                </g>
+            </g>
+        </svg>`;
+
+        // Logo Loader Setup
+        function setupLogoFallback() {
+            const mainImg = document.getElementById('logo-img');
+            const modalImg = document.getElementById('modal-logo-img');
+            const cleanPdfLogoImg = document.getElementById('clean-pdf-logo-img');
+            
+            if (mainImg) {
+                mainImg.onerror = function() { this.src = svgLogoFallback; };
+            }
+            if (modalImg) {
+                modalImg.onerror = function() { this.src = svgLogoFallback; };
+            }
+            if (cleanPdfLogoImg) {
+                cleanPdfLogoImg.onerror = function() { this.src = svgLogoFallback; };
+            }
+        }
+        setupLogoFallback();
+
+        // Row Counter
+        let rowCount = 0;
+
+        // Add Concept Row
+        function addConceptRow(desc = '', price = '') {
+            rowCount++;
+            const container = document.getElementById('concepts-container');
+            const rowDiv = document.createElement('div');
+            rowDiv.id = `concept-row-${rowCount}`;
+            rowDiv.className = 'grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-900/50 p-3 sm:p-2 rounded-xl border border-slate-700/60 transition';
+            rowDiv.innerHTML = `
+                <div class="sm:col-span-8">
+                    <label class="block sm:hidden text-xs text-slate-400 mb-1 font-medium">Descripción</label>
+                    <input type="text" placeholder="Ej: Cambio de grifo monomando en cocina" oninput="calculateTotal()" class="concept-desc w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+                <div class="sm:col-span-3 flex items-center gap-2">
+                    <label class="block sm:hidden text-xs text-slate-400 font-medium">Subtotal (€)</label>
+                    <input type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" oninput="calculateTotal()" class="concept-price w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-amber-400 font-bold text-right focus:ring-2 focus:ring-amber-500 outline-none">
+                    <span class="text-slate-400 text-sm hidden sm:inline">€</span>
+                </div>
+                <div class="sm:col-span-1 text-center flex justify-end sm:justify-center">
+                    <button type="button" onclick="removeConceptRow(${rowCount})" class="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 p-2 rounded-lg transition" title="Eliminar fila">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `;
+            rowDiv.querySelector('.concept-desc').value = desc;
+            rowDiv.querySelector('.concept-price').value = price;
+            container.appendChild(rowDiv);
+            calculateTotal();
+        }
+
+        // Remove Row
+        function removeConceptRow(id) {
+            const row = document.getElementById(`concept-row-${id}`);
+            if (row) {
+                row.remove();
+                calculateTotal();
+            }
+        }
+
+        // Calculate Total
+        function calculateTotal() {
+            const priceInputs = document.querySelectorAll('.concept-price');
+            let total = 0;
+            priceInputs.forEach(input => {
+                const val = parseFloat(input.value);
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+
+            const formattedTotal = total.toFixed(2) + ' €';
+            document.getElementById('subtotal-sum').textContent = formattedTotal;
+            document.getElementById('total-amount').textContent = formattedTotal;
+            if (typeof saveDraft === 'function') saveDraft();
+            return total;
+        }
+
+        // ===== Fecha sin desfase de zona horaria =====
+        function formatDate(dateInput) {
+            if (!dateInput) return '--/--/----';
+            const [y, m, d] = dateInput.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        // ===== Rellena los datos del PDF (vista previa + contenedor limpio) =====
+        function fillPDFData() {
+            const name = document.getElementById('client-name').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
+            const address = document.getElementById('client-address').value.trim();
+            const formattedDate = formatDate(document.getElementById('work-date').value);
+
+            // Muestra la línea solo si hay dato; si está vacío, no aparece nada en el PDF
+            function setLine(id, value, prefix) {
+                const el = document.getElementById(id);
+                el.textContent = value ? prefix + value : '';
+                el.style.display = value ? '' : 'none';
+            }
+
+            document.getElementById('pdf-doc-date').textContent = `Fecha: ${formattedDate}`;
+            setLine('pdf-client-name', name, '');
+            setLine('pdf-client-phone', phone, 'Teléfono: ');
+            setLine('pdf-client-address', address, 'Dirección: ');
+
+            document.getElementById('clean-pdf-date').textContent = `Fecha: ${formattedDate}`;
+            setLine('clean-pdf-client-name', name, '');
+            setLine('clean-pdf-client-phone', phone, 'Teléfono: ');
+            setLine('clean-pdf-client-address', address, 'Dirección: ');
+
+            const listContainer = document.getElementById('pdf-concepts-list');
+            const cleanListContainer = document.getElementById('clean-pdf-concepts-list');
+            listContainer.innerHTML = '';
+            cleanListContainer.innerHTML = '';
+
+            const rows = document.querySelectorAll('#concepts-container > div');
+            let total = 0;
+            let count = 0;
+
+            function addRow(container, desc, priceText, styled) {
+                const tr = document.createElement('tr');
+                const td1 = document.createElement('td');
+                const td2 = document.createElement('td');
+                td1.textContent = desc;
+                td2.textContent = priceText;
+                if (styled) {
+                    td1.style.cssText = 'padding: 8px 4px; border-bottom: 1px solid #e5e7eb;';
+                    td2.style.cssText = 'padding: 8px 4px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold;';
+                } else {
+                    td1.className = 'py-2 pr-2';
+                    td2.className = 'py-2 text-right font-medium text-slate-900';
+                }
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                container.appendChild(tr);
+            }
+
+            rows.forEach((row) => {
+                const desc = row.querySelector('.concept-desc').value.trim();
+                const price = parseFloat(row.querySelector('.concept-price').value) || 0;
+                if (desc || price > 0) {
+                    count++;
+                    addRow(listContainer, desc || 'Concepto sin descripción', `${price.toFixed(2)} €`, false);
+                    addRow(cleanListContainer, desc || 'Concepto sin descripción', `${price.toFixed(2)} €`, true);
+                    total += price;
+                }
+            });
+
+            if (count === 0) {
+                addRow(listContainer, 'No hay conceptos añadidos', '0.00 €', false);
+                addRow(cleanListContainer, 'No hay conceptos añadidos', '0.00 €', true);
+            }
+
+            const formattedTotal = total.toFixed(2) + ' €';
+            document.getElementById('pdf-total-amount').textContent = formattedTotal;
+            document.getElementById('clean-pdf-total').textContent = formattedTotal;
+            return count;
+        }
+
+        // ===== Abrir / cerrar vista previa =====
+        // ===== Ventanas (vista previa / mis trabajos) y botón "atrás" del móvil =====
+        const MODALS = ['preview-modal', 'history-modal'];
+
+        function showModal(id) {
+            MODALS.forEach(m => document.getElementById(m).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            try {
+                if (history.state && history.state.modal) history.replaceState({ modal: id }, '');
+                else history.pushState({ modal: id }, '');
+            } catch (e) {}
+        }
+
+        function hideAllModals() {
+            MODALS.forEach(m => document.getElementById(m).classList.add('hidden'));
+            document.body.style.overflow = '';
+        }
+
+        function closeModal() {
+            hideAllModals();
+            try { if (history.state && history.state.modal) history.back(); } catch (e) {}
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.addEventListener('popstate', hideAllModals);
+
+        function openPDFPreview() {
+            fillPDFData();
+            showModal('preview-modal');
+        }
+
+        function closePDFPreview() {
+            closeModal();
+        }
+
+        // ===== Nombre de archivo limpio =====
+        function getCleanFileName() {
+            const clientNameInput = document.getElementById('client-name').value.trim();
+            if (!clientNameInput) {
+                return 'Nota_Trabajo_Jumianje_Cliente.pdf';
+            }
+            const sanitizedName = clientNameInput
+                .normalize("NFD")
+                .replace(/[̀-ͯ]/g, "")
+                .replace(/[^a-zA-Z0-9\s]/g, "")
+                .trim()
+                .replace(/\s+/g, '_');
+            return `Nota_Trabajo_Jumianje_${sanitizedName || 'Cliente'}.pdf`;
+        }
+
+        // ===== Genera el PDF (A4) y devuelve un File =====
+        async function generatePDFFile() {
+            fillPDFData();
+            const wrapper = document.querySelector('.pdf-render-wrapper');
+            const element = document.getElementById('pdf-container-clean');
+            const fileName = getCleanFileName();
+
+            wrapper.style.opacity = '1';
+            wrapper.style.zIndex = '99999';
+
+            const opt = {
+                margin:       [8, 8, 8, 8],
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, logging: false, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            try {
+                const blob = await html2pdf().set(opt).from(element).output('blob');
+                return new File([blob], fileName, { type: 'application/pdf' });
+            } finally {
+                wrapper.style.opacity = '0';
+                wrapper.style.zIndex = '-9999';
+            }
+        }
+
+        // ===== Descargar el PDF =====
+        function saveFile(file) {
+            const blobUrl = URL.createObjectURL(file);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        }
+
+        async function downloadPDF() {
+            saveJob(true);
+            try {
+                saveFile(await generatePDFFile());
+            } catch (err) {
+                console.error("Error al descargar PDF:", err);
+                alert("No se pudo generar el PDF. Inténtalo de nuevo.");
+            }
+        }
+
+        // ===== Aviso para pulsar de nuevo (si el móvil bloquea el envío) =====
+        let pendingFile = null;
+
+        function showShareReady(file) {
+            pendingFile = file;
+            document.getElementById('share-ready-name').textContent = file.name;
+            document.getElementById('share-ready-modal').classList.remove('hidden');
+        }
+
+        function hideShareReady() {
+            document.getElementById('share-ready-modal').classList.add('hidden');
+        }
+
+        async function sharePendingFile() {
+            if (!pendingFile) return;
+            const file = pendingFile;
+            hideShareReady();
+            try {
+                await navigator.share({ files: [file] });
+                if (document.getElementById('autosave-pdf').checked) saveFile(file);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    saveFile(file);
+                }
+            }
+        }
+
+        // ===== Botón principal: genera el PDF y lo envía como ARCHIVO =====
+        let sending = false;
+
+        async function sendWhatsApp() {
+            if (sending) return;
+
+            const name = document.getElementById('client-name').value.trim();
+            const hasConcepts = Array.from(document.querySelectorAll('.concept-desc, .concept-price'))
+                .some(input => input.value.trim() !== '');
+
+            if (!name && !hasConcepts) {
+                alert("Por favor, introduce al menos el nombre del cliente o un concepto de trabajo antes de enviar.");
+                return;
+            }
+
+            saveJob(true);
+            sending = true;
+            const buttons = document.querySelectorAll('.btn-send-pdf');
+            const originalHTML = Array.from(buttons).map(b => b.innerHTML);
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando PDF...';
+            });
+
+            try {
+                const file = await generatePDFFile();
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        // Solo el archivo: así WhatsApp lo envía como documento PDF
+                        await navigator.share({ files: [file] });
+                        if (document.getElementById('autosave-pdf').checked) saveFile(file);
+                    } catch (err) {
+                        if (err.name === 'NotAllowedError') {
+                            // El móvil tardó en generar el PDF y pide otro toque
+                            showShareReady(file);
+                        } else if (err.name !== 'AbortError') {
+                            throw err;
+                        }
+                    }
+                } else {
+                    // Ordenador o navegador sin "Compartir": descarga + WhatsApp Web
+                    saveFile(file);
+                    alert("Este navegador no permite adjuntar archivos directamente.\n\nSe ha descargado el PDF: arrástralo al chat de WhatsApp que se abrirá ahora.");
+                    window.open('https://web.whatsapp.com/', '_blank');
+                }
+            } catch (err) {
+                console.error("Error al enviar PDF:", err);
+                alert("No se pudo generar el PDF. Inténtalo de nuevo.");
+            } finally {
+                buttons.forEach((b, i) => {
+                    b.disabled = false;
+                    b.innerHTML = originalHTML[i];
+                });
+                sending = false;
+            }
+        }
+
+        // El botón verde de la vista previa hace lo mismo
+        function shareOrSendPDF() {
+            return sendWhatsApp();
+        }
+
+        // ================= HISTORIAL DE TRABAJOS (guardado en el móvil) =================
+        const JOBS_KEY = 'jumianje_trabajos';
+        const DRAFT_KEY = 'jumianje_borrador';
+        const PREF_KEY = 'jumianje_guardar_pdf';
+        let currentJobId = null;
+        let restoring = false;
+
+        function storeGet(key, fallback) {
+            try {
+                const v = localStorage.getItem(key);
+                return v === null ? fallback : JSON.parse(v);
+            } catch (e) { return fallback; }
+        }
+        function storeSet(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+            catch (e) { console.error(e); return false; }
+        }
+        function storeRemove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+
+        function getJobs() { return storeGet(JOBS_KEY, []); }
+        function setJobs(jobs) {
+            const ok = storeSet(JOBS_KEY, jobs);
+            updateJobsCount();
+            return ok;
+        }
+        function updateJobsCount() {
+            document.getElementById('jobs-count').textContent = getJobs().length;
+        }
+
+        function showToast(msg, color) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${color || 'bg-emerald-600'} text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-2xl z-[70]`;
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => t.classList.add('hidden'), 2500);
+        }
+
+        function getFormData() {
+            const concepts = [];
+            document.querySelectorAll('#concepts-container > div').forEach(row => {
+                const desc = row.querySelector('.concept-desc').value.trim();
+                const price = row.querySelector('.concept-price').value;
+                if (desc || price) concepts.push({ desc, price });
+            });
+            const total = concepts.reduce((s, c) => s + (parseFloat(c.price) || 0), 0);
+            return {
+                date: document.getElementById('work-date').value,
+                name: document.getElementById('client-name').value.trim(),
+                phone: document.getElementById('client-phone').value.trim(),
+                address: document.getElementById('client-address').value.trim(),
+                concepts,
+                total
+            };
+        }
+
+        function setFormData(data) {
+            restoring = true;
+            document.getElementById('work-date').value = data.date || '';
+            document.getElementById('client-name').value = data.name || '';
+            document.getElementById('client-phone').value = data.phone || '';
+            document.getElementById('client-address').value = data.address || '';
+            document.getElementById('concepts-container').innerHTML = '';
+            (data.concepts && data.concepts.length ? data.concepts : [{ desc: '', price: '' }])
+                .forEach(c => addConceptRow(c.desc, c.price));
+            restoring = false;
+            calculateTotal();
+        }
+
+        function updateEditingLabel() {
+            const label = document.getElementById('editing-label');
+            const job = currentJobId && getJobs().find(j => j.id === currentJobId);
+            if (job) {
+                label.textContent = `Editando trabajo guardado: ${job.name || 'Sin nombre'} (${formatDate(job.date)})`;
+                label.classList.remove('hidden');
+            } else {
+                label.classList.add('hidden');
+            }
+        }
+
+        // Guarda (o actualiza) el trabajo actual en el historial
+        function saveJob(silent) {
+            const data = getFormData();
+            if (!data.name && data.concepts.length === 0) {
+                if (!silent) alert("Rellena al menos el nombre del cliente o un concepto para guardar el trabajo.");
+                return false;
+            }
+            const jobs = getJobs();
+            const now = new Date().toISOString();
+            const idx = currentJobId ? jobs.findIndex(j => j.id === currentJobId) : -1;
+            if (idx >= 0) {
+                jobs[idx] = { ...jobs[idx], ...data, updatedAt: now };
+            } else {
+                currentJobId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                jobs.push({ id: currentJobId, ...data, createdAt: now, updatedAt: now });
+            }
+            if (!setJobs(jobs)) {
+                alert("No se ha podido guardar en el móvil. Usa 'Guardar copia en archivo' en Mis trabajos.");
+                return false;
+            }
+            saveDraft();
+            updateEditingLabel();
+            showToast(idx >= 0 ? 'Trabajo actualizado ✔' : 'Trabajo guardado ✔');
+            return true;
+        }
+
+        // Borrador automático: lo que estás escribiendo no se pierde si cierras la página
+        function saveDraft() {
+            if (restoring) return;
+            storeSet(DRAFT_KEY, { jobId: currentJobId, data: getFormData() });
+        }
+
+        function newJob() {
+            const data = getFormData();
+            const hasContent = data.name || data.phone || data.address || data.concepts.length;
+            if (hasContent && !currentJobId && !confirm("Este trabajo no está guardado. ¿Empezar uno nuevo igualmente?\n\n(Pulsa Cancelar y luego 'Guardar trabajo' si quieres conservarlo.)")) return;
+            currentJobId = null;
+            const today = new Date();
+            setFormData({ date: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}` });
+            storeRemove(DRAFT_KEY);
+            updateEditingLabel();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openHistory() {
+            document.getElementById('history-search').value = '';
+            renderHistory();
+            showModal('history-modal');
+        }
+        function closeHistory() {
+            closeModal();
+        }
+
+        function renderHistory() {
+            const q = document.getElementById('history-search').value.trim().toLowerCase();
+            const all = getJobs().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+            const jobs = all.filter(j => !q || [j.name, j.phone, j.address, ...(j.concepts || []).map(c => c.desc)]
+                .join(' ').toLowerCase().includes(q));
+
+            const sum = jobs.reduce((s, j) => s + (j.total || 0), 0);
+            document.getElementById('history-summary').textContent =
+                `${jobs.length} trabajo${jobs.length === 1 ? '' : 's'} · Total: ${sum.toFixed(2)} €`;
+
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            if (jobs.length === 0) {
+                list.innerHTML = '<p class="text-sm text-slate-500 text-center py-8">No hay trabajos guardados todavía.</p>';
+                return;
+            }
+            jobs.forEach(job => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/70 border border-slate-700 rounded-xl p-4';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="min-w-0">
+                            <p class="font-bold text-white truncate job-name"></p>
+                            <p class="text-xs text-slate-400 job-meta"></p>
+                            <p class="text-xs text-slate-500 truncate job-concepts"></p>
+                        </div>
+                        <p class="text-amber-400 font-extrabold whitespace-nowrap job-total"></p>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button type="button" class="act-open flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 rounded-lg"><i class="fa-solid fa-pen"></i> Abrir</button>
+                        <button type="button" class="act-send flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg"><i class="fa-brands fa-whatsapp"></i> Enviar PDF</button>
+                        <button type="button" class="act-del bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-xs font-bold px-3 py-2 rounded-lg" title="Borrar"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>`;
+                card.querySelector('.job-name').textContent = job.name || 'Sin nombre';
+                card.querySelector('.job-meta').textContent = [formatDate(job.date), job.phone, job.address].filter(Boolean).join(' · ');
+                card.querySelector('.job-concepts').textContent = (job.concepts || []).map(c => c.desc).filter(Boolean).join(', ');
+                card.querySelector('.job-total').textContent = `${(job.total || 0).toFixed(2)} €`;
+                card.querySelector('.act-open').onclick = () => loadJob(job.id);
+                card.querySelector('.act-send').onclick = () => { loadJob(job.id); sendWhatsApp(); };
+                card.querySelector('.act-del').onclick = () => deleteJob(job.id);
+                list.appendChild(card);
+            });
+        }
+
+        function loadJob(id) {
+            const job = getJobs().find(j => j.id === id);
+            if (!job) return;
+            currentJobId = job.id;
+            setFormData(job);
+            saveDraft();
+            updateEditingLabel();
+            closeHistory();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteJob(id) {
+            const job = getJobs().find(j => j.id === id);
+            if (!job || !confirm(`¿Borrar el trabajo de "${job.name || 'Sin nombre'}"? No se puede deshacer.`)) return;
+            setJobs(getJobs().filter(j => j.id !== id));
+            if (currentJobId === id) { currentJobId = null; updateEditingLabel(); saveDraft(); }
+            renderHistory();
+            showToast('Trabajo borrado', 'bg-rose-600');
+        }
+
+        // Copia de seguridad en archivo
+        function exportBackup() {
+            const jobs = getJobs();
+            if (jobs.length === 0) { alert("No hay trabajos guardados todavía."); return; }
+            const d = new Date();
+            const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const file = new File([JSON.stringify({ app: 'jumianje', version: 1, exportedAt: d.toISOString(), jobs }, null, 2)],
+                `Copia_Trabajos_Jumianje_${stamp}.json`, { type: 'application/json' });
+            saveFile(file);
+            showToast('Copia guardada en Descargas ✔');
+        }
+
+        function importBackup(event) {
+            const f = event.target.files[0];
+            event.target.value = '';
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const parsed = JSON.parse(reader.result);
+                    const incoming = Array.isArray(parsed) ? parsed : parsed.jobs;
+                    if (!Array.isArray(incoming)) throw new Error('Formato no válido');
+                    const jobs = getJobs();
+                    let added = 0;
+                    incoming.forEach(j => {
+                        if (!j || !j.id) return;
+                        const i = jobs.findIndex(x => x.id === j.id);
+                        if (i === -1) { jobs.push(j); added++; }
+                        else if ((j.updatedAt || '') > (jobs[i].updatedAt || '')) jobs[i] = j;
+                    });
+                    setJobs(jobs);
+                    renderHistory();
+                    showToast(`Copia recuperada: ${added} trabajo${added === 1 ? '' : 's'} nuevo${added === 1 ? '' : 's'} ✔`);
+                } catch (e) {
+                    alert("Ese archivo no es una copia válida de trabajos.");
+                }
+            };
+            reader.readAsText(f);
+        }
+
+        function savePref() {
+            storeSet(PREF_KEY, document.getElementById('autosave-pdf').checked);
+        }
+
+        // Restaurar una copia desde la app (atajo "Restaurar copia")
+        window.restaurarCopiaApp = function (text) {
+            const f = new File([text], 'copia.json', { type: 'application/json' });
+            importBackup({ target: { files: [f], value: '' } });
+        };
+
+        // Guardar borrador al escribir en cualquier campo
+        document.getElementById('main-app').addEventListener('input', saveDraft);
+
+        // Al abrir la página: recuperar preferencias y el último borrador
+        (function initStorage() {
+            document.getElementById('autosave-pdf').checked = storeGet(PREF_KEY, true);
+            updateJobsCount();
+            const draft = storeGet(DRAFT_KEY, null);
+            if (draft && draft.data) {
+                currentJobId = draft.jobId && getJobs().some(j => j.id === draft.jobId) ? draft.jobId : null;
+                setFormData(draft.data);
+                if (!draft.data.date) document.getElementById('work-date').valueAsDate = new Date();
+            } else {
+                addConceptRow();
+            }
+            updateEditingLabel();
+        })();
+
+    </script>
+</body>
+</html>
