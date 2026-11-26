@@ -124,6 +124,11 @@
       <button class="btn btn-sec" style="flex:1" id="btnRecuperar">📂 Recuperar copia</button>
     </div>
     <input type="file" id="fCopia" accept=".json,application/json,text/plain" style="display:none">
+    <button class="btn btn-sec" style="width:100%;margin-top:8px" id="btnPegar">📋 Pegar texto de una copia</button>
+    <div id="zonaPegar" style="display:none;margin-top:8px">
+      <textarea id="txtCopia" rows="5" placeholder="Pega aquí el texto de la copia" style="width:100%;box-sizing:border-box;border:1px solid var(--linea);border-radius:10px;padding:10px;font-size:13px;font-family:inherit"></textarea>
+      <button class="btn btn-prim" style="width:100%;margin-top:8px" id="btnPegarOk">Recuperar desde el texto</button>
+    </div>
   </div>
 </main>
 
@@ -472,6 +477,18 @@
     toast('Copia recuperada: '+nuevos+' trabajo'+(nuevos===1?'':'s')+' nuevo'+(nuevos===1?'':'s'));
   }
   window.restaurarCopiaApp = recuperarDe;
+  $('#btnPegar').onclick=async()=>{
+    const z=$('#zonaPegar'); z.style.display = z.style.display==='none' ? 'block' : 'none';
+    if(z.style.display==='block'){
+      try{ const t=await navigator.clipboard.readText(); if(t && t.trim().length>2) $('#txtCopia').value=t; }catch(e){}
+      $('#txtCopia').focus();
+    }
+  };
+  $('#btnPegarOk').onclick=()=>{
+    const t=$('#txtCopia').value.trim();
+    if(!t){ toast('Pega primero el texto'); return; }
+    recuperarDe(t).then(()=>{ $('#txtCopia').value=''; $('#zonaPegar').style.display='none'; });
+  };
   iniciar();
 })();
 </script>
