@@ -67,6 +67,8 @@ import java.nio.charset.StandardCharsets;
  * WhatsApp, ubicación, imprimir, pantalla completa).
  */
 public class MainActivity extends Activity {
+    private Object extra;
+
 
     private static final int REQ_FILE = 10, REQ_LOC = 11, REQ_RESTORE = 12, REQ_STORAGE = 13;
     private static final String ACT_RESTORE = "com.juanmi.apps.RESTAURAR", ACT_BACKUP = "com.juanmi.apps.COPIA";
@@ -109,6 +111,12 @@ public class MainActivity extends Activity {
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         web.addJavascriptInterface(new Bridge(), "AndroidApp");
+        // Extras propios de una app (por ejemplo, Salud en Juanmi Booster), si existen en su variante
+        try {
+            Class<?> k = Class.forName("com.juanmi.apps.Salud");
+            extra = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, web);
+            web.addJavascriptInterface(extra, "Salud");
+        } catch (Throwable ignored) { extra = null; }
         web.setWebViewClient(new Client());
         web.setWebChromeClient(new Chrome());
         web.setDownloadListener((url, ua, cd, mime, len) -> {
@@ -554,6 +562,9 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
         super.onRequestPermissionsResult(code, perms, res);
+        if (extra != null) {
+            try { extra.getClass().getMethod("permisosResultado", int.class).invoke(extra, code); } catch (Throwable ignored) {}
+        }
         if (code == REQ_LOC && geoCallback != null) {
             boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
             geoCallback.invoke(geoOrigin, ok, false);

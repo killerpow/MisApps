@@ -49,7 +49,7 @@ jobs:
           for f in salida/*.apk; do
             id=$(basename "$f" .apk)
             # "Huella" de todo lo que forma la app: si no cambia, no se publica versión nueva
-            h=$(find "apps/$id" "app/src/$id/res" app/src/main app/build.gradle -type f | sort | xargs sha256sum | sha256sum | cut -c1-16)
+            h=$(find "apps/$id" "app/src/$id" app/src/main app/build.gradle -type f | sort | xargs sha256sum | sha256sum | cut -c1-16)
             tag=$(gh release list --limit 300 --json tagName,name -q ".[] | select(.name | startswith(\"$id v\")) | .tagName" | head -1)
             old=""
             if [ -n "$tag" ]; then old=$(gh release view "$tag" --json body -q .body | grep -o 'huella: [0-9a-f]*' | cut -d' ' -f2); fi
