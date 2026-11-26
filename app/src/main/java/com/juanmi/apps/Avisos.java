@@ -48,7 +48,9 @@ public class Avisos extends BroadcastReceiver {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
         PendingIntent pi = pending(c, id, title, text);
-        if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
+        boolean exacta = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
+        if (Build.VERSION.SDK_INT >= 23 && exacta) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
+        else if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, when, pi);
         else am.set(AlarmManager.RTC_WAKEUP, when, pi);
     }
 
