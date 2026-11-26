@@ -64,6 +64,11 @@ textarea:focus{background:rgba(92,191,162,.08)}
 .notes.done textarea{text-decoration:line-through;text-decoration-thickness:2px;color:#9a9890}
 .nchk{border:1.5px solid var(--accent);background:#fff;color:var(--accent);border-radius:12px;font-size:11px;font-weight:700;padding:1px 8px;margin-left:8px;cursor:pointer}
 .notes.done .nchk{background:var(--green);border-color:var(--green);color:#fff}
+.clr{flex:none;display:none;border:0;background:none;width:32px;height:37px;font-size:17px;color:#b0aea6;padding:0;cursor:pointer}
+.row.has .clr{display:block}
+.notes{position:relative}
+.notes .clr{position:absolute;right:4px;top:0;height:26px}
+.notes.has .clr{display:block}
 .bell{flex:none;border:0;background:none;width:34px;height:37px;font-size:16px;opacity:.28;filter:grayscale(1);padding:0}
 .bell.on{opacity:1;filter:none}
 .rembtn{display:block;width:100%;margin-top:12px;border:1.5px dashed var(--cover);background:transparent;color:var(--cover);border-radius:10px;padding:11px;font-weight:600;font-size:15px}
@@ -324,9 +329,9 @@ function dayBlock(s){
   const nowH=new Date().getHours();
   for(let hr=S.hFrom; hr<=S.hTo; hr++){
     const txt=(data.h||{})[hr]||"", dn=!!(data.d||{})[hr];
-    h+=`<div class="row${s===t&&hr===nowH?" now":""}${txt.trim()?" has":""}${dn&&txt.trim()?" done":""}"><span class="hr">${hr}</span><button class="chk" data-done="${s}|${hr}" aria-label="Hecho">${dn?"✓":""}</button><textarea rows="1" data-d="${s}" data-h="${hr}" aria-label="${hr}:00">${esc((data.h||{})[hr]||"")}</textarea>${(data.r||{})[hr]?`<button class="bell on" data-bell="${s}|${hr}" aria-label="Recordatorio">🔔</button>`:""}</div>`;
+    h+=`<div class="row${s===t&&hr===nowH?" now":""}${txt.trim()?" has":""}${dn&&txt.trim()?" done":""}"><span class="hr">${hr}</span><button class="chk" data-done="${s}|${hr}" aria-label="Hecho">${dn?"✓":""}</button><textarea rows="1" data-d="${s}" data-h="${hr}" aria-label="${hr}:00">${esc((data.h||{})[hr]||"")}</textarea><button class="clr" data-clr="${s}|${hr}" aria-label="Borrar">✕</button>${(data.r||{})[hr]?`<button class="bell on" data-bell="${s}|${hr}" aria-label="Recordatorio">🔔</button>`:""}</div>`;
   }
-  h+=`</div><div class="notes${(data.d||{}).n&&(data.n||"").trim()?" done":""}"><label>Notas${(data.n||"").trim()?`<button class="nchk" data-done="${s}|n">${(data.d||{}).n?"✓ Hecho":"Marcar hecho"}</button>`:""}${(data.r||{}).n?' <span data-bell="'+s+'|n" style="cursor:pointer">🔔</span>':""}</label><textarea data-d="${s}" data-n="1" aria-label="Notas">${esc(data.n||"")}</textarea></div>
+  h+=`</div><div class="notes${(data.d||{}).n&&(data.n||"").trim()?" done":""}${(data.n||"").trim()?" has":""}"><button class="clr" data-clr="${s}|n" aria-label="Borrar">✕</button><label>Notas${(data.n||"").trim()?`<button class="nchk" data-done="${s}|n">${(data.d||{}).n?"✓ Hecho":"Marcar hecho"}</button>`:""}${(data.r||{}).n?' <span data-bell="'+s+'|n" style="cursor:pointer">🔔</span>':""}</label><textarea data-d="${s}" data-n="1" aria-label="Notas">${esc(data.n||"")}</textarea></div>
   <button class="rembtn" data-remday="${s}">🔔 Poner un recordatorio</button></section>`;
   return h;
 }
@@ -358,11 +363,20 @@ $("page").addEventListener("input",e=>{
   const mk=mkey(s); S.ts[mk]=Date.now(); saveLocal(); queueSave(mk);
   if(t.dataset.n){const nb=t.closest(".notes"),lab=nb.querySelector("label");let k=lab.querySelector(".nchk");
     if(t.value.trim()&&!k){k=document.createElement("button");k.className="nchk";k.dataset.done=s+"|n";k.textContent=(o.d||{}).n?"✓ Hecho":"Marcar hecho";lab.insertBefore(k,lab.childNodes[1]||null)}
-    if(!t.value.trim()&&k){k.remove();nb.classList.remove("done")}}
+    if(!t.value.trim()&&k){k.remove();nb.classList.remove("done")}nb.classList.toggle("has",!!t.value.trim())}
   if(!t.dataset.n){const row=t.closest(".row");if(row){row.classList.toggle("has",!!t.value.trim());if(!t.value.trim())row.classList.remove("done")}}
   const cell=$("page").querySelector('.mini [data-go="'+s+'"]'); if(cell) cell.classList.toggle("has",hasContent(s));
 });
 $("page").addEventListener("click",e=>{const g=e.target.closest("[data-go]"); if(g) goDate(g.dataset.go)});
+$("page").addEventListener("click",e=>{const b=e.target.closest("[data-clr]");if(!b)return;e.preventDefault();e.stopPropagation();
+  const [d,h]=b.dataset.clr.split("|");const txt=remText(d,h);if(!txt)return;
+  if(!confirm("¿Borrar esto?\n\n"+txt.slice(0,80)))return;
+  const o=S.days[d]=cloneDay(S.days[d]);
+  if(h==="n")o.n="";else delete o.h[h];
+  ["r","d","rc"].forEach(k=>{if(o[k]){delete o[k][h];if(!Object.keys(o[k]).length)delete o[k]}});
+  if(!hasContent(d)&&!o.r&&!o.rc)delete S.days[d];
+  const mk=mkey(d);S.ts[mk]=Date.now();saveLocal();queueSave(mk);
+  const y=window.scrollY;render(0);window.scrollTo(0,y);toast("Borrado")},true);
 $("bPrev").onclick=()=>go(cur-1,-1); $("bNext").onclick=()=>go(cur+1,1);
 $("bToday").onclick=()=>goDate(todayIso());
 
