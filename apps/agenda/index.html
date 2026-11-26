@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Agenda 2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cover:#0f6b6e; --cover-2:#0b5558; --accent:#e2372f;
+  --paper:#fdfcf8; --green:#22a45d; --line:#e3e1d9; --ink:#2b2b2b; --muted:#8b8a85; --bg:#efede6;
+}
+body.menta{ --cover:#5cbfa2; --cover-2:#44a487; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* Top bar (cover) */
+.cover{position:sticky;top:0;z-index:10;background:var(--cover);color:#fff;
+  padding:10px 12px 10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.cover-row{display:flex;align-items:center;gap:6px}
+.brand{font-family:Montserrat,sans-serif;font-weight:800;font-size:20px;letter-spacing:.5px;flex:1;
+  background:linear-gradient(180deg,#fff,#cfd8d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ib{background:rgba(255,255,255,.14);border:0;border-radius:10px;height:38px;min-width:38px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0 10px;font-size:14px;font-weight:600}
+.ib:active{background:rgba(255,255,255,.28)}
+.ib svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.status{font-size:11px;opacity:.8;margin-top:4px;min-height:14px}
+
+/* Page */
+main{max-width:640px;margin:0 auto;padding:12px 10px 40px}
+.page{background:var(--paper);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.06);
+  padding:14px 14px 18px;position:relative;overflow:hidden}
+.page::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(90deg,rgba(0,0,0,.06),transparent)}
+.anim-l{animation:inL .22s ease-out}.anim-r{animation:inR .22s ease-out}
+@keyframes inL{from{transform:translateX(30px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes inR{from{transform:translateX(-30px);opacity:.3}to{transform:none;opacity:1}}
+
+.day + .day{margin-top:22px;padding-top:16px;border-top:2px solid var(--line)}
+.dhead{display:flex;align-items:flex-end;gap:10px;padding-bottom:8px;border-bottom:1.5px solid var(--ink)}
+.big{font-family:Montserrat,sans-serif;font-weight:800;font-size:44px;line-height:.9;letter-spacing:-1px}
+.sun .big{color:var(--accent)}
+.hol .big{background:var(--accent);color:#fff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:34px;letter-spacing:-1px;flex:none}
+.mw{line-height:1.15}
+.mon{font-family:Montserrat,sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;color:var(--accent)}
+.wd{font-family:Montserrat,sans-serif;font-weight:700;font-size:17px}
+.meta{margin-left:auto;text-align:right;font-size:11px;color:var(--muted);line-height:1.4}
+.meta .santo{color:var(--ink);font-style:italic;font-size:12px}
+.meta .fest{color:var(--accent);font-weight:600;font-size:12px}
+.today-tag{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px}
+
+.hours{margin-top:2px}
+.row{display:flex;align-items:flex-start;border-bottom:1px solid var(--line);min-height:38px}
+.hr{width:30px;flex:none;font-size:11px;color:var(--muted);padding-top:11px;font-weight:600}
+textarea{flex:1;border:0;background:transparent;resize:none;font:15.5px/22px Inter,system-ui,sans-serif;color:var(--ink);
+  padding:8px 2px;min-height:37px;outline:none;overflow:hidden;width:100%}
+textarea:focus{background:rgba(92,191,162,.08)}
+.row.now .hr{color:var(--accent)}
+.chk{flex:none;display:none;width:26px;height:26px;margin:6px 6px 0 0;border-radius:50%;border:2px solid #c9c7bf;background:#fff;padding:0;color:#fff;font-size:15px;font-weight:800;line-height:22px;text-align:center}
+.row.has .chk{display:block}
+.row.done .chk{background:var(--green);border-color:var(--green)}
+.row.done textarea{text-decoration:line-through;text-decoration-thickness:2px;color:#9a9890}
+.notes.done textarea{text-decoration:line-through;text-decoration-thickness:2px;color:#9a9890}
+.nchk{border:1.5px solid var(--accent);background:#fff;color:var(--accent);border-radius:12px;font-size:11px;font-weight:700;padding:1px 8px;margin-left:8px;cursor:pointer}
+.notes.done .nchk{background:var(--green);border-color:var(--green);color:#fff}
+.bell{flex:none;border:0;background:none;width:34px;height:37px;font-size:16px;opacity:.28;filter:grayscale(1);padding:0}
+.bell.on{opacity:1;filter:none}
+.rembtn{display:block;width:100%;margin-top:12px;border:1.5px dashed var(--cover);background:transparent;color:var(--cover);border-radius:10px;padding:11px;font-weight:600;font-size:15px}
+.remlist button{display:flex;width:100%;text-align:left;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;margin-bottom:8px;font-size:15px}
+.remlist .hh{flex:none;width:44px;font-weight:700;color:var(--cover);font-family:Montserrat,sans-serif;font-size:13px}
+.remlist .tx{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.remlist .st{flex:none;font-size:12px;color:var(--green);font-weight:600}
+.remcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.remcard b{font-family:Montserrat,sans-serif}
+a.rbtn{display:block;text-decoration:none;text-align:center;background:var(--cover);color:#fff;border-radius:12px;padding:13px;font-weight:600;margin:8px 0;font-size:15px}
+a.rbtn.done{background:var(--green)}
+.alarm{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:center;justify-content:center;padding:20px}
+.alarm.open{display:flex}
+.alarm .box{background:var(--paper);border-radius:16px;padding:20px;max-width:360px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.alarm .ic{font-size:44px;animation:ring 1s ease-in-out infinite}
+@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(-15deg)}75%{transform:rotate(15deg)}}
+.alarm h3{font-family:Montserrat,sans-serif;margin:8px 0 4px}
+.alarm p{margin:4px 0 14px;font-size:16px}
+.notes{margin-top:14px;border:1.5px solid var(--accent);border-radius:4px;padding:4px 8px 2px}
+.notes label{font-family:Montserrat,sans-serif;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.5px}
+.notes textarea{min-height:66px;background:repeating-linear-gradient(transparent 0 21px,var(--line) 21px 22px);background-position:0 8px;padding-top:8px}
+
+.minis{display:flex;gap:14px;margin-top:16px;justify-content:center}
+.mini{font-size:10px;width:150px}
+.mini h4{margin:0 0 4px;font-family:Montserrat,sans-serif;font-size:10px;letter-spacing:1px;color:var(--accent);text-align:center}
+.mini .g{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center}
+.mini .g span{display:flex;align-items:center;justify-content:center;height:20px;width:20px;margin:1px auto;border-radius:50%;font-size:10px}
+.mini .g .h{font-weight:700;color:var(--muted)}
+.mini .g .d{cursor:pointer}
+.mini .g .d.red{color:var(--accent)}
+.mini .g .d.tdy{background:#fff1b8;font-weight:700}
+.mini .g .d.cur{font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px}
+.mini .g .d.has{box-shadow:inset 0 0 0 2px var(--green)}
+.mini .g .d.fest{background:var(--accent);color:#fff;font-weight:700}
+.mini .g .d.fest.has{box-shadow:0 0 0 2px var(--green)}
+.leg{display:flex;gap:14px;justify-content:center;font-size:11px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+
+/* Sheets */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--paper);border-radius:16px 16px 0 0;
+  max-height:86vh;overflow:auto;padding:14px 14px 24px;display:none;max-width:640px;margin:0 auto}
+.sheet.open,.sheet-bg.open{display:block}
+.sheet h3{font-family:Montserrat,sans-serif;margin:4px 0 12px;font-size:17px;display:flex;align-items:center}
+.sheet h3 .x{margin-left:auto;border:0;background:var(--bg);border-radius:8px;width:32px;height:32px;font-size:18px}
+.months{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.months button{flex:none;border:1px solid var(--line);background:#fff;border-radius:18px;padding:6px 12px;font-size:13px}
+.months button.on{background:var(--cover);color:#fff;border-color:var(--cover)}
+.bigcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.bigcal .h{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0}
+.bigcal .c{aspect-ratio:1;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-weight:600;font-size:15px;position:relative}
+.bigcal .c.red{color:var(--accent)}
+.bigcal .c.fest{background:var(--accent);color:#fff;border-color:var(--accent);border-radius:50%}
+.bigcal .c.has{box-shadow:inset 0 0 0 3px var(--green)}
+.bigcal .c.fest.has{box-shadow:0 0 0 3px var(--green)}
+.flist{margin-top:14px}
+.flist h4{font-family:Montserrat,sans-serif;font-size:13px;margin:0 0 6px}
+.flist div{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
+.flist .n{background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:700}
+.flist small{color:var(--muted);display:block}
+.bigcal .c.tdy{background:#fff1b8}
+.bigcal .c.out{opacity:.3;pointer-events:none}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+.search{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.res{margin-top:10px}
+.res button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:10px 4px}
+.res b{font-family:Montserrat,sans-serif;font-size:13px}
+.res small{display:block;color:var(--muted);font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+mark{background:#ffe08a}
+.opt{margin:14px 0}
+.opt label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:14px}
+.seg button.on{border-color:var(--cover);box-shadow:inset 0 0 0 1px var(--cover);font-weight:600}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+select{font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#fff}
+.btn{border:0;background:var(--cover);color:#fff;border-radius:10px;padding:10px 14px;font-weight:600;font-size:14px}
+.btn.ghost{background:var(--bg);color:var(--ink)}
+.small{font-size:12px;color:var(--muted);line-height:1.5}
+#imp{width:100%;min-height:80px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;padding:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header class="cover">
+  <div class="cover-row">
+    <div class="brand" id="brand">2027</div>
+    <button class="ib" id="bPrev" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="ib" id="bToday">Hoy</button>
+    <button class="ib" id="bNext" aria-label="Siguiente"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    <button class="ib" id="bCal" aria-label="Calendario"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+    <button class="ib" id="bSearch" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+    <button class="ib" id="bSet" aria-label="Ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <div class="status" id="status">Cargando…</div>
+</header>
+
+<main><div class="page" id="page"></div></main>
+
+<div class="sheet-bg" id="bg"></div>
+
+<div class="sheet" id="shCal">
+  <h3>Ir a un día <button class="x" data-close>×</button></h3>
+  <div class="months" id="monthTabs"></div>
+  <div class="bigcal" id="bigcal"></div>
+  <div class="leg"><span><i style="background:var(--accent)"></i>Festivo</span><span><i style="box-shadow:inset 0 0 0 2px var(--green)"></i>Con cosas escritas</span><span><i style="background:#fff1b8"></i>Hoy</span></div>
+  <div class="flist" id="flist"></div>
+  <div style="margin-top:12px"><button class="btn ghost" id="bLab">Ver el calendario laboral completo</button></div>
+  <div class="flist" id="flall" style="display:none"></div>
+  <div class="small" style="margin-top:10px">Calendario laboral de Andalucía (Decreto 84/2026, BOJA) y fiestas locales de Almería capital.</div>
+</div>
+
+<div class="sheet" id="shSearch">
+  <h3>Buscar en la agenda <button class="x" data-close>×</button></h3>
+  <input class="search" id="q" placeholder="Escribe una palabra…" autocomplete="off">
+  <div class="res" id="res"></div>
+</div>
+
+<div class="sheet" id="shSet">
+  <h3>Ajustes <button class="x" data-close>×</button></h3>
+  <div class="opt"><label>Color de la tapa</label>
+    <div class="seg" id="segTheme">
+      <button data-t="petroleo"><span class="sw" style="background:#0f6b6e"></span>Petróleo</button>
+      <button data-t="menta"><span class="sw" style="background:#5cbfa2"></span>Menta</button>
+    </div></div>
+  <div class="opt"><label>Horario de cada página</label>
+    de <select id="hFrom"></select> a <select id="hTo"></select>
+  </div>
+  <div class="opt"><label>Copia de seguridad</label>
+    <div class="small" style="margin-bottom:8px">Tus notas se guardan solas en este móvil. Si desinstalas la app o borras sus datos, se pierden: haz una copia de vez en cuando y guárdala en Drive o envíatela por WhatsApp. Para recuperarla, elige ese archivo abajo.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="bDl" style="display:none">Guardar copia en el móvil</button>
+    <button class="btn ghost" id="bCopy">Copiar como texto</button></div>
+    <textarea id="bkTxt" readonly style="display:none;width:100%;min-height:70px;margin-top:8px;border:1px solid var(--line);border-radius:8px;font-size:12px;padding:8px;background:#fff"></textarea>
+    <div class="small" id="bkHelp" style="display:none;margin-top:6px">Ya está copiada. Abre WhatsApp (por ejemplo, un chat contigo mismo) o una nota, mantén pulsado y elige <b>Pegar</b>. Para recuperarla, pega ese texto en "Restaurar una copia".</div>
+  </div>
+  <div class="opt"><label>Restaurar una copia</label>
+    <div style="margin-bottom:8px"><label class="btn ghost" style="display:inline-block">Elegir archivo de copia…<input type="file" id="fImp" accept=".json,application/json,text/plain" style="display:none"></label></div>
+    <textarea id="imp" placeholder="…o pega aquí el texto de la copia"></textarea>
+    <div style="margin-top:8px"><button class="btn ghost" id="bImp">Restaurar</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="shRem">
+  <h3>Poner un recordatorio <button class="x" data-close>×</button></h3>
+  <div id="remPick"><div class="small" id="remDay" style="margin-bottom:10px"></div><div class="remlist" id="remList"></div></div>
+  <div id="remDetail" style="display:none">
+  <button class="btn ghost" id="remBack" style="margin-bottom:10px">← Elegir otra nota</button>
+  <div class="remcard" id="remInfo"></div>
+  <a class="rbtn" id="rb1" href="#" target="_blank" rel="noopener">🌙 Avisarme la víspera a las 20:00</a>
+  <a class="rbtn" id="rb2" href="#" target="_blank" rel="noopener">☀️ Avisarme ese día a las 07:00</a>
+  <div class="small" style="margin-top:8px">Cada botón abre Google Calendar con el aviso ya rellenado: solo tienes que pulsar <b>Guardar</b> y volver a la agenda para el segundo. Calendar te avisará aunque la agenda esté cerrada.<br><br>
+  <b>Solo la primera vez:</b> en Google Calendar → Ajustes → (tu cuenta) → Notificaciones de eventos, pon <b>"En el momento del evento"</b>, para que suene justo a las 20:00 y a las 07:00.<br><br>
+  Además, si tienes la agenda abierta a esas horas, te saldrá un aviso en pantalla.</div>
+  <div style="margin-top:12px"><button class="btn ghost" id="rbOff">Quitar este recordatorio</button></div>
+  </div>
+</div>
+<div class="alarm" id="alarm"><div class="box"><div class="ic">🔔</div><h3 id="alT"></h3><p id="alM"></p><button class="btn" id="alOk">Entendido</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+// ---------- Calendar basics ----------
+const START = new Date(2026,10,1), END = new Date(2027,11,31);
+const MESES=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+const MESES_c=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const fromIso=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const mkey=s=>s.slice(0,7);
+
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+  h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+  mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da)}
+function lastSunday(y,m){let d=new Date(y,m+1,0);while(d.getDay()!==0)d=addDays(d,-1);return d}
+// Calendario laboral: Andalucía + Almería capital (BOJA). Días festivos = círculo rojo relleno
+const FEST={}, FTYPE={}, INFO={};
+[["2026-12-07","Día de la Constitución (trasladado del domingo 6)","nacional"],
+ ["2026-12-08","Inmaculada Concepción","nacional"],
+ ["2026-12-25","Natividad del Señor","nacional"],
+ ["2027-01-01","Año Nuevo","nacional"],
+ ["2027-01-06","Epifanía del Señor","nacional"],
+ ["2027-03-01","Día de Andalucía (trasladado del domingo 28 feb)","Andalucía"],
+ ["2027-03-25","Jueves Santo","Andalucía"],
+ ["2027-03-26","Viernes Santo","nacional"],
+ ["2027-05-01","Fiesta del Trabajo","nacional"],
+ ["2027-06-24","San Juan","local Almería"],
+ ["2027-08-16","Asunción de la Virgen (trasladada del domingo 15)","nacional"],
+ ["2027-08-28","Virgen del Mar, patrona de Almería","local Almería"],
+ ["2027-10-12","Fiesta Nacional de España","nacional"],
+ ["2027-11-01","Todos los Santos","nacional"],
+ ["2027-12-06","Día de la Constitución","nacional"],
+ ["2027-12-08","Inmaculada Concepción","nacional"],
+ ["2027-12-25","Natividad del Señor","nacional"]
+].forEach(([d,n,t])=>{FEST[d]=n;FTYPE[d]=t});
+(function(){const e=easter(2027);
+  const add=(d,n)=>INFO[d]=(INFO[d]?INFO[d]+" · ":"")+n;
+  add("2026-12-06","Día de la Constitución (en Andalucía se libra el lunes 7)");
+  add("2027-02-28","Día de Andalucía (se libra el lunes 1 de marzo)");
+  add("2027-08-15","Asunción (se libra el lunes 16)");
+  add(iso(addDays(e,-7)),"Domingo de Ramos"); add(iso(e),"Domingo de Pascua");
+  [["2026-12-24","Nochebuena"],["2026-12-31","Nochevieja"],["2027-01-05","Noche de Reyes"],["2027-02-14","San Valentín"],
+   ["2027-12-24","Nochebuena"],["2027-12-31","Nochevieja"]].forEach(([d,n])=>add(d,n));
+  add(iso(lastSunday(2027,2)),"Cambio de hora: +1 h"); add(iso(lastSunday(2027,9)),"Cambio de hora: −1 h");
+})();
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-day);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y0)/864e5+1)/7)}
+function dayOfYear(d){return Math.round((d-new Date(d.getFullYear(),0,1))/864e5)+1}
+function daysInYear(y){return (y%4===0&&y%100!==0)||y%400===0?366:365}
+
+const SANTOS={"01-01": "Jesús", "01-02": "Basilio", "01-03": "Genoveva", "01-04": "Aquilino", "01-05": "Telesforo", "01-06": "Reyes", "01-07": "Raimundo", "01-08": "Luciano", "01-09": "Eulogio", "01-10": "Agatón", "01-11": "Higinio", "01-12": "Nazario", "01-13": "Hilario", "01-14": "Benita", "01-15": "Macario", "01-16": "Fulgencio", "01-17": "Antonio", "01-18": "Beatriz", "01-19": "Mario", "01-20": "Sebastián", "01-21": "Inés", "01-22": "Anastasio", "01-23": "Ildefonso", "01-24": "Francisco", "01-25": "Elvira", "01-26": "Paula", "01-27": "Ángela", "01-28": "Julián", "01-29": "Valero", "01-30": "Martina", "01-31": "Marcela", "02-01": "Cecilio", "02-02": "Candelaria", "02-03": "Blas", "02-04": "Donato", "02-05": "Águeda", "02-06": "Dorotea", "02-07": "Moisés", "02-08": "Teodoro", "02-09": "Apolonia", "02-10": "Sotera", "02-11": "Lourdes", "02-12": "Eulalia", "02-13": "Gilberto", "02-14": "Valentín", "02-15": "Severo", "02-16": "Onésimo", "02-17": "Alejo", "02-18": "Simeón", "02-19": "Gabino", "02-20": "Eleuterio", "02-21": "Damián", "02-22": "Leonor", "02-23": "Marta", "02-24": "Sergio", "02-25": "Cesáreo", "02-26": "Néstor", "02-27": "Honorio", "02-28": "Rufino", "03-01": "León", "03-02": "Heraclio", "03-03": "Marino", "03-04": "Cirilo", "03-05": "Adrián", "03-06": "Olegario", "03-07": "Felicidad", "03-08": "Juan de Dios", "03-09": "Francisca", "03-10": "Cayo", "03-11": "Eutimio", "03-12": "Maximiliano", "03-13": "Rodrigo", "03-14": "Matilde", "03-15": "Luisa", "03-16": "Agapito", "03-17": "Patricio", "03-18": "Salvador", "03-19": "José", "03-20": "Eufemia", "03-21": "Filemón", "03-22": "Deogracias", "03-23": "Toribio", "03-24": "Berta", "03-25": "Dimas", "03-26": "Dolores", "03-27": "Lázaro", "03-28": "Doroteo", "03-29": "Jonás", "03-30": "Quirino", "03-31": "Amadeo", "04-01": "Celso", "04-02": "Ricardo", "04-03": "Pancracio", "04-04": "Platón", "04-05": "Vicente", "04-06": "Timoteo", "04-07": "Epifanio", "04-08": "Jenaro", "04-09": "Demetrio", "04-10": "Ezequiel", "04-11": "Rocío", "04-12": "Víctor", "04-13": "Hermenegildo", "04-14": "Tiburcio", "04-15": "Anastasia", "04-16": "Calixto", "04-17": "Isidoro", "04-18": "Apolonio", "04-19": "Timón", "04-20": "Antonino", "04-21": "Anselmo", "04-22": "Lucio", "04-23": "Jorge", "04-24": "Fidel", "04-25": "Marcos", "04-26": "Engracia", "04-27": "Montserrat", "04-28": "Prudencio", "04-29": "Catalina", "04-30": "Pío", "05-01": "Amador", "05-02": "Araceli", "05-03": "Alejandro", "05-04": "Paulino", "05-05": "Agustín", "05-06": "Heliodoro", "05-07": "Flavio", "05-08": "Benedicto", "05-09": "Pacomio", "05-10": "Félix", "05-11": "Florencio", "05-12": "Nereo", "05-13": "Fátima", "05-14": "Matías", "05-15": "Isidro", "05-16": "Ascensión", "05-17": "Pascual", "05-18": "Gema", "05-19": "Ivo", "05-20": "Bernardino", "05-21": "Secundino", "05-22": "Rita", "05-23": "Desiderio", "05-24": "Susana", "05-25": "Ester", "05-26": "Felipe", "05-27": "Julio", "05-28": "Germán", "05-29": "Justo", "05-30": "Juana · Fernando", "05-31": "Visitación", "06-01": "Laura", "06-02": "Amelia", "06-03": "Claudio", "06-04": "Nicanor", "06-05": "Bonifacio", "06-06": "Norberto", "06-07": "Roberto", "06-08": "Guillermo", "06-09": "Efrén", "06-10": "Rosa", "06-11": "Bernabé", "06-12": "Magín", "06-13": "Antonio de Padua", "06-14": "Eliseo", "06-15": "Óscar", "06-16": "Iván", "06-17": "Serena", "06-18": "Ismael", "06-19": "Melisa", "06-20": "Eugenia", "06-21": "Luis", "06-22": "Ángel", "06-23": "Feli", "06-24": "Juan", "06-25": "Eva", "06-26": "Cristina", "06-27": "Socorro", "06-28": "Alicia", "06-29": "Pedro · Pablo", "06-30": "Pablo", "07-01": "María", "07-02": "Humberto", "07-03": "Carlota · Tomás", "07-04": "Anabel", "07-05": "Begoña", "07-06": "Isaías", "07-07": "Fermín", "07-08": "Edgar", "07-09": "Gerardo", "07-10": "Cristóbal", "07-11": "Nuria · Benito", "07-12": "Sofía", "07-13": "Sara", "07-14": "Camilo", "07-15": "Buenaventura", "07-16": "Carmen", "07-17": "Raquel", "07-18": "Federico", "07-19": "Gerardo", "07-20": "Irene", "07-21": "Lara", "07-22": "Magdalena", "07-23": "Brígida", "07-24": "Cristina", "07-25": "Santiago", "07-26": "Ana · Joaquín", "07-27": "Alberto", "07-28": "Nazario", "07-29": "Marta", "07-30": "Álvaro", "07-31": "Ignacio", "08-01": "Alfonso", "08-02": "Eusebio", "08-03": "Lydia", "08-04": "Juan María Vianney", "08-05": "Osvaldo", "08-06": "Abel", "08-07": "Cayetano", "08-08": "Domingo", "08-09": "Justo", "08-10": "Lorenzo", "08-11": "Clara", "08-12": "Laura", "08-13": "Víctor", "08-14": "Alfredo", "08-15": "Asunción · María", "08-16": "Roque", "08-17": "Jacinto", "08-18": "Elena", "08-19": "Mariano", "08-20": "Bernardo", "08-21": "Pío X", "08-22": "Filiberto", "08-23": "Rosa de Lima", "08-24": "Bartolomé", "08-25": "Luis · José de Calasanz", "08-26": "César", "08-27": "Mónica", "08-28": "Agustín", "08-29": "Sabina", "08-30": "Rosa", "08-31": "Ramón", "09-01": "Arturo", "09-02": "Moisés", "09-03": "Gregorio", "09-04": "Irma", "09-05": "Victorino", "09-06": "Eva", "09-07": "Ángeles", "09-08": "Natividad de María", "09-09": "Pedro Claver", "09-10": "Rosalía", "09-11": "Eugenia", "09-12": "Leoncio", "09-13": "Juan Crisóstomo", "09-14": "Cruz", "09-15": "Dolores", "09-16": "Cornelio", "09-17": "Ariadna", "09-18": "Sofía", "09-19": "Jenaro", "09-20": "Amelia", "09-21": "Mateo", "09-22": "Jonás", "09-23": "Pío de Pietrelcina", "09-24": "Mercedes", "09-25": "Eugenio", "09-26": "Cosme · Damián", "09-27": "Vicente de Paúl", "09-28": "Lorenzo", "09-29": "Miguel · Gabriel · Rafael", "09-30": "Jerónimo", "10-01": "Teresa del Niño Jesús", "10-02": "Ángeles Custodios", "10-03": "Gerardo", "10-04": "Francisco de Asís", "10-05": "Flora", "10-06": "Bruno", "10-07": "Rosario", "10-08": "Brígida", "10-09": "Dionisio", "10-10": "Francisco de Borja", "10-11": "Soledad", "10-12": "Pilar", "10-13": "Eduardo", "10-14": "Calixto", "10-15": "Teresa", "10-16": "Florentino", "10-17": "Ignacio de Antioquía", "10-18": "Lucas", "10-19": "Laura", "10-20": "Irene", "10-21": "Úrsula", "10-22": "Juan Pablo II", "10-23": "Juan de Capistrano", "10-24": "Rafael", "10-25": "Florencio", "10-26": "Evaristo", "10-27": "Gustavo", "10-28": "Simón · Judas", "10-29": "Narciso", "10-30": "Marcelo", "10-31": "Alonso", "11-01": "Todos los Santos", "11-02": "Fieles Difuntos", "11-03": "Martín de Porres", "11-04": "Carlos", "11-05": "Isabel", "11-06": "Leonardo", "11-07": "Ernesto", "11-08": "Deodato", "11-09": "Almudena", "11-10": "León Magno", "11-11": "Martín", "11-12": "Aurelio", "11-13": "Leandro", "11-14": "Serapión", "11-15": "Alberto Magno", "11-16": "Margarita", "11-17": "Isabel de Hungría", "11-18": "Román", "11-19": "Crispín", "11-20": "Gregorio", "11-21": "Presentación de María", "11-22": "Cecilia", "11-23": "Clemente", "11-24": "Flora", "11-25": "Catalina", "11-26": "Milagros", "11-27": "Virgilio", "11-28": "Honesto", "11-29": "Saturnino", "11-30": "Andrés", "12-01": "Eloy", "12-02": "Eusebio", "12-03": "Francisco Javier", "12-04": "Bárbara", "12-05": "Dalmacio", "12-06": "Nicolás", "12-07": "Ambrosio", "12-08": "Inmaculada", "12-09": "Leocadia", "12-10": "Loreto · Eulalia", "12-11": "Dámaso · Daniel", "12-12": "Guadalupe", "12-13": "Lucía", "12-14": "Juan de la Cruz", "12-15": "Fortunato", "12-16": "Adelaida", "12-17": "Yolanda", "12-18": "Esperanza", "12-19": "Darío", "12-20": "Domingo de Silos", "12-21": "Tomás", "12-22": "Honorato", "12-23": "Victoria", "12-24": "Belén", "12-25": "Natividad", "12-26": "Esteban", "12-27": "Juan Evangelista", "12-28": "Santos Inocentes", "12-29": "David", "12-30": "Sagrada Familia", "12-31": "Silvestre"};
+// Pages: Mon–Fri one page each, Sat+Sun share a page
+const PAGES=[]; const PAGE_OF={};
+for(let d=new Date(START); d<=END; d=addDays(d,1)){
+  const w=d.getDay();
+  if(w===0 && PAGES.length && PAGES[PAGES.length-1].length===1 && fromIso(PAGES[PAGES.length-1][0]).getDay()===6){
+    PAGES[PAGES.length-1].push(iso(d));
+  } else PAGES.push([iso(d)]);
+  PAGE_OF[iso(d)]=PAGES.length-1;
+}
+
+// ---------- State ----------
+const LS="agenda2027_v1";
+let S={days:{},ts:{},theme:"petroleo",hFrom:8,hTo:21};
+try{const raw=localStorage.getItem(LS); if(raw){const o=JSON.parse(raw); S=Object.assign(S,o);}}catch(e){}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S));if(window.__noLS){window.__noLS=false}}catch(e){window.__noLS=true;var st=document.getElementById("status");if(st)st.textContent="⚠️ No se puede guardar en el móvil"}}
+function todayIso(){return iso(new Date())}
+function clampIso(s){if(s<iso(START))return iso(START);if(s>iso(END))return iso(END);return s}
+let cur = PAGE_OF[clampIso(todayIso())];
+
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function hasContent(d){const o=S.days[d];if(!o)return false;if(o.n&&o.n.trim())return true;for(const k in(o.h||{}))if(o.h[k]&&o.h[k].trim())return true;return false}
+
+// ---------- Render ----------
+function miniCal(y,m,sel){
+  const first=new Date(y,m,1), off=(first.getDay()+6)%7, n=new Date(y,m+1,0).getDate(), t=todayIso();
+  let h=`<div class="mini"><h4>${MESES[m]} ${y}</h4><div class="g">`;
+  "LMXJVSD".split("").forEach(c=>h+=`<span class="h">${c}</span>`);
+  for(let i=0;i<off;i++)h+="<span></span>";
+  for(let d=1;d<=n;d++){const dt=new Date(y,m,d),s=iso(dt),inR=dt>=START&&dt<=END;
+    const cls=["d"];if(dt.getDay()===0)cls.push("red");if(s===t)cls.push("tdy");if(sel.includes(s))cls.push("cur");if(hasContent(s))cls.push("has");if(FEST[s])cls.push("fest");
+    h+=`<span class="${cls.join(" ")}" ${inR?`data-go="${s}"`:""}>${d}</span>`}
+  return h+"</div></div>";
+}
+function dayBlock(s){
+  const d=fromIso(s), w=d.getDay(), t=todayIso(), data=S.days[s]||{h:{},n:""};
+  const fest=FEST[s], info=INFO[s], y=d.getFullYear(), doy=dayOfYear(d);
+  const cls=["day"]; if(w===0)cls.push("sun"); if(fest)cls.push("hol");
+  let h=`<section class="${cls.join(" ")}"><div class="dhead"><div class="big">${pad(d.getDate())}</div>
+   <div class="mw"><div class="mon">${MESES[d.getMonth()]} ${y}</div><div class="wd">${DIAS[w]}</div></div>
+   <div class="meta">${SANTOS[s.slice(5)]?`<span class="santo">${esc(SANTOS[s.slice(5)])}</span><br>`:""}${s===t?'<span class="today-tag">HOY</span><br>':""}${fest?`<span class="fest">● Festivo ${esc(FTYPE[s])}: ${esc(fest)}</span><br>`:""}${info?esc(info)+"<br>":""}Semana ${isoWeek(d)} · día ${doy} · quedan ${daysInYear(y)-doy}</div></div><div class="hours">`;
+  const nowH=new Date().getHours();
+  for(let hr=S.hFrom; hr<=S.hTo; hr++){
+    const txt=(data.h||{})[hr]||"", dn=!!(data.d||{})[hr];
+    h+=`<div class="row${s===t&&hr===nowH?" now":""}${txt.trim()?" has":""}${dn&&txt.trim()?" done":""}"><span class="hr">${hr}</span><button class="chk" data-done="${s}|${hr}" aria-label="Hecho">${dn?"✓":""}</button><textarea rows="1" data-d="${s}" data-h="${hr}" aria-label="${hr}:00">${esc((data.h||{})[hr]||"")}</textarea>${(data.r||{})[hr]?`<button class="bell on" data-bell="${s}|${hr}" aria-label="Recordatorio">🔔</button>`:""}</div>`;
+  }
+  h+=`</div><div class="notes${(data.d||{}).n&&(data.n||"").trim()?" done":""}"><label>Notas${(data.n||"").trim()?`<button class="nchk" data-done="${s}|n">${(data.d||{}).n?"✓ Hecho":"Marcar hecho"}</button>`:""}${(data.r||{}).n?' <span data-bell="'+s+'|n" style="cursor:pointer">🔔</span>':""}</label><textarea data-d="${s}" data-n="1" aria-label="Notas">${esc(data.n||"")}</textarea></div>
+  <button class="rembtn" data-remday="${s}">🔔 Poner un recordatorio</button></section>`;
+  return h;
+}
+function render(dir){
+  const pg=PAGES[cur], el=$("page");
+  const d0=fromIso(pg[0]); const y=d0.getFullYear(), m=d0.getMonth();
+  const ny=m===11?y+1:y, nm=(m+1)%12;
+  el.innerHTML=pg.map(dayBlock).join("")+`<div class="minis">${miniCal(y,m,pg)}${miniCal(ny,nm,pg)}</div><div class="leg"><span><i style="background:var(--accent)"></i>Festivo</span><span><i style="box-shadow:inset 0 0 0 2px var(--green)"></i>Con cosas escritas</span><span><i style="background:#fff1b8"></i>Hoy</span></div>`;
+  el.classList.remove("anim-l","anim-r"); if(dir){void el.offsetWidth; el.classList.add(dir>0?"anim-l":"anim-r");}
+  $("brand").textContent=y;
+  el.querySelectorAll("textarea").forEach(autosize);
+  $("bPrev").disabled=cur===0; $("bNext").disabled=cur===PAGES.length-1;
+}
+function autosize(t){t.style.height="auto";t.style.height=t.scrollHeight+"px"}
+function go(i,dir){i=Math.max(0,Math.min(PAGES.length-1,i)); if(i===cur&&!dir)return; const d=dir||(i>cur?1:-1); cur=i; render(d); window.scrollTo({top:0})}
+function goDate(s){cur=PAGE_OF[clampIso(s)];render(0);window.scrollTo({top:0})}
+
+// ---------- Editing ----------
+function cloneDay(prev){prev=prev||{};const o={h:Object.assign({},prev.h||{}),n:prev.n||""};
+  if(prev.r&&Object.keys(prev.r).length)o.r=Object.assign({},prev.r);
+  if(prev.d&&Object.keys(prev.d).length)o.d=Object.assign({},prev.d);return o}
+$("page").addEventListener("input",e=>{
+  const t=e.target; if(t.tagName!=="TEXTAREA")return; autosize(t);
+  const s=t.dataset.d;
+  const o=S.days[s]=cloneDay(S.days[s]); // always a fresh, editable copy
+  if(t.dataset.n) o.n=t.value; else { if(t.value) o.h[t.dataset.h]=t.value; else delete o.h[t.dataset.h]; }
+  if(!hasContent(s)) delete S.days[s];
+  const mk=mkey(s); S.ts[mk]=Date.now(); saveLocal(); queueSave(mk);
+  if(t.dataset.n){const nb=t.closest(".notes"),lab=nb.querySelector("label");let k=lab.querySelector(".nchk");
+    if(t.value.trim()&&!k){k=document.createElement("button");k.className="nchk";k.dataset.done=s+"|n";k.textContent=(o.d||{}).n?"✓ Hecho":"Marcar hecho";lab.insertBefore(k,lab.childNodes[1]||null)}
+    if(!t.value.trim()&&k){k.remove();nb.classList.remove("done")}}
+  if(!t.dataset.n){const row=t.closest(".row");if(row){row.classList.toggle("has",!!t.value.trim());if(!t.value.trim())row.classList.remove("done")}}
+  const cell=$("page").querySelector('.mini [data-go="'+s+'"]'); if(cell) cell.classList.toggle("has",hasContent(s));
+});
+$("page").addEventListener("click",e=>{const g=e.target.closest("[data-go]"); if(g) goDate(g.dataset.go)});
+$("bPrev").onclick=()=>go(cur-1,-1); $("bNext").onclick=()=>go(cur+1,1);
+$("bToday").onclick=()=>goDate(todayIso());
+
+// swipe
+let sx=0,sy=0,st=0;
+$("page").addEventListener("touchstart",e=>{const p=e.touches[0];sx=p.clientX;sy=p.clientY;st=Date.now()},{passive:true});
+$("page").addEventListener("touchend",e=>{const p=e.changedTouches[0],dx=p.clientX-sx,dy=p.clientY-sy;
+  if(Date.now()-st<600&&Math.abs(dx)>70&&Math.abs(dy)<60){ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur(); go(cur+(dx<0?1:-1),dx<0?1:-1);} },{passive:true});
+
+// ---------- Avisos ----------
+const fmtCal=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"T"+pad(d.getHours())+pad(d.getMinutes())+"00";
+function gcal(title,details,dt){const end=new Date(dt.getTime()+15*60000);
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(title)+"&dates="+fmtCal(dt)+"/"+fmtCal(end)+"&details="+encodeURIComponent(details)+"&ctz=Europe/Madrid"}
+function remTimes(d,h){const day=fromIso(d);return[new Date(day.getFullYear(),day.getMonth(),day.getDate()-1,20,0),new Date(day.getFullYear(),day.getMonth(),day.getDate(),7,0)]}
+let remCur=null;
+function setRem(d,h,on){const o=S.days[d]=cloneDay(S.days[d]);
+  const r=Object.assign({},o.r||{});if(on)r[h]=1;else delete r[h];if(Object.keys(r).length)o.r=r;else delete o.r;
+  if(!hasContent(d)&&!o.r)delete S.days[d];
+  const mk=mkey(d);S.ts[mk]=Date.now();saveLocal();queueSave(mk);
+  const y=window.scrollY;render(0);window.scrollTo(0,y)}
+function remText(d,h){const o=S.days[d]||{};return (h==="n"?(o.n||""):((o.h||{})[h]||"")).replace(/\s+/g," ").trim()}
+function fechaLarga(d){const dd=fromIso(d);return DIAS[dd.getDay()].toLowerCase()+" "+dd.getDate()+" de "+MESES_c[dd.getMonth()].toLowerCase()}
+function openRemDay(d){
+  const o=S.days[d]||{},items=[];
+  Object.keys(o.h||{}).sort((a,b)=>a-b).forEach(h=>{if(remText(d,h))items.push(h)});
+  if(remText(d,"n"))items.push("n");
+  $("remDay").textContent="Elige qué quieres que te recuerde del "+fechaLarga(d)+":";
+  $("remList").innerHTML=items.length?items.map(h=>`<button data-pick="${d}|${h}"><span class="hh">${h==="n"?"Notas":h+":00"}</span><span class="tx">${esc(remText(d,h))}</span>${(o.d||{})[h]?'<span class="st">✓ hecho</span>':""}${(o.r||{})[h]?'<span class="st">🔔 puesto</span>':""}</button>`).join("")
+    :'<div class="small">Este día todavía no tienes nada apuntado. Escribe algo primero y luego vuelve a pulsar el botón.</div>';
+  $("remPick").style.display="";$("remDetail").style.display="none";openSheet("shRem")}
+$("remList").onclick=e=>{const b=e.target.closest("[data-pick]");if(!b)return;const [d,h]=b.dataset.pick.split("|");openRem(d,h,true)};
+$("remBack").onclick=()=>{if(remCur)openRemDay(remCur[0])};
+function openRem(d,h,fromList){
+  const t=remText(d,h);
+  if(!t){toast("Escribe primero algo");return}
+  remCur=[d,h];const [a,b]=remTimes(d,h);
+  const cuando=fechaLarga(d)+(h==="n"?"":" a las "+h+":00");
+  $("remBack").style.display=fromList?"":"none";$("remPick").style.display="none";$("remDetail").style.display="";
+  $("remInfo").innerHTML=`<b>${esc(t)}</b><div class="small">${esc(cuando)}</div>`;
+  const hs=h==="n"?"":" ("+h+":00)";
+  $("rb1").href=gcal("🔔 Mañana: "+t+hs,"Recordatorio de tu agenda: "+t+" — "+cuando,a);
+  $("rb2").href=gcal("🔔 Hoy: "+t+hs,"Recordatorio de tu agenda: "+t+" — "+cuando,b);
+  $("rb1").classList.remove("done");$("rb2").classList.remove("done");
+  openSheet("shRem")}
+function toggleDone(d,h){const o=S.days[d]=cloneDay(S.days[d]);const dd=Object.assign({},o.d||{});
+  const on=!dd[h];if(on)dd[h]=1;else delete dd[h];if(Object.keys(dd).length)o.d=dd;else delete o.d;
+  const mk=mkey(d);S.ts[mk]=Date.now();saveLocal();queueSave(mk);
+  const btn=$("page").querySelector('[data-done="'+d+'|'+h+'"]');
+  if(h==="n"){btn.closest(".notes").classList.toggle("done",on);btn.textContent=on?"✓ Hecho":"Marcar hecho"}
+  else{btn.closest(".row").classList.toggle("done",on);btn.textContent=on?"✓":""}
+  if(on)try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}}
+$("page").addEventListener("click",e=>{const k=e.target.closest("[data-done]");if(k){e.preventDefault();const [d,h]=k.dataset.done.split("|");toggleDone(d,h);return}
+  const r=e.target.closest("[data-remday]");if(r){openRemDay(r.dataset.remday);return}
+  const b=e.target.closest("[data-bell]");if(!b)return;const [d,h]=b.dataset.bell.split("|");openRem(d,h,false)});
+["rb1","rb2"].forEach(id=>$(id).addEventListener("click",()=>{if(remCur)setRem(remCur[0],remCur[1],true);$(id).classList.add("done")}));
+$("rbOff").onclick=()=>{if(remCur)setRem(remCur[0],remCur[1],false);closeSheets();toast("Recordatorio quitado (si lo guardaste en Calendar, bórralo allí)")};
+// aviso en pantalla mientras la agenda está abierta
+let shown={};try{shown=JSON.parse(localStorage.getItem("agenda_avisos_vistos")||"{}")}catch(e){}
+let actx=null;document.addEventListener("pointerdown",()=>{try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{passive:true});
+function beep(){try{if(!actx)return;[0,0.35,0.7].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;o.connect(g);g.connect(actx.destination);
+  g.gain.setValueAtTime(0.0001,actx.currentTime+t);g.gain.exponentialRampToValueAtTime(0.3,actx.currentTime+t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+t+0.3);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+0.32)})}catch(e){}}
+function checkAlarms(){const now=Date.now();
+  for(const d in S.days){const o=S.days[d];if(!o||!o.r)continue;
+    for(const h in o.r){const [a,b]=remTimes(d,h);
+      [[a,"Mañana"],[b,"Hoy"]].forEach(([t,lab],i)=>{const key=d+"|"+h+"|"+i;
+        if(!shown[key]&&now>=t.getTime()&&now-t.getTime()<6*3600e3){shown[key]=1;try{localStorage.setItem("agenda_avisos_vistos",JSON.stringify(shown))}catch(e){}
+          $("alT").textContent=h==="n"?lab:lab+" a las "+h+":00";$("alM").textContent=remText(d,h);$("alarm").classList.add("open");
+          beep();try{navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}catch(e){}
+          $("alOk").onclick=()=>{$("alarm").classList.remove("open")}}})}}}
+setInterval(checkAlarms,30000);setTimeout(checkAlarms,1500);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkAlarms()});
+
+// ---------- Sheets ----------
+function openSheet(id){$("bg").classList.add("open");$(id).classList.add("open")}
+function closeSheets(){document.querySelectorAll(".sheet,.sheet-bg").forEach(x=>x.classList.remove("open"))}
+$("bg").onclick=closeSheets; document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheets);
+
+let calY, calM;
+function monthList(){const out=[];for(let d=new Date(START);d<=END;d=new Date(d.getFullYear(),d.getMonth()+1,1))out.push([d.getFullYear(),d.getMonth()]);return out}
+function renderCal(){
+  $("monthTabs").innerHTML=monthList().map(([y,m])=>`<button data-ym="${y}-${m}" class="${y===calY&&m===calM?"on":""}">${MESES_c[m].slice(0,3)} ${String(y).slice(2)}</button>`).join("");
+  const first=new Date(calY,calM,1),off=(first.getDay()+6)%7,n=new Date(calY,calM+1,0).getDate(),t=todayIso();
+  let h="";"LMXJVSD".split("").forEach(c=>h+=`<div class="h">${c}</div>`);for(let i=0;i<off;i++)h+="<div></div>";
+  for(let d=1;d<=n;d++){const dt=new Date(calY,calM,d),s=iso(dt),out=dt<START||dt>END;
+    const c=["c"];if(dt.getDay()===0)c.push("red");if(s===t)c.push("tdy");if(out)c.push("out");if(hasContent(s))c.push("has");if(FEST[s])c.push("fest");
+    h+=`<button class="${c.join(" ")}" data-go="${s}" title="${esc(FEST[s]||INFO[s]||"")}">${d}</button>`}
+  $("bigcal").innerHTML=h;
+  const pre=calY+"-"+pad(calM+1); const fl=Object.keys(FEST).filter(k=>k.startsWith(pre)).sort();
+  $("flist").innerHTML=`<h4>Festivos de ${MESES_c[calM].toLowerCase()} ${calY}</h4>`+(fl.length?fl.map(k=>{const d=fromIso(k);
+    return `<div data-go="${k}"><span class="n">${d.getDate()}</span><span>${esc(FEST[k])}<small>${DIAS[d.getDay()]} · festivo ${esc(FTYPE[k])}</small></span></div>`}).join(""):'<div class="small">Este mes no hay festivos.</div>');
+  const on=$("monthTabs").querySelector(".on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
+}
+$("bCal").onclick=()=>{const d=fromIso(PAGES[cur][0]);calY=d.getFullYear();calM=d.getMonth();renderCal();openSheet("shCal")};
+$("monthTabs").onclick=e=>{const b=e.target.closest("[data-ym]");if(!b)return;[calY,calM]=b.dataset.ym.split("-").map(Number);renderCal()};
+$("flist").onclick=$("flall").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;closeSheets();goDate(b.dataset.go)};
+$("bLab").onclick=()=>{const el=$("flall");if(el.style.display==="none"){
+  el.innerHTML="<h4>Calendario laboral · Almería</h4>"+Object.keys(FEST).sort().map(k=>{const d=fromIso(k);
+    return `<div data-go="${k}"><span class="n">${d.getDate()}</span><span>${esc(FEST[k])}<small>${DIAS[d.getDay()]} ${d.getDate()} de ${MESES_c[d.getMonth()].toLowerCase()} ${d.getFullYear()} · festivo ${esc(FTYPE[k])}</small></span></div>`}).join("");
+  el.style.display="";$("bLab").textContent="Ocultar el calendario laboral";el.scrollIntoView({behavior:"smooth"})}
+  else{el.style.display="none";$("bLab").textContent="Ver el calendario laboral completo"}};
+$("bigcal").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;closeSheets();goDate(b.dataset.go)};
+
+function fmt(s){const d=fromIso(s);return DIAS[d.getDay()]+" "+d.getDate()+" de "+MESES_c[d.getMonth()].toLowerCase()+" "+d.getFullYear()}
+function doSearch(){
+  const q=$("q").value.trim().toLowerCase(); const r=$("res");
+  if(q.length<2){r.innerHTML='<div class="small">Escribe al menos 2 letras.</div>';return}
+  const out=[];
+  Object.keys(S.days).sort().forEach(s=>{const o=S.days[s];
+    Object.keys(o.h||{}).sort((a,b)=>a-b).forEach(hr=>{if(o.h[hr].toLowerCase().includes(q))out.push([s,((o.d||{})[hr]?"✓ ":"")+hr+":00 · "+o.h[hr]])});
+    if(o.n&&o.n.toLowerCase().includes(q))out.push([s,"Notas · "+o.n]);});
+  for(let i=0;i<PAGES.length;i++)PAGES[i].forEach(s=>{const n=SANTOS[s.slice(5)];if(n&&n.toLowerCase().includes(q))out.push([s,"Santoral · "+n])});
+  const hl=t=>{const i=t.toLowerCase().indexOf(q);return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length))};
+  r.innerHTML=out.length?out.slice(0,200).map(([s,t])=>`<button data-go="${s}"><b>${fmt(s)}</b><small>${hl(t.replace(/\n/g," "))}</small></button>`).join(""):'<div class="small">Nada encontrado.</div>';
+}
+$("bSearch").onclick=()=>{openSheet("shSearch");$("q").value="";$("res").innerHTML="";setTimeout(()=>$("q").focus(),50)};
+$("q").oninput=doSearch;
+$("res").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;closeSheets();goDate(b.dataset.go)};
+
+// settings
+function applyTheme(){document.body.classList.toggle("menta",S.theme==="menta");
+  document.querySelectorAll("#segTheme button").forEach(b=>b.classList.toggle("on",b.dataset.t===S.theme));
+  const mc=document.querySelector('meta[name=theme-color]')||document.head.appendChild(Object.assign(document.createElement("meta"),{name:"theme-color"}));
+  mc.content=S.theme==="menta"?"#5cbfa2":"#0f6b6e";}
+$("segTheme").onclick=e=>{const b=e.target.closest("[data-t]");if(!b)return;S.theme=b.dataset.t;saveLocal();applyTheme();savePrefs()};
+for(let h=0;h<=23;h++){$("hFrom").add(new Option(h+":00",h));$("hTo").add(new Option(h+":00",h))}
+function syncHours(){$("hFrom").value=S.hFrom;$("hTo").value=S.hTo}
+$("hFrom").onchange=$("hTo").onchange=()=>{let a=+$("hFrom").value,b=+$("hTo").value;if(b<a)[a,b]=[b,a];S.hFrom=a;S.hTo=b;syncHours();saveLocal();render(0);savePrefs()};
+$("bSet").onclick=()=>{syncHours();applyTheme();openSheet("shSet")};
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200)}
+function backupText(){return JSON.stringify({agenda2027:1,fecha:todayIso(),days:S.days})}
+async function copyBackup(){const txt=backupText(),ta=$("bkTxt");ta.value=txt;ta.style.display="";let ok=false;
+  try{await navigator.clipboard.writeText(txt);ok=true}catch(e){}
+  if(!ok){try{ta.removeAttribute("readonly");ta.focus();ta.select();ta.setSelectionRange(0,txt.length);ok=document.execCommand("copy");ta.setAttribute("readonly","")}catch(e){}}
+  $("bkHelp").style.display=ok?"":"none";
+  toast(ok?"Copia copiada ✓ Pégala en WhatsApp o en una nota":"Mantén pulsado el texto, Seleccionar todo y Copiar");return ok}
+$("bCopy").onclick=copyBackup;
+function initDl(){$("bDl").style.display=""}
+$("bDl").onclick=()=>{const name="agenda-copia-"+todayIso()+".json";
+  if(window.AndroidApp){window.AndroidApp.saveText(name,backupText(),"application/json");return}
+  copyBackup();};
+$("fImp").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{$("imp").value=r.result;$("bImp").click();e.target.value=""};r.readAsText(f)};
+$("bImp").onclick=()=>{try{const o=JSON.parse($("imp").value);if(!o||!o.days)throw 0;
+  const touched=new Set();for(const s in o.days){if(!PAGE_OF.hasOwnProperty(s))continue;S.days[s]=o.days[s];touched.add(mkey(s))}
+  touched.forEach(mk=>{S.ts[mk]=Date.now();queueSave(mk)});saveLocal();render(0);$("imp").value="";toast("Copia restaurada");closeSheets()}
+  catch(e){toast("Ese texto no es una copia válida")}};
+
+// ---------- Guardado (solo en el móvil) ----------
+const status=m=>$("status").textContent=m;
+function queueSave(mk){status("Guardado en este móvil ✓")}
+function savePrefs(){}
+
+applyTheme(); render(0); status("Guardado en este móvil"); initDl();
+// keep "HOY" correct if app stays open past midnight
+let lastT=todayIso(); setInterval(()=>{if(todayIso()!==lastT){lastT=todayIso();if(document.activeElement.tagName!=="TEXTAREA")render(0)}},60000);
+})();
+</script>
+</body>
+</html>
