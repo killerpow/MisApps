@@ -745,6 +745,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
   else if(t.classList&&t.classList.contains('miinp')){e.preventDefault();if(!t.value.trim()){var o=curOrder();if(o){var L=getItems(o);L.splice(+t.dataset.i,1);setItems(o,L);renderMList();}}var m=$('#madd');if(m)m.focus();}}});
 document.addEventListener('focusout',function(e){var t=e.target;if(t.classList&&t.classList.contains('miinp')&&!t.value.trim()){var o=curOrder();if(o){var L=getItems(o);L.splice(+t.dataset.i,1);setItems(o,L);setTimeout(renderMList,0);}}});
 
+window.restaurarCopiaApp=function(t){restoreMode='restore';readBackup(t);};
 render();
 if(restoreY)requestAnimationFrame(function(){window.scrollTo(0,restoreY);});
 initArt(0);

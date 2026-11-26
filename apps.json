@@ -1,11 +1,74 @@
 [
- {"id":"voleibol","name":"Marcador Voleibol","color":"#1f4fa8","letra":"V"},
- {"id":"regalos","name":"Regalos Clientes","color":"#ea580c","letra":"R"},
- {"id":"juanmi","name":"Juanmi Booster","color":"#e11d48","letra":"J"},
- {"id":"iptv","name":"Gestor IPTV","color":"#7c3aed","letra":"TV"},
- {"id":"agenda","name":"Agenda 2027","color":"#0284c7","letra":"A"},
- {"id":"fontaneria","name":"Mis Trabajos","color":"#0f766e","letra":"F"},
- {"id":"comercialpro","name":"ComercialPro","color":"#15803d","letra":"C"},
- {"id":"ruta","name":"Ruta Comercial","color":"#b45309","letra":"R"},
- {"id":"pokemon","name":"Colección Pokémon","color":"#ca8a04","letra":"P"}
+ {
+  "id": "voleibol",
+  "name": "Marcador Voleibol",
+  "color": "#1f4fa8",
+  "letra": "V",
+  "emoji": "🏐",
+  "color2": "#38bdf8"
+ },
+ {
+  "id": "regalos",
+  "name": "Regalos Clientes",
+  "color": "#ea580c",
+  "letra": "R",
+  "emoji": "🎁",
+  "color2": "#fb923c"
+ },
+ {
+  "id": "juanmi",
+  "name": "Juanmi Booster",
+  "color": "#e11d48",
+  "letra": "J",
+  "emoji": "🚀",
+  "color2": "#fb7185"
+ },
+ {
+  "id": "iptv",
+  "name": "Gestor IPTV",
+  "color": "#7c3aed",
+  "letra": "TV",
+  "emoji": "📺",
+  "color2": "#a78bfa"
+ },
+ {
+  "id": "agenda",
+  "name": "Agenda 2027",
+  "color": "#0284c7",
+  "letra": "A",
+  "emoji": "📔",
+  "color2": "#2dd4bf"
+ },
+ {
+  "id": "fontaneria",
+  "name": "Mis Trabajos",
+  "color": "#0f766e",
+  "letra": "F",
+  "emoji": "🔧",
+  "color2": "#5eead4"
+ },
+ {
+  "id": "comercialpro",
+  "name": "ComercialPro",
+  "color": "#15803d",
+  "letra": "C",
+  "emoji": "💼",
+  "color2": "#4ade80"
+ },
+ {
+  "id": "ruta",
+  "name": "Ruta Comercial",
+  "color": "#b45309",
+  "letra": "R",
+  "emoji": "🚚",
+  "color2": "#fbbf24"
+ },
+ {
+  "id": "pokemon",
+  "name": "Colección Pokémon",
+  "color": "#ca8a04",
+  "letra": "P",
+  "emoji": "⚡",
+  "color2": "#fde047"
+ }
 ]

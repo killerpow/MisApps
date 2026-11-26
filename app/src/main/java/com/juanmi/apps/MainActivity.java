@@ -301,9 +301,16 @@ public class MainActivity extends Activity {
                 String line;
                 while ((line = r.readLine()) != null) sb.append(line).append('\n');
             }
-            JSONObject w = new JSONObject(sb.toString());
-            if (!w.has("copiaMisApps") || !w.has("datos")) {
-                toast("Ese archivo no es una copia automática. Si es una copia de la propia app, usa su botón «Restaurar».");
+            String text = sb.toString();
+            JSONObject w = null;
+            try { w = new JSONObject(text.substring(Math.max(0, text.indexOf('{')))); } catch (Exception ignored) { }
+            if (w == null || !w.has("copiaMisApps") || !w.has("datos")) {
+                // Copia hecha con la propia app (o con la versión antigua): se la pasamos a la app
+                final String txt = text;
+                web.evaluateJavascript("typeof window.restaurarCopiaApp==='function'", has -> {
+                    if ("true".equals(has)) web.evaluateJavascript("window.restaurarCopiaApp(" + JSONObject.quote(txt) + ")", null);
+                    else toast("Esta app no reconoce ese archivo de copia");
+                });
                 return;
             }
             JSONObject datos = w.getJSONObject("datos");

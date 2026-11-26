@@ -1,40 +1,67 @@
-"""Genera el icono y el banner de TV de cada app (se ejecuta una vez y se suben los PNG)."""
+"""Genera el icono (degradado + dibujo) y el banner de TV de cada app. Si existe apps/<id>/icono.png, usa esa imagen."""
 import json, os
 from PIL import Image, ImageDraw, ImageFont
 
-FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+EMOJI = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
+BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 SIZES = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 
-def hex2rgb(h):
-    h = h.lstrip('#'); return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+def rgb(h): h = h.lstrip('#'); return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+def gradient(w, h, c1, c2):
+    g = Image.new('RGB', (w, h))
+    px = g.load()
+    for y in range(h):
+        for x in range(w):
+            t = (x + y) / (w + h - 2)
+            px[x, y] = tuple(int(c1[i] * (1 - t) + c2[i] * t) for i in range(3))
+    return g
+
+def emoji_img(ch, size):
+    f = ImageFont.truetype(EMOJI, 109)  # tamaño nativo de Noto Color Emoji
+    im = Image.new('RGBA', (160, 160), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((80, 80), ch, font=f, embedded_color=True, anchor='mm')
+    im = im.crop(im.getbbox())
+    k = size / max(im.size)
+    return im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
+
+def make_icon(a):
+    big = 512
+    custom = os.path.join('apps', a['id'], 'icono.png')
+    mask = Image.new('L', (big, big), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([8, 8, big - 8, big - 8], radius=120, fill=255)
+    if os.path.exists(custom):
+        src = Image.open(custom).convert('RGBA')
+        s = min(src.size); src = src.crop(((src.width - s) // 2, (src.height - s) // 2, (src.width + s) // 2, (src.height + s) // 2))
+        bg = src.resize((big, big), Image.LANCZOS)
+    else:
+        bg = gradient(big, big, rgb(a['color']), rgb(a['color2'])).convert('RGBA')
+        hl = Image.new('RGBA', bg.size, (0, 0, 0, 0))
+        ImageDraw.Draw(hl).ellipse([-120, -160, 380, 300], fill=(255, 255, 255, 40))
+        bg = Image.alpha_composite(bg, hl)
+        e = emoji_img(a['emoji'], 300)
+        sh = Image.new('RGBA', bg.size, (0, 0, 0, 0))
+        alpha = e.split()[3].point(lambda v: v * 0.35)
+        shadow = Image.new('RGBA', e.size, (0, 0, 0, 255)); shadow.putalpha(alpha)
+        x, y = (big - e.width) // 2, (big - e.height) // 2
+        sh.paste(shadow, (x + 8, y + 14), shadow)
+        bg = Image.alpha_composite(bg, sh)
+        bg.paste(e, (x, y), e)
+    out = Image.new('RGBA', (big, big), (0, 0, 0, 0)); out.paste(bg, (0, 0), mask)
+    return out
 
 for a in json.load(open('apps.json', encoding='utf-8')):
-    col = hex2rgb(a['color'])
     base = os.path.join('app', 'src', a['id'], 'res')
+    icon = make_icon(a)
     for d, s in SIZES.items():
-        big = 512
-        im = Image.new('RGBA', (big, big), (0, 0, 0, 0))
-        dr = ImageDraw.Draw(im)
-        dr.rounded_rectangle([16, 16, big - 16, big - 16], radius=110, fill=col)
-        dr.rounded_rectangle([16, 16, big - 16, big // 2], radius=110, fill=tuple(min(255, c + 25) for c in col))
-        dr.rectangle([16, big // 2 - 120, big - 16, big // 2], fill=tuple(min(255, c + 25) for c in col))
-        dr.rectangle([16, big // 2, big - 16, big // 2 + 110], fill=col)
-        letra = a['letra']
-        f = ImageFont.truetype(FONT, 300 if len(letra) == 1 else 200)
-        w = dr.textlength(letra, font=f)
-        dr.text(((big - w) / 2, big / 2), letra, font=f, fill='white', anchor='lm')
-        out = os.path.join(base, 'mipmap-' + d)
-        os.makedirs(out, exist_ok=True)
-        im.resize((s, s), Image.LANCZOS).save(os.path.join(out, 'ic_launcher.png'))
-    # Banner para Android TV (320x180)
-    b = Image.new('RGB', (640, 360), col)
-    dr = ImageDraw.Draw(b)
-    f = ImageFont.truetype(FONT, 64)
-    name = a['name']
-    while dr.textlength(name, font=f) > 580:
-        f = ImageFont.truetype(FONT, f.size - 4)
-    dr.text((320, 180), name, font=f, fill='white', anchor='mm')
-    out = os.path.join(base, 'drawable-xhdpi')
-    os.makedirs(out, exist_ok=True)
-    b.save(os.path.join(out, 'banner.png'))
+        o = os.path.join(base, 'mipmap-' + d); os.makedirs(o, exist_ok=True)
+        icon.resize((s, s), Image.LANCZOS).save(os.path.join(o, 'ic_launcher.png'))
+    # Banner TV
+    b = gradient(640, 360, rgb(a['color']), rgb(a['color2'])).convert('RGBA')
+    ic = icon.resize((220, 220), Image.LANCZOS); b.paste(ic, (40, 70), ic)
+    d = ImageDraw.Draw(b); f = ImageFont.truetype(BOLD, 52); name = a['name']
+    while d.textlength(name, font=f) > 330: f = ImageFont.truetype(BOLD, f.size - 4)
+    d.text((290, 180), name, font=f, fill='white', anchor='lm')
+    o = os.path.join(base, 'drawable-xhdpi'); os.makedirs(o, exist_ok=True)
+    b.convert('RGB').save(os.path.join(o, 'banner.png'))
     print('icono:', a['id'])

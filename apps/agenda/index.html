@@ -513,6 +513,7 @@ const status=m=>$("status").textContent=m;
 function queueSave(mk){status("Guardado en este móvil ✓")}
 function savePrefs(){}
 
+window.restaurarCopiaApp=function(t){$("imp").value=t;$("bImp").click();};
 applyTheme(); render(0); status("Guardado en este móvil"); initDl();
 // keep "HOY" correct if app stays open past midnight
 let lastT=todayIso(); setInterval(()=>{if(todayIso()!==lastT){lastT=todayIso();if(document.activeElement.tagName!=="TEXTAREA")render(0)}},60000);

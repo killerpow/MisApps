@@ -778,6 +778,7 @@ function openBackup(){
 let toastT;
 function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),2200);}
 
+window.restaurarCopiaApp=function(t){openBackup();document.getElementById('bk').value=t;document.getElementById('mImp').click();};
 render(false);
 </script>
 </body>
