@@ -7,6 +7,7 @@ import android.health.connect.AggregateRecordsResponse;
 import android.health.connect.HealthConnectException;
 import android.health.connect.HealthConnectManager;
 import android.health.connect.InsertRecordsResponse;
+import android.health.connect.LocalTimeRangeFilter;
 import android.health.connect.TimeInstantRangeFilter;
 import android.health.connect.datatypes.ActiveCaloriesBurnedRecord;
 import android.health.connect.datatypes.ExerciseSessionRecord;
@@ -81,13 +82,10 @@ public class Salud {
         HealthConnectManager m = hc();
         if (m == null) return;
         try {
-            ZoneId z = ZoneId.systemDefault();
+            // El día entero en hora local, igual que lo cuenta la pantalla de Health Connect
             LocalDate d = LocalDate.parse(dia);
-            Instant ini = d.atStartOfDay(z).toInstant();
-            Instant fin = d.plusDays(1).atStartOfDay(z).toInstant();
-            Instant ahora = Instant.now();
-            if (fin.isAfter(ahora)) fin = ahora;
-            TimeInstantRangeFilter f = new TimeInstantRangeFilter.Builder().setStartTime(ini).setEndTime(fin).build();
+            LocalTimeRangeFilter f = new LocalTimeRangeFilter.Builder()
+                    .setStartTime(d.atStartOfDay()).setEndTime(d.plusDays(1).atStartOfDay()).build();
             AggregateRecordsRequest<Long> req = new AggregateRecordsRequest.Builder<Long>(f)
                     .addAggregationType(StepsRecord.STEPS_COUNT_TOTAL).build();
             m.aggregate(req, act.getMainExecutor(), new OutcomeReceiver<AggregateRecordsResponse<Long>, HealthConnectException>() {
