@@ -88,6 +88,7 @@
 </head>
 <body>
 <header>
+  <button id="btnCopias" aria-label="Copia de seguridad" style="position:absolute;right:12px;top:10px;border:1px solid var(--linea);background:#fff;border-radius:10px;width:40px;height:40px;font-size:19px;cursor:pointer">🛡️</button>
   <h1>🔧 Mis Trabajos</h1>
   <div class="sub" id="hoyCab"></div>
 </header>
@@ -116,20 +117,6 @@
 
   <div id="lista"><div class="vacio">Cargando…</div></div>
 
-  <div class="copias" style="margin:22px 0 10px;padding:14px;border:1px dashed var(--linea);border-radius:12px">
-    <div style="font-weight:700;margin-bottom:4px">🛡️ Copia de seguridad</div>
-    <div style="font-size:13px;opacity:.75;margin-bottom:10px">La app ya guarda una copia sola cada día en Descargas › MisApps. Aquí puedes hacer una cuando quieras o recuperarla.</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-sec" style="flex:1" id="btnCopia">💾 Guardar copia</button>
-      <button class="btn btn-sec" style="flex:1" id="btnRecuperar">📂 Recuperar copia</button>
-    </div>
-    <input type="file" id="fCopia" accept=".json,application/json,text/plain" style="display:none">
-    <button class="btn btn-sec" style="width:100%;margin-top:8px" id="btnPegar">📋 Pegar texto de una copia</button>
-    <div id="zonaPegar" style="display:none;margin-top:8px">
-      <textarea id="txtCopia" rows="5" placeholder="Pega aquí el texto de la copia" style="width:100%;box-sizing:border-box;border:1px solid var(--linea);border-radius:10px;padding:10px;font-size:13px;font-family:inherit"></textarea>
-      <button class="btn btn-prim" style="width:100%;margin-top:8px" id="btnPegarOk">Recuperar desde el texto</button>
-    </div>
-  </div>
 </main>
 
 <!-- Formulario -->
@@ -171,6 +158,24 @@
 </div>
 
 <!-- Confirmar borrado -->
+<div class="capa" id="capaCopias">
+  <div class="hoja">
+    <h2>🛡️ Copia de seguridad</h2>
+    <div style="font-size:13px;opacity:.75;margin-bottom:10px">La app ya guarda una copia sola cada día en Descargas › MisApps. Aquí puedes hacer una cuando quieras o recuperarla.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sec" style="flex:1" id="btnCopia">💾 Guardar copia</button>
+      <button class="btn btn-sec" style="flex:1" id="btnRecuperar">📂 Recuperar copia</button>
+    </div>
+    <input type="file" id="fCopia" accept=".json,application/json,text/plain" style="display:none">
+    <button class="btn btn-sec" style="width:100%;margin-top:8px" id="btnPegar">📋 Pegar texto de una copia</button>
+    <div id="zonaPegar" style="display:none;margin-top:8px">
+      <textarea id="txtCopia" rows="5" placeholder="Pega aquí el texto de la copia" style="width:100%;box-sizing:border-box;border:1px solid var(--linea);border-radius:10px;padding:10px;font-size:13px;font-family:inherit"></textarea>
+      <button class="btn btn-prim" style="width:100%;margin-top:8px" id="btnPegarOk">Recuperar desde el texto</button>
+    </div>
+    <button class="btn btn-sec" style="width:100%;margin-top:14px" id="cerrarCopias">Cerrar</button>
+  </div>
+</div>
+
 <div class="capa" id="capaBorrar">
   <div class="hoja dialogo">
     <h2>¿Eliminar?</h2>
@@ -474,9 +479,13 @@
       if(coleccion){ try{ const {id,...datos}=t; await coleccion.doc(id).set(datos); }catch(e){} }
     }
     guardarLocal(); pintar();
+    $('#capaCopias').classList.remove('ver');
     toast('Copia recuperada: '+nuevos+' trabajo'+(nuevos===1?'':'s')+' nuevo'+(nuevos===1?'':'s'));
   }
   window.restaurarCopiaApp = recuperarDe;
+  $('#btnCopias').onclick=()=>$('#capaCopias').classList.add('ver');
+  $('#cerrarCopias').onclick=()=>$('#capaCopias').classList.remove('ver');
+  $('#capaCopias').onclick=e=>{ if(e.target.id==='capaCopias') $('#capaCopias').classList.remove('ver'); };
   $('#btnPegar').onclick=async()=>{
     const z=$('#zonaPegar'); z.style.display = z.style.display==='none' ? 'block' : 'none';
     if(z.style.display==='block'){
