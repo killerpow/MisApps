@@ -216,7 +216,7 @@ select{font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid var(--l
   <div class="remcard" id="remInfo"></div>
   <a class="rbtn" id="rb1" href="#" target="_blank" rel="noopener">🌙 Avisarme la víspera a las 20:00</a>
   <a class="rbtn" id="rb2" href="#" target="_blank" rel="noopener">☀️ Avisarme ese día a las 07:00</a>
-  <div class="small" style="margin-top:8px">Cada botón abre Google Calendar con el aviso ya rellenado: solo tienes que pulsar <b>Guardar</b> y volver a la agenda para el segundo. Calendar te avisará aunque la agenda esté cerrada.<br><br>
+  <div class="small" id="remHelp" style="margin-top:8px">Cada botón abre Google Calendar con el aviso ya rellenado: solo tienes que pulsar <b>Guardar</b> y volver a la agenda para el segundo. Calendar te avisará aunque la agenda esté cerrada.<br><br>
   <b>Solo la primera vez:</b> en Google Calendar → Ajustes → (tu cuenta) → Notificaciones de eventos, pon <b>"En el momento del evento"</b>, para que suene justo a las 20:00 y a las 07:00.<br><br>
   Además, si tienes la agenda abierta a esas horas, te saldrá un aviso en pantalla.</div>
   <div style="margin-top:12px"><button class="btn ghost" id="rbOff">Quitar este recordatorio</button></div>
@@ -293,7 +293,7 @@ for(let d=new Date(START); d<=END; d=addDays(d,1)){
 const LS="agenda2027_v1";
 let S={days:{},ts:{},theme:"petroleo",hFrom:8,hTo:21};
 try{const raw=localStorage.getItem(LS); if(raw){const o=JSON.parse(raw); S=Object.assign(S,o);}}catch(e){}
-function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S));if(window.__noLS){window.__noLS=false}}catch(e){window.__noLS=true;var st=document.getElementById("status");if(st)st.textContent="⚠️ No se puede guardar en el móvil"}}
+function saveLocal(){if(typeof syncLuego==="function")syncLuego();try{localStorage.setItem(LS,JSON.stringify(S));if(window.__noLS){window.__noLS=false}}catch(e){window.__noLS=true;var st=document.getElementById("status");if(st)st.textContent="⚠️ No se puede guardar en el móvil"}}
 function todayIso(){return iso(new Date())}
 function clampIso(s){if(s<iso(START))return iso(START);if(s>iso(END))return iso(END);return s}
 let cur = PAGE_OF[clampIso(todayIso())];
@@ -404,6 +404,11 @@ function openRem(d,h,fromList){
   $("rb1").href=gcal("🔔 Mañana: "+t+hs,"Recordatorio de tu agenda: "+t+" — "+cuando,a);
   $("rb2").href=gcal("🔔 Hoy: "+t+hs,"Recordatorio de tu agenda: "+t+" — "+cuando,b);
   $("rb1").classList.remove("done");$("rb2").classList.remove("done");
+  if(NATIVO){const on=!!((S.days[d]||{}).r||{})[h];
+    $("rb1").removeAttribute("href");$("rb1").removeAttribute("target");
+    $("rb1").textContent=on?"✓ Aviso activado en el móvil":"🔔 Avisarme en el móvil";$("rb1").classList.toggle("done",on);
+    $("rb2").style.display="none";$("rbOff").style.display=on?"":"none";
+    $("remHelp").innerHTML="Te llegará una <b>notificación</b> la víspera a las <b>20:00</b> y ese mismo día a las <b>07:00</b>, aunque la agenda esté cerrada o hayas reiniciado el móvil. No hace falta Google Calendar.";}
   openSheet("shRem")}
 function toggleDone(d,h){const o=S.days[d]=cloneDay(S.days[d]);const dd=Object.assign({},o.d||{});
   const on=!dd[h];if(on)dd[h]=1;else delete dd[h];if(Object.keys(dd).length)o.d=dd;else delete o.d;
@@ -415,8 +420,10 @@ function toggleDone(d,h){const o=S.days[d]=cloneDay(S.days[d]);const dd=Object.a
 $("page").addEventListener("click",e=>{const k=e.target.closest("[data-done]");if(k){e.preventDefault();const [d,h]=k.dataset.done.split("|");toggleDone(d,h);return}
   const r=e.target.closest("[data-remday]");if(r){openRemDay(r.dataset.remday);return}
   const b=e.target.closest("[data-bell]");if(!b)return;const [d,h]=b.dataset.bell.split("|");openRem(d,h,false)});
-["rb1","rb2"].forEach(id=>$(id).addEventListener("click",()=>{if(remCur)setRem(remCur[0],remCur[1],true);$(id).classList.add("done")}));
-$("rbOff").onclick=()=>{if(remCur)setRem(remCur[0],remCur[1],false);closeSheets();toast("Recordatorio quitado (si lo guardaste en Calendar, bórralo allí)")};
+["rb1","rb2"].forEach(id=>$(id).addEventListener("click",e=>{
+  if(NATIVO){e.preventDefault();if(remCur){setRem(remCur[0],remCur[1],true);syncAvisos();}closeSheets();toast("Aviso puesto ✓ Te llegará una notificación");return}
+  if(remCur)setRem(remCur[0],remCur[1],true);$(id).classList.add("done")}));
+$("rbOff").onclick=()=>{if(remCur)setRem(remCur[0],remCur[1],false);syncAvisos();closeSheets();toast(NATIVO?"Aviso quitado":"Recordatorio quitado (si lo guardaste en Calendar, bórralo allí)")};
 // aviso en pantalla mientras la agenda está abierta
 let shown={};try{shown=JSON.parse(localStorage.getItem("agenda_avisos_vistos")||"{}")}catch(e){}
 let actx=null;document.addEventListener("pointerdown",()=>{try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{passive:true});
@@ -432,6 +439,23 @@ function checkAlarms(){const now=Date.now();
           $("alOk").onclick=()=>{$("alarm").classList.remove("open")}}})}}}
 setInterval(checkAlarms,30000);setTimeout(checkAlarms,1500);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkAlarms()});
+
+// ---------- Notificaciones del móvil (sin Google Calendar) ----------
+const NATIVO=!!(window.AndroidApp&&window.AndroidApp.programarAviso);
+function syncAvisos(){
+  if(!NATIVO)return;
+  const A=window.AndroidApp, now=Date.now(), want={};
+  for(const d in S.days){const o=S.days[d];if(!o||!o.r)continue;
+    for(const h in o.r){const t=remText(d,h);if(!t)continue;const [a,b]=remTimes(d,h);
+      const cuando=fechaLarga(d)+(h==="n"?"":" a las "+h+":00");
+      if(a.getTime()>now)want["ag|"+d+"|"+h+"|0"]=[a.getTime(),"🔔 Mañana"+(h==="n"?"":" a las "+h+":00"),t+" — "+cuando];
+      if(b.getTime()>now)want["ag|"+d+"|"+h+"|1"]=[b.getTime(),"🔔 Hoy"+(h==="n"?"":" a las "+h+":00"),t+" — "+cuando];}}
+  let prev=[];try{prev=JSON.parse(localStorage.getItem("agenda_avisos_prog")||"[]")}catch(e){}
+  prev.forEach(id=>{if(!want[id])A.cancelarAviso(id)});
+  for(const id in want)A.programarAviso(id,want[id][0],want[id][1],want[id][2]);
+  try{localStorage.setItem("agenda_avisos_prog",JSON.stringify(Object.keys(want)))}catch(e){}
+}
+let syncT;function syncLuego(){clearTimeout(syncT);syncT=setTimeout(syncAvisos,1500)}
 
 // ---------- Sheets ----------
 function openSheet(id){$("bg").classList.add("open");$(id).classList.add("open")}
@@ -514,7 +538,7 @@ function queueSave(mk){status("Guardado en este móvil ✓")}
 function savePrefs(){}
 
 window.restaurarCopiaApp=function(t){$("imp").value=t;$("bImp").click();};
-applyTheme(); render(0); status("Guardado en este móvil"); initDl();
+applyTheme(); render(0); status("Guardado en este móvil"); initDl(); setTimeout(syncAvisos,800);
 // keep "HOY" correct if app stays open past midnight
 let lastT=todayIso(); setInterval(()=>{if(todayIso()!==lastT){lastT=todayIso();if(document.activeElement.tagName!=="TEXTAREA")render(0)}},60000);
 })();
