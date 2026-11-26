@@ -527,12 +527,16 @@
     avT=t;
     const nom=(t.cliente||'').trim().split(/\s+/)[0]||'';
     const s=saludo()+(nom?', '+nom:'')+'.';
-    const que=t.motivo?` (${t.motivo.trim().replace(/\.$/,'')})`:'';
+    // Si hay que volver: "terminar el trabajo (lo que queda pendiente)"; si no: "hacer el trabajo (motivo)"
+    const vu = t.volver && !t.completado;
+    const txt = vu ? (t.volver.nota||'') : (t.motivo||'');
+    const que = txt.trim() ? ` (${txt.trim().replace(/\s+/g,' ').replace(/\.$/,'')})` : '';
+    const hacer = vu ? 'terminar el trabajo' : 'hacer el trabajo';
     const ops=[
-      ['Hoy', `${s} ¿Le va bien que nos acerquemos hoy a hacer el trabajo${que}?`],
-      ['Mañana', `${s} ¿Le va bien que nos pasemos mañana a hacer el trabajo${que}?`],
-      ['De camino', `${s} Vamos de camino para hacer el trabajo${que}. Llegamos en unos 15 minutos.`],
-      ['¿Cuándo?', `${s} ¿Cuándo le vendría bien que pasemos a hacer el trabajo${que}?`]
+      ['Hoy', `${s} ¿Le va bien que nos acerquemos hoy a ${hacer}${que}?`],
+      ['Mañana', `${s} ¿Le va bien que nos pasemos mañana a ${hacer}${que}?`],
+      ['De camino', `${s} Vamos de camino para ${hacer}${que}. Llegamos en unos 15 minutos.`],
+      ['¿Cuándo?', `${s} ¿Cuándo le vendría bien que pasemos a ${hacer}${que}?`]
     ];
     $('#avCliente').textContent=t.cliente||'Cliente sin nombre';
     $('#avTel').value=t.tel||'';
