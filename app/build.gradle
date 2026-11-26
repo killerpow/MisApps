@@ -1,0 +1,53 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+// Lista de apps: se genera una app instalable por cada entrada de apps.json
+def APPS = new JsonSlurper().parse(rootProject.file('apps.json'))
+// Solo compilar las apps que ya tienen su página preparada
+APPS = APPS.findAll { rootProject.file("apps/${it.id}/index.html").exists() }
+
+android {
+    namespace 'com.juanmi.apps'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
+        versionName "1." + (System.getenv('VERSION_CODE') ?: '0')
+    }
+
+    signingConfigs {
+        misapps {
+            storeFile rootProject.file('firma/misapps.jks')
+            storePassword 'misapps123'
+            keyAlias 'misapps'
+            keyPassword 'misapps123'
+        }
+    }
+
+    buildTypes {
+        debug { signingConfig signingConfigs.misapps }
+        release { signingConfig signingConfigs.misapps; minifyEnabled false }
+    }
+
+    flavorDimensions 'app'
+    productFlavors {
+        APPS.each { a ->
+            create(a.id) {
+                dimension 'app'
+                applicationId "com.juanmi.${a.id}"
+                resValue 'string', 'app_name', a.name
+                resValue 'color', 'app_color', a.color
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

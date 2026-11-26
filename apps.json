@@ -1,0 +1,11 @@
+[
+ {"id":"voleibol","name":"Marcador Voleibol","color":"#1f4fa8","letra":"V"},
+ {"id":"regalos","name":"Regalos Clientes","color":"#ea580c","letra":"R"},
+ {"id":"juanmi","name":"Juanmi Booster","color":"#e11d48","letra":"J"},
+ {"id":"iptv","name":"Gestor IPTV","color":"#7c3aed","letra":"TV"},
+ {"id":"agenda","name":"Agenda 2027","color":"#0284c7","letra":"A"},
+ {"id":"fontaneria","name":"Mis Trabajos","color":"#0f766e","letra":"F"},
+ {"id":"comercialpro","name":"ComercialPro","color":"#15803d","letra":"C"},
+ {"id":"ruta","name":"Ruta Comercial","color":"#b45309","letra":"R"},
+ {"id":"pokemon","name":"Colección Pokémon","color":"#ca8a04","letra":"P"}
+]

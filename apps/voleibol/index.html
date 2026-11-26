@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Marcador de voleibol</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #14181f; color: #fff;
+    display: flex; flex-direction: column; user-select: none; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; background: #1d232d; font-size: 15px; gap: 6px;
+  }
+  header .set { font-weight: 600; white-space: nowrap; }
+  button { font-family: inherit; border: 0; cursor: pointer; color: #fff; }
+  header button { background: #333c4a; border-radius: 8px; padding: 8px 10px; font-size: 14px; white-space: nowrap; }
+  header button:active { background: #4a5566; }
+  header .grp { display: flex; gap: 6px; }
+
+  .score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 12px 4px; gap: 8px; }
+  .score .t { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .score .nm { font-size: 14px; opacity: .85; display: flex; align-items: center; gap: 6px; max-width: 100%; }
+  .score .nm span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score .pts { font-size: 46px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .score .sets { font-size: 13px; opacity: .8; }
+  .score .ball { visibility: hidden; }
+  .score .t.serving .ball { visibility: visible; }
+  .score .vs { font-size: 13px; opacity: .6; text-align: center; max-width: 110px; }
+  .tA .pts { color: #6aa5ff; }
+  .tB .pts { color: #ff7a6b; }
+
+  .courtWrap { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 6px 12px; }
+  .court {
+    height: 100%; aspect-ratio: 1 / 2; max-width: 100%;
+    position: relative; background: #e59a4b; border: 3px solid #fff; border-radius: 4px;
+    box-shadow: 0 0 0 10px #2f7d5b;
+  }
+  .half { position: absolute; left: 0; right: 0; height: 50%; cursor: pointer; }
+  .half.top { top: 0; } .half.bot { bottom: 0; }
+  .half:active { background: rgba(255,255,255,.12); }
+  .line3 { position: absolute; left: 0; right: 0; border-top: 2px solid #fff; pointer-events: none; }
+  .net {
+    position: absolute; left: -14px; right: -14px; top: 50%; height: 6px; transform: translateY(-50%);
+    background: repeating-linear-gradient(90deg, #fff 0 4px, #222 4px 8px); pointer-events: none; border-radius: 3px;
+  }
+  .player {
+    position: absolute; width: 17%; aspect-ratio: 1; transform: translate(-50%, -50%);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: clamp(13px, 3vh, 21px); border: 3px solid #fff;
+    transition: left .7s ease, top .7s ease, box-shadow .3s; pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .player.A { background: #1f4fa8; } .player.B { background: #c0392b; }
+  .player.server { box-shadow: 0 0 0 4px #ffe14d, 0 2px 8px rgba(0,0,0,.4); }
+  .player.server::after { content: "🏐"; position: absolute; font-size: .8em; right: -30%; bottom: -20%; }
+  .player .badge {
+    position: absolute; top: -8px; left: -8px; background: #fff; color: #333; font-size: 10px;
+    border-radius: 8px; padding: 1px 4px; font-weight: 700;
+  }
+  .player .tag {
+    position: absolute; top: 100%; margin-top: 3px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.65); font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px;
+    white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .player .tag:empty { display: none; }
+  .player.flash { animation: flash 1s; }
+  @keyframes flash { 0%,100% { transform: translate(-50%,-50%) scale(1); } 30% { transform: translate(-50%,-50%) scale(1.3); } }
+
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 12px 12px; }
+  .btns button { padding: 14px 8px; border-radius: 12px; font-size: 18px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btns .a { background: #1f4fa8; } .btns .b { background: #c0392b; }
+  .btns button:active { filter: brightness(1.2); }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 10;
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    text-align: center; padding: 20px; overflow-y: auto;
+  }
+  .overlay.top { z-index: 20; background: rgba(10,13,18,.97); }
+  .overlay.show { display: flex; }
+  .overlay h2 { font-size: 24px; }
+  .overlay p { font-size: 16px; color: #ddd; }
+  .overlay .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .overlay button { border-radius: 10px; padding: 12px 18px; font-size: 16px; font-weight: 600; background: #fff; color: #111; }
+  .overlay .sec { background: #444; color: #fff; }
+  .overlay .a { background: #1f4fa8; color: #fff; }
+  .overlay .b { background: #c0392b; color: #fff; }
+  .overlay .link { background: none; color: #9cc3ff; text-decoration: underline; padding: 6px; font-weight: 500; }
+
+  .tabs { display: flex; gap: 6px; }
+  .tabs button { background: #333; color: #fff; padding: 9px 16px; }
+  .tabs button.on.a { background: #1f4fa8; } .tabs button.on.b { background: #c0392b; }
+  .tabs button.on { outline: 2px solid #fff; }
+  .panel { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
+  .panel label { font-size: 13px; color: #bbb; text-align: left; }
+  input[type=text] {
+    width: 100%; font-size: 17px; padding: 10px; border-radius: 8px; border: 2px solid #555;
+    background: #222; color: #fff; text-align: center; font-family: inherit;
+  }
+  input[type=text]:focus { outline: none; border-color: #9cc3ff; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid3 .cell { display: flex; flex-direction: column; gap: 3px; }
+  .grid3 .cell span { font-size: 11px; color: #aaa; }
+  .rowlbl { font-size: 12px; color: #888; text-align: center; margin: 2px 0 -4px; }
+  .netbar { height: 5px; background: repeating-linear-gradient(90deg, #fff 0 4px, #222 4px 8px); border-radius: 3px; }
+  .pick { background: #333 !important; color: #fff !important; padding: 12px 4px !important; font-size: 15px !important;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick.sel { background: #ffe14d !important; color: #111 !important; }
+  .hint { font-size: 13px; color: #aaa; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #fff; color: #111;
+    padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 15px; z-index: 30;
+    opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; max-width: 90%;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <header>
+    <button id="undo">↶ Deshacer</button>
+    <span class="set" id="setLabel">Set 1</span>
+    <div class="grp">
+      <button id="subBtn">🔁 Cambio</button>
+      <button id="reset">Nuevo</button>
+    </div>
+  </header>
+
+  <div class="score">
+    <div class="t tB" id="sc1">
+      <div class="nm"><span class="ball">🏐</span><span id="n1"></span></div>
+      <div class="pts" id="p1">0</div>
+      <div class="sets">Sets: <b id="s1">0</b></div>
+    </div>
+    <div class="vs" id="hist"></div>
+    <div class="t tA" id="sc0">
+      <div class="nm"><span class="ball">🏐</span><span id="n0"></span></div>
+      <div class="pts" id="p0">0</div>
+      <div class="sets">Sets: <b id="s0">0</b></div>
+    </div>
+  </div>
+
+  <div class="courtWrap">
+    <div class="court" id="court">
+      <div class="half top" data-t="1"></div>
+      <div class="half bot" data-t="0"></div>
+      <div class="line3" style="top:33.3%"></div>
+      <div class="line3" style="top:66.7%"></div>
+      <div class="net"></div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="a" data-t="0" id="b0">+1</button>
+    <button class="b" data-t="1" id="b1">+1</button>
+  </div>
+
+  <!-- Elegir saque -->
+  <div class="overlay" id="serveOv">
+    <h2 id="serveTitle">¿Quién saca primero?</h2>
+    <div class="row">
+      <button class="a" data-serve="0" id="sv0"></button>
+      <button class="b" data-serve="1" id="sv1"></button>
+    </div>
+  </div>
+
+  <!-- Fin de set / partido -->
+  <div class="overlay" id="overlay">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <div class="row">
+      <button id="ovNext">Siguiente set</button>
+      <button id="ovUndo" class="sec">Deshacer último punto</button>
+    </div>
+  </div>
+
+  <!-- Confirmar nuevo partido -->
+  <div class="overlay" id="confirm">
+    <h2>¿Empezar un partido nuevo?</h2>
+    <p>Se borrará el marcador. Los nombres de las jugadoras se mantienen.</p>
+    <div class="row">
+      <button id="cYes">Sí, empezar</button>
+      <button id="cNo" class="sec">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Alineación -->
+  <div class="overlay top" id="lineupOv">
+    <h2>Jugadoras en el campo</h2>
+    <div class="tabs" id="luTabs">
+      <button class="a on" data-tab="0" id="luTab0"></button>
+      <button class="b" data-tab="1" id="luTab1"></button>
+    </div>
+    <div class="panel">
+      <label>Nombre del equipo</label>
+      <input type="text" id="luTeam" maxlength="20">
+      <div class="hint">Escribe el nombre o el dorsal de cada jugadora según la posición en la que empieza el set.</div>
+      <div class="rowlbl">— Red —</div>
+      <div class="netbar"></div>
+      <div class="grid3" id="luGrid"></div>
+      <div class="hint" id="luNote"></div>
+    </div>
+    <div class="row">
+      <button id="luSave">Guardar</button>
+      <button id="luCancel" class="sec">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Cambio -->
+  <div class="overlay top" id="subOv">
+    <h2>Cambio de jugadora</h2>
+    <div class="tabs" id="sbTabs">
+      <button class="a on" data-tab="0" id="sbTab0"></button>
+      <button class="b" data-tab="1" id="sbTab1"></button>
+    </div>
+    <div class="panel">
+      <label>1. Toca la jugadora que sale</label>
+      <div class="rowlbl">— Red —</div>
+      <div class="netbar"></div>
+      <div class="grid3" id="sbGrid"></div>
+      <label>2. Escribe la que entra (nombre o dorsal)</label>
+      <input type="text" id="sbIn" maxlength="20">
+      <div class="hint" id="sbCount"></div>
+    </div>
+    <div class="row">
+      <button id="sbOk">Hacer cambio</button>
+      <button id="sbCancel" class="sec">Cancelar</button>
+    </div>
+    <button class="link" id="sbLineup">Editar alineación inicial</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  // Coordenadas (% del campo) de las posiciones 1..6. Equipo 0 abajo, equipo 1 arriba.
+  const X = { L: 20, M: 50, R: 80 };
+  const COORDS = [
+    [[X.R, 84], [X.R, 61], [X.M, 61], [X.L, 61], [X.L, 84], [X.M, 84]],
+    [[X.L, 14], [X.L, 37], [X.M, 37], [X.R, 37], [X.R, 14], [X.M, 14]],
+  ];
+  // Orden de casillas en los formularios, visto desde el propio equipo: delanteras P4 P3 P2, zagueras P5 P6 P1
+  const GRID = [3, 2, 1, 4, 5, 0];
+  const DEF = () => ["1", "2", "3", "4", "5", "6"];
+
+  let state, past;
+
+  function fresh(prev) {
+    const lineup = prev ? prev.lineup.map(a => a.slice()) : [DEF(), DEF()];
+    return {
+      pts: [0, 0], sets: [0, 0], setNum: 1, server: null, done: [], phase: "serve",
+      teams: prev ? prev.teams.slice() : ["Lucía", "Visitante"],
+      lineup,                                   // alineación inicial por posición (P1..P6)
+      names: lineup.map(a => a.slice()),        // names[t][ficha] = jugadora en esa ficha
+      rot: [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]], // rot[t][k] = ficha en posición k+1
+      subs: [0, 0],
+    };
+  }
+  const target = () => (state.setNum === 5 ? 15 : 25);
+  const save = () => past.push(JSON.stringify(state));
+  const setStarted = () => state.pts[0] + state.pts[1] > 0;
+
+  function rotate(t) { const r = state.rot[t]; state.rot[t] = [r[1], r[2], r[3], r[4], r[5], r[0]]; }
+
+  function addPoint(t) {
+    if (state.phase !== "play") return;
+    save();
+    state.pts[t]++;
+    if (state.server !== t) { rotate(t); state.server = t; }
+    const o = 1 - t;
+    if (state.pts[t] >= target() && state.pts[t] - state.pts[o] >= 2) {
+      state.sets[t]++;
+      state.done.push(state.pts[0] + "-" + state.pts[1]);
+      state.phase = state.sets[t] === 3 ? "match" : "set";
+    }
+    render();
+  }
+  function undo() { if (!past.length) return; state = JSON.parse(past.pop()); render(); }
+  function nextSet() {
+    save();
+    state.setNum++;
+    state.pts = [0, 0];
+    state.rot = [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]];
+    state.names = state.lineup.map(a => a.slice());
+    state.subs = [0, 0];
+    state.server = null;
+    state.phase = "serve";
+    render();
+  }
+  function chooseServer(t) { save(); state.server = t; state.phase = "play"; render(); }
+
+  // ---------- Fichas ----------
+  const court = document.getElementById("court");
+  const chips = [[], []];
+  for (let t = 0; t < 2; t++) for (let i = 0; i < 6; i++) {
+    const el = document.createElement("div");
+    el.className = "player " + (t === 0 ? "A" : "B");
+    el.innerHTML = '<span class="txt"></span><span class="badge"></span><div class="tag"></div>';
+    court.appendChild(el);
+    chips[t][i] = el;
+  }
+  function short(s) {
+    s = (s || "").trim();
+    if (!s) return "?";
+    if (s.length <= 3) return s;
+    return s.slice(0, 2).toUpperCase();
+  }
+
+  function render() {
+    for (let t = 0; t < 2; t++) {
+      const nm = state.teams[t];
+      document.getElementById("n" + t).textContent = nm;
+      document.getElementById("b" + t).textContent = "+1 " + nm;
+      document.getElementById("sv" + t).textContent = nm;
+      document.getElementById("p" + t).textContent = state.pts[t];
+      document.getElementById("s" + t).textContent = state.sets[t];
+      document.getElementById("sc" + t).classList.toggle("serving", state.server === t && state.phase === "play");
+      state.rot[t].forEach((chip, k) => {
+        const el = chips[t][chip];
+        const name = (state.names[t][chip] || "").trim();
+        el.style.left = COORDS[t][k][0] + "%";
+        el.style.top = COORDS[t][k][1] + "%";
+        el.querySelector(".txt").textContent = short(name);
+        el.querySelector(".badge").textContent = "P" + (k + 1);
+        el.querySelector(".tag").textContent = name.length > 3 ? name : "";
+        el.classList.toggle("server", k === 0 && state.server === t && state.phase === "play");
+      });
+    }
+    document.getElementById("setLabel").textContent = "Set " + state.setNum + (state.setNum === 5 ? " (a 15)" : "");
+    document.getElementById("hist").textContent = state.done.join(" · ");
+
+    document.getElementById("serveOv").classList.toggle("show", state.phase === "serve");
+    document.getElementById("serveTitle").textContent =
+      state.setNum === 1 ? "¿Quién saca primero?" : "Set " + state.setNum + ": ¿quién saca?";
+
+    const ov = document.getElementById("overlay");
+    if (state.phase === "set" || state.phase === "match") {
+      const last = state.done[state.done.length - 1];
+      const sw = last.split("-").map(Number);
+      const w = sw[0] > sw[1] ? 0 : 1;
+      if (state.phase === "match") {
+        document.getElementById("ovTitle").textContent = "🏆 ¡Gana " + state.teams[w] + "!";
+        document.getElementById("ovText").textContent =
+          "Resultado: " + state.sets[0] + "-" + state.sets[1] + " (" + state.done.join(", ") + ")";
+        document.getElementById("ovNext").style.display = "none";
+      } else {
+        document.getElementById("ovTitle").textContent = "Set para " + state.teams[w];
+        document.getElementById("ovText").textContent = last + "  —  Sets: " + state.sets[0] + "-" + state.sets[1];
+        document.getElementById("ovNext").style.display = "";
+      }
+      ov.classList.add("show");
+    } else ov.classList.remove("show");
+
+    try { localStorage.setItem("voley3", JSON.stringify({ state, past })); } catch (e) {}
+  }
+
+  function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2500);
+  }
+  const show = id => document.getElementById(id).classList.add("show");
+  const hide = id => document.getElementById(id).classList.remove("show");
+
+  // ---------- Alineación ----------
+  let luTeam = 0, luDraft;
+  function openLineup() {
+    luDraft = { teams: state.teams.slice(), lineup: state.lineup.map(a => a.slice()) };
+    luTeam = 0; drawLineup(); show("lineupOv");
+  }
+  function readLineup() {
+    luDraft.teams[luTeam] = document.getElementById("luTeam").value.trim() || (luTeam ? "Visitante" : "Lucía");
+    document.querySelectorAll("#luGrid input").forEach(inp => { luDraft.lineup[luTeam][+inp.dataset.k] = inp.value.trim(); });
+  }
+  function drawLineup() {
+    document.getElementById("luTab0").textContent = luDraft.teams[0];
+    document.getElementById("luTab1").textContent = luDraft.teams[1];
+    document.querySelectorAll("#luTabs button").forEach(b => b.classList.toggle("on", +b.dataset.tab === luTeam));
+    document.getElementById("luTeam").value = luDraft.teams[luTeam];
+    const g = document.getElementById("luGrid"); g.innerHTML = "";
+    GRID.forEach((k, i) => {
+      if (i === 3) { const d = document.createElement("div"); d.className = "rowlbl"; d.style.gridColumn = "1 / -1"; d.textContent = "— Fondo —"; g.appendChild(d); }
+      const c = document.createElement("div"); c.className = "cell";
+      c.innerHTML = '<span>P' + (k + 1) + (k === 0 ? " (saca)" : "") + '</span><input type="text" maxlength="20" data-k="' + k + '">';
+      c.querySelector("input").value = luDraft.lineup[luTeam][k];
+      g.appendChild(c);
+    });
+    document.getElementById("luNote").textContent = setStarted()
+      ? "El set ya ha empezado: la alineación se usará al empezar el próximo set. Para cambiar a alguien ahora, usa «Cambio»."
+      : "";
+  }
+  document.querySelectorAll("#luTabs button").forEach(b => b.onclick = () => { readLineup(); luTeam = +b.dataset.tab; drawLineup(); });
+  document.getElementById("luSave").onclick = () => {
+    readLineup(); save();
+    state.teams = luDraft.teams; state.lineup = luDraft.lineup;
+    if (!setStarted()) {
+      state.names = state.lineup.map(a => a.slice());
+      state.rot = [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]];
+      state.subs = [0, 0];
+    }
+    hide("lineupOv"); render(); toast("Alineación guardada");
+  };
+  document.getElementById("luCancel").onclick = () => hide("lineupOv");
+
+  // ---------- Cambios ----------
+  let sbTeam = 0, sbSel = null;
+  function openSub() { sbTeam = 0; sbSel = null; document.getElementById("sbIn").value = ""; drawSub(); show("subOv"); }
+  function drawSub() {
+    document.getElementById("sbTab0").textContent = state.teams[0];
+    document.getElementById("sbTab1").textContent = state.teams[1];
+    document.querySelectorAll("#sbTabs button").forEach(b => b.classList.toggle("on", +b.dataset.tab === sbTeam));
+    const g = document.getElementById("sbGrid"); g.innerHTML = "";
+    GRID.forEach((k, i) => {
+      if (i === 3) { const d = document.createElement("div"); d.className = "rowlbl"; d.style.gridColumn = "1 / -1"; d.textContent = "— Fondo —"; g.appendChild(d); }
+      const chip = state.rot[sbTeam][k];
+      const b = document.createElement("button");
+      b.className = "pick" + (sbSel === chip ? " sel" : "");
+      b.textContent = "P" + (k + 1) + ": " + (state.names[sbTeam][chip] || "?");
+      b.onclick = () => { sbSel = chip; drawSub(); document.getElementById("sbIn").focus(); };
+      g.appendChild(b);
+    });
+    document.getElementById("sbCount").textContent = "Cambios de " + state.teams[sbTeam] + " en este set: " + state.subs[sbTeam];
+  }
+  document.querySelectorAll("#sbTabs button").forEach(b => b.onclick = () => { sbTeam = +b.dataset.tab; sbSel = null; drawSub(); });
+  document.getElementById("sbOk").onclick = () => {
+    const inName = document.getElementById("sbIn").value.trim();
+    if (sbSel === null) { toast("Toca primero la jugadora que sale"); return; }
+    if (!inName) { toast("Escribe quién entra"); return; }
+    save();
+    const outName = state.names[sbTeam][sbSel] || "?";
+    state.names[sbTeam][sbSel] = inName;
+    state.subs[sbTeam]++;
+    const el = chips[sbTeam][sbSel];
+    hide("subOv"); render();
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    toast("Entra " + inName + " por " + outName);
+  };
+  document.getElementById("sbCancel").onclick = () => hide("subOv");
+  document.getElementById("sbLineup").onclick = () => { hide("subOv"); openLineup(); };
+  document.getElementById("subBtn").onclick = openSub;
+
+  // ---------- Resto ----------
+  document.querySelectorAll("[data-t]").forEach(el => el.addEventListener("click", () => addPoint(+el.dataset.t)));
+  document.querySelectorAll("[data-serve]").forEach(el => el.addEventListener("click", () => chooseServer(+el.dataset.serve)));
+  document.getElementById("undo").onclick = undo;
+  document.getElementById("ovUndo").onclick = undo;
+  document.getElementById("ovNext").onclick = nextSet;
+  document.getElementById("reset").onclick = () => show("confirm");
+  document.getElementById("cNo").onclick = () => hide("confirm");
+  document.getElementById("cYes").onclick = () => { state = fresh(state); past = []; hide("confirm"); render(); };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem("voley3"));
+    if (saved && saved.state && saved.state.lineup) { state = saved.state; past = saved.past || []; }
+  } catch (e) {}
+  if (!state) { state = fresh(); past = []; }
+  render();
+</script>
+</body>
+</html>

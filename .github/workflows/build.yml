@@ -1,0 +1,46 @@
+name: Compilar apps
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Preparar apps
+        run: python3 preparar.py
+      - name: Compilar
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: gradle assembleDebug --no-daemon
+      - name: Reunir APKs
+        run: |
+          mkdir salida
+          for f in app/build/outputs/apk/*/debug/*.apk; do
+            id=$(basename "$(dirname "$(dirname "$f")")")
+            cp "$f" "salida/$id.apk"
+          done
+          ls -la salida
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MisApps
+          path: salida/*.apk
+      - name: Publicar versión
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Mis apps v${{ github.run_number }}
+          make_latest: true
+          files: salida/*.apk
