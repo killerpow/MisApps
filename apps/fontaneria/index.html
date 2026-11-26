@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Mis Trabajos de Fontanería</title>
+<style>
+  :root{
+    --naranja:#E8731A; --naranja-claro:#FDF0E5; --tinta:#1f2328; --gris:#6b7280;
+    --linea:#e5e7eb; --fondo:#f7f5f2; --verde:#1f9d55; --verde-claro:#e6f6ec;
+    --rojo:#c0392b; --rojo-claro:#fbeaea; --azul:#2563eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--fondo);color:var(--tinta);font-size:16px}
+  header{background:#fff;border-bottom:3px solid var(--naranja);padding:14px 16px 10px;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:19px;letter-spacing:.3px;color:var(--naranja);text-transform:uppercase}
+  header .sub{font-size:13px;color:var(--gris);margin-top:2px}
+  main{max-width:640px;margin:0 auto;padding:14px 12px 110px}
+  .resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .resumen div{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:8px;text-align:center}
+  .resumen b{display:block;font-size:17px}
+  .resumen span{font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.3px}
+  .acciones{display:flex;gap:8px;margin-bottom:12px}
+  .btn{border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .btn-prim{background:var(--naranja);color:#fff;flex:1}
+  .btn-wa{background:#25D366;color:#fff;flex:1}
+  .btn-sec{background:#fff;color:var(--tinta);border:1px solid var(--linea)}
+  .btn-peq{padding:8px 10px;font-size:13px;border-radius:8px}
+  .filtros{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+  .filtros button{flex:none;border:1px solid var(--linea);background:#fff;border-radius:20px;padding:7px 13px;font-size:14px;font-family:inherit;color:var(--tinta)}
+  .filtros button.on{background:var(--naranja);border-color:var(--naranja);color:#fff}
+  .ficha{background:#fff;border:1px solid var(--linea);border-left:5px solid var(--naranja);border-radius:10px;padding:12px;margin-bottom:10px}
+  .ficha.hecho{border-left-color:var(--verde)}
+  .ficha.urg{border-left-color:var(--rojo);background:#fffafa}
+  .derecha{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .mover{display:flex;gap:4px}
+  .mover button{width:38px;height:34px;border:1px solid var(--linea);background:#fff;border-radius:8px;font-size:15px;color:var(--tinta);padding:0}
+  .mover button:disabled{opacity:.25}
+  .mover button:active{background:var(--naranja-claro)}
+  .b-urg{background:var(--rojo);color:#fff}
+  .btn-urg-on{background:var(--rojo-claro);color:var(--rojo);border:1px solid var(--rojo)}
+  .ficha.hecho .motivo{text-decoration:line-through;color:var(--gris)}
+  .ficha-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .fecha{font-size:12px;color:var(--gris)}
+  .cliente{font-weight:700;font-size:16px;margin-top:2px}
+  .tel{font-size:13px;color:var(--gris)}
+  .precio{font-weight:700;font-size:18px;white-space:nowrap}
+  .motivo{margin:8px 0 6px;white-space:pre-wrap}
+  .etiqueta{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--naranja);letter-spacing:.4px;margin-top:6px}
+  ul.mats{margin:4px 0 0;padding-left:18px;font-size:14px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px}
+  .badge{font-size:12px;font-weight:700;padding:4px 9px;border-radius:12px}
+  .b-pend{background:var(--naranja-claro);color:var(--naranja)}
+  .b-hecho{background:var(--verde-claro);color:var(--verde)}
+  .b-cobrar{background:var(--rojo-claro);color:var(--rojo)}
+  .b-cobrado{background:var(--verde-claro);color:var(--verde)}
+  .botones{display:flex;gap:6px;flex-wrap:wrap}
+  .vacio{text-align:center;color:var(--gris);padding:40px 10px}
+  .aviso{background:var(--naranja-claro);color:#8a4a12;font-size:13px;padding:8px 10px;border-radius:8px;margin-bottom:10px;display:none}
+  /* Formulario (estilo hoja) */
+  .capa{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20;overflow-y:auto}
+  .capa.ver{display:block}
+  .hoja{background:#fff;max-width:600px;margin:16px auto;border-radius:12px;padding:18px 16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  .hoja h2{color:var(--naranja);text-align:center;margin:0 0 4px;font-size:20px;text-transform:uppercase}
+  .hoja .hoy{text-align:center;font-size:14px;color:var(--gris);margin-bottom:14px}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+  input,textarea,select{width:100%;font-family:inherit;font-size:16px;border:0;border-bottom:1.5px solid #bbb;padding:8px 2px;background:transparent;outline:none;border-radius:0}
+  input:focus,textarea:focus{border-bottom-color:var(--naranja)}
+  textarea{border:1.5px solid #ddd;border-radius:8px;padding:8px;min-height:80px;resize:vertical;
+    background-image:repeating-linear-gradient(transparent,transparent 27px,#eee 27px,#eee 28px);line-height:28px}
+  .fila-mat{display:flex;gap:6px;align-items:center;margin-top:6px}
+  .fila-mat input.n{flex:1}
+  .fila-mat input.c{width:70px}
+  .fila-mat button{border:0;background:var(--rojo-claro);color:var(--rojo);border-radius:8px;width:34px;height:34px;font-size:18px}
+  .opciones{display:flex;gap:8px;margin-top:6px}
+  .opciones label{flex:1;margin:0;border:1.5px solid var(--linea);border-radius:10px;padding:10px;text-align:center;font-weight:600;cursor:pointer}
+  .opciones input{display:none}
+  .opciones input:checked + span{color:var(--naranja)}
+  .opciones label:has(input:checked){border-color:var(--naranja);background:var(--naranja-claro)}
+  .pie{display:flex;gap:8px;margin-top:18px}
+  .pie .btn{flex:1}
+  .dialogo{max-width:360px;text-align:center}
+  .dialogo p{margin:6px 0 16px}
+  .btn-rojo{background:var(--rojo);color:#fff}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;display:none;z-index:30}
+  .wa-texto{width:100%;min-height:200px;font-size:14px;background:#fafafa;line-height:1.4;background-image:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔧 Mis Trabajos</h1>
+  <div class="sub" id="hoyCab"></div>
+</header>
+
+<main>
+  <div class="aviso" id="aviso"></div>
+
+  <div class="resumen">
+    <div><b id="rPend">0</b><span>Pendientes</span></div>
+    <div><b id="rHechos">0</b><span>Completados</span></div>
+    <div><b id="rCobrar">0 €</b><span>Por cobrar</span></div>
+  </div>
+
+  <div class="acciones">
+    <button class="btn btn-prim" id="btnNuevo">＋ Apuntar trabajo</button>
+    <button class="btn btn-wa" id="btnWa">WhatsApp</button>
+  </div>
+
+  <div class="filtros" id="filtros">
+    <button data-f="todos" class="on">Todos</button>
+    <button data-f="pendientes">Pendientes</button>
+    <button data-f="completados">Completados</button>
+    <button data-f="cobrar">Por cobrar</button>
+    <button data-f="cobrados">Cobrados</button>
+  </div>
+
+  <div id="lista"><div class="vacio">Cargando…</div></div>
+</main>
+
+<!-- Formulario -->
+<div class="capa" id="capaForm">
+  <form class="hoja" id="form">
+    <h2>Parte de trabajo</h2>
+    <div class="hoy" id="formFecha"></div>
+
+    <label for="fCliente">Cliente</label>
+    <input id="fCliente" placeholder="Nombre del cliente" autocomplete="off">
+
+    <label for="fTel">Nº de teléfono</label>
+    <input id="fTel" type="tel" placeholder="600 000 000" autocomplete="off">
+
+    <label for="fDir">Dirección</label>
+    <input id="fDir" placeholder="Calle, número, piso…" autocomplete="off">
+
+    <label for="fMotivo">Motivo del trabajo</label>
+    <textarea id="fMotivo" placeholder="Ej.: Fuga en el sifón del fregadero"></textarea>
+
+    <label>Materiales</label>
+    <div id="mats"></div>
+    <button type="button" class="btn btn-sec btn-peq" id="addMat" style="margin-top:8px">＋ Añadir material</button>
+
+    <label for="fPrecio">Presupuesto (€)</label>
+    <input id="fPrecio" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00">
+
+    <label>Cobro</label>
+    <div class="opciones">
+      <label><input type="radio" name="cobro" value="pendiente" checked><span>Pendiente de cobrar</span></label>
+      <label><input type="radio" name="cobro" value="cobrado"><span>Cobrado</span></label>
+    </div>
+
+    <div class="pie">
+      <button type="button" class="btn btn-sec" id="cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-prim">Guardar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Confirmar borrado -->
+<div class="capa" id="capaBorrar">
+  <div class="hoja dialogo">
+    <h2>¿Eliminar?</h2>
+    <p id="borrarTxt">Este trabajo se borrará para siempre.</p>
+    <div class="pie">
+      <button class="btn btn-sec" id="noBorrar">No, dejarlo</button>
+      <button class="btn btn-rojo" id="siBorrar">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- WhatsApp -->
+<div class="capa" id="capaWa">
+  <div class="hoja">
+    <h2>Enviar por WhatsApp</h2>
+    <div class="hoy">Trabajos pendientes con sus materiales</div>
+    <textarea class="wa-texto" id="waTexto" readonly></textarea>
+    <div class="pie">
+      <button class="btn btn-sec" id="waCerrar">Cerrar</button>
+      <button class="btn btn-sec" id="waCopiar">Copiar</button>
+      <a class="btn btn-wa" id="waEnviar" href="#" target="_blank" rel="noopener">Abrir WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const fechaLarga = d => `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+  const fechaCorta = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  const hora = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const euros = n => (Number(n)||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const cap = t => t.charAt(0).toUpperCase()+t.slice(1);
+  $('#hoyCab').textContent = 'Hoy: ' + cap(fechaLarga(new Date()));
+
+  // ---------- Almacenamiento ----------
+  let trabajos = [];
+  let coleccion = null;       // db collection
+  let modoLocal = false;
+  const LS = 'trabajos_fontaneria_v1';
+
+  function avisar(t){ const a=$('#aviso'); a.textContent=t; a.style.display=t?'block':'none'; }
+  function toast(t){ const e=$('#toast'); e.textContent=t; e.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>e.style.display='none',2200); }
+
+  function cargarLocal(){
+    modoLocal = true;
+    try{ trabajos = JSON.parse(localStorage.getItem(LS)||'[]'); }catch(e){ trabajos=[]; }
+    pintar();
+  }
+  function guardarLocal(){ try{ localStorage.setItem(LS, JSON.stringify(trabajos)); }catch(e){} }
+
+  async function iniciar(){
+    let db=null, user=null;
+    try{ [db,user] = await Promise.all([window.claude?.use?.('db'), window.claude?.use?.('user')]); }catch(e){}
+    let uid=null;
+    try{ uid = user ? await user.id() : null; }catch(e){}
+    if(!db || !uid){
+      cargarLocal();
+      return;
+    }
+    coleccion = db.collection('data/users/'+uid);
+    const temp = setTimeout(()=>avisar('No se pueden cargar los datos todavía. Revisa la conexión.'),10000);
+    coleccion.onSnapshot(snap=>{
+      if(!snap.metadata.fromCache){ clearTimeout(temp); avisar(''); }
+      trabajos = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      pintar();
+    }, err=>{
+      clearTimeout(temp);
+      avisar('No se pudieron cargar los datos guardados. Se usará el almacenamiento del móvil.');
+      coleccion=null; cargarLocal();
+    });
+  }
+
+  async function guardar(t){
+    if(coleccion){
+      try{ const {id,...datos}=t; await coleccion.doc(id).set(datos); }
+      catch(e){ toast(e && e.code==='quota_exceeded' ? 'Almacenamiento lleno: elimina trabajos antiguos' : 'No se pudo guardar'); }
+    } else {
+      const i = trabajos.findIndex(x=>x.id===t.id);
+      if(i>=0) trabajos[i]=t; else trabajos.push(t);
+      guardarLocal(); pintar();
+    }
+  }
+  async function borrar(id){
+    if(coleccion){ try{ await coleccion.doc(id).delete(); }catch(e){ toast('No se pudo eliminar'); } }
+    else { trabajos = trabajos.filter(x=>x.id!==id); guardarLocal(); pintar(); }
+  }
+
+  // ---------- Pintar lista ----------
+  let filtro='todos';
+  $('#filtros').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    filtro=b.dataset.f;
+    document.querySelectorAll('#filtros button').forEach(x=>x.classList.toggle('on',x===b));
+    pintar();
+  });
+
+  const getOrden = t => (typeof t.orden==='number') ? t.orden : -(t.fecha||0);
+  const porPrioridad = (a,b) => ((b.urgente?1:0)-(a.urgente?1:0)) || (getOrden(a)-getOrden(b));
+  function pintar(){
+    const orden = [...trabajos].sort(porPrioridad);
+    const pend = orden.filter(t=>!t.completado);
+    $('#rPend').textContent = pend.length;
+    $('#rHechos').textContent = orden.length - pend.length;
+    $('#rCobrar').textContent = euros(orden.filter(t=>t.cobro!=='cobrado').reduce((s,t)=>s+(Number(t.precio)||0),0));
+
+    const vis = orden.filter(t=>{
+      if(filtro==='pendientes') return !t.completado;
+      if(filtro==='completados') return t.completado;
+      if(filtro==='cobrar') return t.cobro!=='cobrado';
+      if(filtro==='cobrados') return t.cobro==='cobrado';
+      return true;
+    });
+    const L=$('#lista');
+    if(!vis.length){ L.innerHTML='<div class="vacio">No hay trabajos aquí.<br>Pulsa <b>＋ Apuntar trabajo</b> para empezar.</div>'; return; }
+    L.innerHTML = vis.map((t,i)=>{
+      const d=new Date(t.fecha||Date.now());
+      const mats=(t.materiales||[]).filter(m=>m.nombre);
+      const puedeSubir = i>0 && !!vis[i-1].urgente===!!t.urgente;
+      const puedeBajar = i<vis.length-1 && !!vis[i+1].urgente===!!t.urgente;
+      return `<div class="ficha ${t.completado?'hecho':''} ${t.urgente&&!t.completado?'urg':''}">
+        <div class="ficha-top">
+          <div>
+            <div class="fecha">📅 ${cap(fechaLarga(d))} · ${hora(d)}</div>
+            <div class="cliente">${esc(t.cliente||'Sin nombre')}</div>
+            ${t.tel?`<div class="tel">📞 ${esc(t.tel)}</div>`:''}
+            ${t.dir?`<div class="tel">📍 ${esc(t.dir)}</div>`:''}
+          </div>
+          <div class="derecha">
+            <div class="precio">${euros(t.precio)}</div>
+            <div class="mover">
+              <button data-a="subir" data-id="${t.id}" aria-label="Subir" ${puedeSubir?'':'disabled'}>▲</button>
+              <button data-a="bajar" data-id="${t.id}" aria-label="Bajar" ${puedeBajar?'':'disabled'}>▼</button>
+            </div>
+          </div>
+        </div>
+        ${t.motivo?`<div class="etiqueta">Motivo</div><div class="motivo">${esc(t.motivo)}</div>`:''}
+        ${mats.length?`<div class="etiqueta">Materiales</div><ul class="mats">${mats.map(m=>`<li>${m.cant?esc(m.cant)+' × ':''}${esc(m.nombre)}</li>`).join('')}</ul>`:''}
+        <div class="badges">
+          ${t.urgente?'<span class="badge b-urg">🔥 URGENTE</span>':''}
+          <span class="badge ${t.completado?'b-hecho':'b-pend'}">${t.completado?'✔ Completado':'⏳ Pendiente'}</span>
+          <span class="badge ${t.cobro==='cobrado'?'b-cobrado':'b-cobrar'}">${t.cobro==='cobrado'?'💶 Cobrado':'💶 Pendiente de cobrar'}</span>
+        </div>
+        <div class="botones">
+          <button class="btn ${t.completado?'btn-sec':'btn-prim'} btn-peq" data-a="hecho" data-id="${t.id}">${t.completado?'↩ Marcar pendiente':'✔ Completado'}</button>
+          <button class="btn btn-sec btn-peq" data-a="cobro" data-id="${t.id}">${t.cobro==='cobrado'?'Marcar sin cobrar':'Marcar cobrado'}</button>
+          <button class="btn ${t.urgente?'btn-urg-on':'btn-sec'} btn-peq" data-a="urgente" data-id="${t.id}">${t.urgente?'🔥 Quitar urgente':'🔥 Urgente'}</button>
+          <button class="btn btn-sec btn-peq" data-a="editar" data-id="${t.id}">✏️ Editar</button>
+          <button class="btn btn-sec btn-peq" data-a="borrar" data-id="${t.id}" style="color:var(--rojo)">🗑 Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  $('#lista').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-a]'); if(!b) return;
+    const t=trabajos.find(x=>x.id===b.dataset.id); if(!t) return;
+    const a=b.dataset.a;
+    if(a==='hecho'){ guardar({...t, completado:!t.completado, completadoEl: !t.completado?Date.now():null}); toast(!t.completado?'Marcado como completado':'Vuelve a pendiente'); }
+    if(a==='cobro'){ guardar({...t, cobro: t.cobro==='cobrado'?'pendiente':'cobrado'}); }
+    if(a==='editar'){ abrirForm(t); }
+    if(a==='urgente'){ guardar({...t, urgente:!t.urgente}); toast(!t.urgente?'Marcado como urgente: sube arriba':'Ya no es urgente'); }
+    if(a==='subir'||a==='bajar'){
+      const vis=[...document.querySelectorAll('#lista button[data-a=subir]')].map(x=>x.dataset.id);
+      const i=vis.indexOf(t.id), j=a==='subir'?i-1:i+1;
+      const o=trabajos.find(x=>x.id===vis[j]);
+      if(!o || !!o.urgente!==!!t.urgente) return;
+      let ot=getOrden(t), oo=getOrden(o);
+      if(ot===oo){ oo = a==='subir' ? ot-1 : ot+1; }
+      guardar({...t, orden:oo}).then(()=>guardar({...o, orden:ot}));
+    }
+    if(a==='borrar'){ pedirBorrar(t); }
+  });
+
+  // ---------- Formulario ----------
+  let editando=null;
+  function filaMat(m={}){
+    const f=document.createElement('div'); f.className='fila-mat';
+    f.innerHTML=`<input class="c" placeholder="Cant." value="${esc(m.cant||'')}"><input class="n" placeholder="Material (ej.: tubo PVC 40mm)" value="${esc(m.nombre||'')}"><button type="button" aria-label="Quitar">×</button>`;
+    f.querySelector('button').onclick=()=>f.remove();
+    $('#mats').appendChild(f);
+  }
+  $('#addMat').onclick=()=>{ filaMat(); $('#mats').lastElementChild.querySelector('.n').focus(); };
+
+  function abrirForm(t){
+    editando=t||null;
+    const d=new Date(t?.fecha||Date.now());
+    $('#formFecha').textContent = (t?'Apuntado el ':'Fecha: ') + cap(fechaLarga(d)) + ' · ' + hora(d);
+    $('#fCliente').value=t?.cliente||''; $('#fTel').value=t?.tel||''; $('#fDir').value=t?.dir||'';
+    $('#fMotivo').value=t?.motivo||''; $('#fPrecio').value=t?.precio??'';
+    document.querySelector(`input[name=cobro][value=${t?.cobro==='cobrado'?'cobrado':'pendiente'}]`).checked=true;
+    $('#mats').innerHTML='';
+    (t?.materiales?.length?t.materiales:[{}]).forEach(filaMat);
+    $('#capaForm').classList.add('ver'); window.scrollTo(0,0);
+  }
+  function cerrarForm(){ $('#capaForm').classList.remove('ver'); editando=null; }
+  $('#btnNuevo').onclick=()=>abrirForm();
+  $('#cancelar').onclick=cerrarForm;
+
+  $('#form').addEventListener('submit',e=>{
+    e.preventDefault();
+    const materiales=[...document.querySelectorAll('#mats .fila-mat')].map(f=>({cant:f.querySelector('.c').value.trim(), nombre:f.querySelector('.n').value.trim()})).filter(m=>m.nombre);
+    const motivo=$('#fMotivo').value.trim(), cliente=$('#fCliente').value.trim();
+    if(!motivo && !cliente){ toast('Escribe al menos el cliente o el motivo'); return; }
+    const t={
+      id: editando?.id || ('t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+      fecha: editando?.fecha || Date.now(),
+      orden: editando ? getOrden(editando) : Math.min(0, ...trabajos.map(getOrden)) - 1,
+      urgente: editando?.urgente || false,
+      cliente, tel:$('#fTel').value.trim(), dir:$('#fDir').value.trim(), motivo, materiales,
+      precio: parseFloat(String($('#fPrecio').value).replace(',','.'))||0,
+      cobro: document.querySelector('input[name=cobro]:checked').value,
+      completado: editando?.completado||false,
+      completadoEl: editando?.completadoEl||null
+    };
+    const eraEdicion=!!editando;
+    guardar(t); cerrarForm(); toast(eraEdicion?'Cambios guardados':'Trabajo apuntado');
+  });
+
+  // ---------- Borrar ----------
+  let aBorrar=null;
+  function pedirBorrar(t){ aBorrar=t; $('#borrarTxt').textContent=`Se borrará el trabajo de ${t.cliente||'este cliente'} para siempre.`; $('#capaBorrar').classList.add('ver'); }
+  $('#noBorrar').onclick=()=>{ $('#capaBorrar').classList.remove('ver'); aBorrar=null; };
+  $('#siBorrar').onclick=()=>{ if(aBorrar) borrar(aBorrar.id); $('#capaBorrar').classList.remove('ver'); toast('Trabajo eliminado'); aBorrar=null; };
+
+  // ---------- WhatsApp ----------
+  function textoWa(){
+    const pend=[...trabajos].filter(t=>!t.completado).sort(porPrioridad);
+    if(!pend.length) return null;
+    let s=`🛠️ *TRABAJOS PENDIENTES* (${fechaCorta(new Date())})\n`;
+    const todos={};
+    pend.forEach((t,i)=>{
+      s+=`\n*${i+1}. ${t.cliente||'Sin nombre'}* (${fechaCorta(new Date(t.fecha))})${t.urgente?' 🔥 *URGENTE*':''}\n`;
+      if(t.tel) s+=`📞 *Tel:* ${t.tel}\n`;
+      if(t.dir) s+=`📍 *Dirección:* ${t.dir}\n`;
+      if(t.motivo) s+=`🔧 *Trabajo:* ${t.motivo}\n`;
+      const mats=(t.materiales||[]).filter(m=>m.nombre);
+      if(mats.length){ s+=`📦 *Materiales:*\n`; mats.forEach(m=>{ s+=`   - ${m.cant?m.cant+' x ':''}${m.nombre}\n`;
+        const k=m.nombre.toLowerCase(); const n=parseFloat(String(m.cant).replace(',','.'));
+        if(!todos[k]) todos[k]={nombre:m.nombre,total:0,sinNum:false};
+        if(isNaN(n)) todos[k].sinNum=true; else todos[k].total+=n; }); }
+      s+=`💶 *Presupuesto:* ${euros(t.precio)} (${t.cobro==='cobrado'?'cobrado':'pendiente de cobrar'})\n`;
+    });
+    const lista=Object.values(todos);
+    if(lista.length){
+      s+=`\n🧰 *MATERIALES EN TOTAL*\n`;
+      lista.forEach(m=>{ s+=`   - ${m.total?m.total.toLocaleString('es-ES')+' x ':''}${m.nombre}${m.sinNum&&m.total?' (+ sin cantidad)':''}\n`; });
+    }
+    s+=`\n💰 *Total presupuestado:* ${euros(pend.reduce((a,t)=>a+(Number(t.precio)||0),0))}`;
+    return s;
+  }
+  $('#btnWa').onclick=()=>{
+    const s=textoWa();
+    if(!s){ toast('No hay trabajos pendientes'); return; }
+    $('#waTexto').value=s;
+    $('#waEnviar').href='https://api.whatsapp.com/send?text='+encodeURIComponent(s);
+    $('#capaWa').classList.add('ver');
+  };
+  $('#waCerrar').onclick=()=>$('#capaWa').classList.remove('ver');
+  $('#waCopiar').onclick=async()=>{
+    try{ await navigator.clipboard.writeText($('#waTexto').value); toast('Copiado. Pégalo en WhatsApp'); }
+    catch(e){ const t=$('#waTexto'); t.removeAttribute('readonly'); t.select(); toast('Selecciona y copia el texto'); }
+  };
+
+  iniciar();
+})();
+</script>
+</body>
+</html>

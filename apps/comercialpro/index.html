@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComercialPro · Panel de Agente Comercial</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1f2430; --muted:#6b7280; --line:#e6e8ec;
+    --blue:#2563eb; --blue-d:#1d4ed8; --blue-l:#eff4ff;
+    --green:#16a34a; --green-l:#e8f7ee; --amber:#b45309; --amber-l:#fdf3e1;
+    --gray-l:#f1f2f4; --red:#dc2626; --r:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;padding-bottom:76px}
+  svg{width:18px;height:18px;flex:none}
+  button{font:inherit;cursor:pointer;border:0}
+  input,select,textarea{font:inherit;color:inherit}
+  header{background:var(--blue);color:#fff;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .bar{max-width:1100px;margin:auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px}
+  .brand svg{width:22px;height:22px}
+  .date{font-size:13px;opacity:.85}
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:10}
+  nav.tabs button{flex:1;background:none;padding:9px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
+  nav.tabs button.on{color:var(--blue);font-weight:600}
+  nav.tabs svg{width:22px;height:22px}
+  main{max-width:1100px;margin:auto;padding:20px 16px}
+  h1{font-size:22px;margin:0 0 14px}
+  h2{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .hidden{display:none!important}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .pad{padding:18px}
+  .stack>*+*{margin-top:18px}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .metric{padding:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .metric p{margin:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+  .metric h3{margin:6px 0 0;font-size:26px;font-variant-numeric:tabular-nums}
+  .ico{padding:9px;border-radius:10px;display:flex}
+  .i-blue{background:var(--blue-l);color:var(--blue)} .i-green{background:var(--green-l);color:var(--green)} .i-amber{background:var(--amber-l);color:var(--amber)}
+  .row-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .row-head h1{margin:0}
+  .btn{background:var(--blue);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:var(--blue-d)}
+  .btn.green{background:var(--green)} .btn.green:hover{background:#13843d}
+  .btn.ghost{background:var(--gray-l);color:var(--ink)}
+  .btn.block{width:100%;justify-content:center;padding:13px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:12.5px;color:var(--muted);font-weight:600;padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfc}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+  tr:last-child td{border-bottom:0}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .empty{color:var(--muted);text-align:center;padding:22px;font-size:14px}
+  .sub{color:var(--muted);font-size:13px}
+  .badge{display:inline-block;font-size:12px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap;border:0}
+  .b-green{background:var(--green-l);color:var(--green)} .b-amber{background:var(--amber-l);color:var(--amber)} .b-gray{background:var(--gray-l);color:#4b5563}
+  button.badge{cursor:pointer}
+  .visit-list{display:none}
+  .order-layout{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start}
+  .catalog{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .prod{padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+  .prod .top{display:flex;justify-content:space-between;gap:8px}
+  .prod h3{margin:0;font-size:15px}
+  .sku{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+  .price{color:var(--blue);font-weight:700;font-size:18px;margin:8px 0 2px}
+  .add{background:var(--blue-l);color:var(--blue);padding:9px;border-radius:10px;font-weight:600;display:flex;justify-content:center;align-items:center;gap:6px}
+  .add:hover{background:var(--blue);color:#fff}
+  .summary{position:sticky;top:76px}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:#374151}
+  .field{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#fff}
+  .field:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:transparent}
+  .sep{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+  .line{display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:9px;border-radius:10px;gap:8px}
+  .line+.line{margin-top:8px}
+  .line .name{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qty{display:flex;align-items:center;gap:4px}
+  .qty button{width:28px;height:28px;border-radius:8px;background:#fff;border:1px solid #d1d5db;font-weight:700}
+  .qty span{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+  .sub-total{min-width:70px;text-align:right;font-weight:600;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .total{display:flex;justify-content:space-between;font-size:18px;font-weight:700}
+  .total span:last-child{color:var(--blue)}
+  .lines{max-height:280px;overflow-y:auto}
+  .comm{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;margin-top:6px}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(17,24,39,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+  .modal{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:20px;max-height:92vh;overflow-y:auto;animation:up .18s ease-out}
+  @keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal .f{margin-bottom:12px}
+  .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+  .err{color:var(--red);font-size:13px;margin:-4px 0 10px}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 16px;border-radius:12px;font-size:14px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2);display:flex;gap:8px;align-items:center;max-width:92vw}
+  .toast svg{color:#4ade80}
+  .link{background:none;color:var(--muted);font-size:13px;text-decoration:underline;padding:0}
+  @media (min-width:760px){
+    body{padding-bottom:0}
+    nav.tabs{position:static;background:none;border:0;gap:4px}
+    nav.tabs button{flex-direction:row;color:#dbe6ff;font-size:14px;padding:8px 12px;border-radius:8px;gap:6px}
+    nav.tabs button.on,nav.tabs button:hover{background:var(--blue-d);color:#fff}
+    nav.tabs svg{width:17px;height:17px}
+    .overlay{align-items:center;padding:16px}
+    .modal{border-radius:18px}
+    .toast{bottom:24px}
+  }
+  @media (max-width:759px){
+    .metrics{grid-template-columns:1fr 1fr}
+    .metrics .metric:last-child{grid-column:1/-1}
+    .order-layout{grid-template-columns:1fr}
+    .summary{position:static}
+    .visit-table{display:none}
+    .visit-list{display:block}
+    .bar .date{display:none}
+  }
+  @media (max-width:480px){ .catalog{grid-template-columns:1fr} }
+  .vitem{padding:14px;border-bottom:1px solid var(--line)}
+  .vitem:last-child{border-bottom:0}
+  .vitem .t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .vitem p{margin:6px 0 0;font-size:14px;color:#4b5563}
+</style>
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="i-brief" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="i-pkg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
+    <symbol id="i-euro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  </defs>
+</svg>
+
+<header>
+  <div class="bar">
+    <div class="brand"><svg><use href="#i-brief"/></svg>ComercialPro</div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="dashboard" class="on"><svg><use href="#i-home"/></svg><span>Inicio</span></button>
+      <button data-tab="visitas"><svg><use href="#i-pin"/></svg><span>Visitas</span></button>
+      <button data-tab="pedidos"><svg><use href="#i-cart"/></svg><span>Nuevo pedido</span></button>
+    </nav>
+    <span class="date" id="today"></span>
+  </div>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <section id="tab-dashboard" class="stack">
+    <h1>Resumen del día</h1>
+    <div class="metrics">
+      <div class="card metric"><div><p>Visitas agendadas</p><h3 id="m-visitas">0</h3></div><div class="ico i-blue"><svg><use href="#i-cal"/></svg></div></div>
+      <div class="card metric"><div><p>Pedidos</p><h3 id="m-pedidos">0</h3></div><div class="ico i-green"><svg><use href="#i-pkg"/></svg></div></div>
+      <div class="card metric"><div><p>Total ventas</p><h3 id="m-ventas">0,00 €</h3><div class="sub" id="m-comision"></div></div><div class="ico i-amber"><svg><use href="#i-euro"/></svg></div></div>
+    </div>
+    <div class="card">
+      <div class="pad" style="padding-bottom:4px"><h2><svg style="color:var(--muted)"><use href="#i-clock"/></svg>Actividad reciente de pedidos</h2></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Cliente</th><th>Productos</th><th class="r">Total</th></tr></thead>
+          <tbody id="orders-list"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="text-align:right"><button class="link" id="reset">Restablecer datos de ejemplo</button></div>
+  </section>
+
+  <!-- VISITAS -->
+  <section id="tab-visitas" class="hidden">
+    <div class="row-head">
+      <h1>Gestión de visitas</h1>
+      <button class="btn" id="open-visita"><svg><use href="#i-plus"/></svg>Registrar visita</button>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <table class="visit-table">
+        <thead><tr><th>Cliente</th><th>Dirección / hora</th><th>Estado</th><th>Notas</th></tr></thead>
+        <tbody id="visitas-table"></tbody>
+      </table>
+      <div class="visit-list" id="visitas-cards"></div>
+    </div>
+    <p class="sub" style="margin-top:10px">Toca el estado de una visita para cambiarlo.</p>
+  </section>
+
+  <!-- PEDIDOS -->
+  <section id="tab-pedidos" class="hidden">
+    <div class="order-layout">
+      <div>
+        <h1>Catálogo de productos</h1>
+        <div class="catalog" id="catalogo"></div>
+      </div>
+      <div class="card pad summary">
+        <h2>Resumen del pedido</h2>
+        <label for="pedido-cliente">Cliente</label>
+        <select id="pedido-cliente" class="field"></select>
+        <div class="sep">
+          <div class="sub" style="margin-bottom:8px;font-weight:600">Líneas de pedido</div>
+          <div class="lines" id="cart"></div>
+        </div>
+        <div class="sep">
+          <div class="total"><span>Total:</span><span id="cart-total">0,00 €</span></div>
+          <div class="comm"><span>Tu comisión (<span id="pct-label">5</span>%)</span><span id="cart-comm">0,00 €</span></div>
+        </div>
+        <button class="btn green block" id="submit" style="margin-top:16px"><svg><use href="#i-check"/></svg>Confirmar y enviar pedido</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL NUEVA VISITA -->
+<div class="overlay hidden" id="modal-visita" role="dialog" aria-modal="true" aria-labelledby="mv-title">
+  <form class="modal" id="form-visita" novalidate>
+    <h2 id="mv-title">Nueva visita comercial</h2>
+    <div class="f"><label for="v-cliente">Nombre del cliente</label><input id="v-cliente" class="field" required placeholder="Ej. Bar La Esquina" list="clientes-dl"></div>
+    <datalist id="clientes-dl"></datalist>
+    <div class="grid2 f">
+      <div><label for="v-hora">Hora de cita</label><input id="v-hora" type="time" class="field" required></div>
+      <div><label for="v-estado">Estado</label>
+        <select id="v-estado" class="field"><option>Pendiente</option><option>Realizada</option><option>Venta Cerrada</option></select></div>
+    </div>
+    <div class="f"><label for="v-direccion">Dirección</label><input id="v-direccion" class="field" placeholder="Calle, número"></div>
+    <div class="f"><label for="v-notas">Notas / observaciones</label><textarea id="v-notas" class="field" rows="3"></textarea></div>
+    <p class="err hidden" id="v-err">Indica al menos el cliente y la hora.</p>
+    <div class="actions">
+      <button type="button" class="btn ghost" id="cancel-visita">Cancelar</button>
+      <button type="submit" class="btn">Guardar visita</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast hidden" id="toast"><svg><use href="#i-check"/></svg><span id="toast-msg"></span></div>
+
+<script>
+const clonar = o => JSON.parse(JSON.stringify(o));
+const COMISION = 0.05;
+const productos = [
+  { id: 1, nombre: 'Caja Refrescos Premium (24u)', precio: 18.50, sku: 'REF-001', stock: 45 },
+  { id: 2, nombre: 'Pack Snacks Variados (12u)',   precio: 12.20, sku: 'SNA-042', stock: 80 },
+  { id: 3, nombre: 'Lote Aceite de Oliva 5L',       precio: 42.00, sku: 'ACE-109', stock: 15 },
+  { id: 4, nombre: 'Café Grano Gourmet 1kg',        precio: 16.90, sku: 'CAF-301', stock: 30 }
+];
+const ejemploVisitas = [
+  { cliente: 'Supermercados Alianza', direccion: 'Calle Mayor 14', hora: '10:30', estado: 'Venta Cerrada', notas: 'Interesados en la nueva gama de productos ecológicos.' },
+  { cliente: 'Distribuciones Gómez', direccion: 'Av. Constitución 89', hora: '12:00', estado: 'Pendiente', notas: 'Revisión mensual de catálogo de reposición.' },
+  { cliente: 'Tiendas Exclusivas S.A.', direccion: 'Paseo del Prado 3', hora: '17:15', estado: 'Pendiente', notas: '' }
+];
+const ESTADOS = ['Pendiente', 'Realizada', 'Venta Cerrada'];
+const KEY = 'comercialpro-v1';
+
+let visitas, pedidos, carrito = {};
+
+// ---------- utilidades ----------
+const $ = id => document.getElementById(id);
+const eur = n => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const badge = e => e === 'Venta Cerrada' ? 'b-green' : e === 'Pendiente' ? 'b-amber' : 'b-gray';
+const stockLibre = id => productos.find(p => p.id === id).stock - (carrito[id] || 0);
+
+function cargar() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.visitas)) { visitas = d.visitas; pedidos = d.pedidos || []; return; }
+  } catch (e) {}
+  visitas = clonar(ejemploVisitas); pedidos = [];
+}
+function guardar() {
+  try { localStorage.setItem(KEY, JSON.stringify({ visitas, pedidos })); } catch (e) {}
+}
+
+let toastT;
+function toast(msg) {
+  $('toast-msg').textContent = msg;
+  $('toast').classList.remove('hidden');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => $('toast').classList.add('hidden'), 2600);
+}
+
+// ---------- navegación ----------
+function switchTab(tab) {
+  ['dashboard', 'visitas', 'pedidos'].forEach(id => $('tab-' + id).classList.toggle('hidden', id !== tab));
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  window.scrollTo(0, 0);
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) switchTab(b.dataset.tab); });
+
+// ---------- visitas ----------
+function renderVisitas() {
+  if (!visitas.length) {
+    $('visitas-table').innerHTML = '<tr><td colspan="4" class="empty">Aún no hay visitas registradas.</td></tr>';
+    $('visitas-cards').innerHTML = '<div class="empty">Aún no hay visitas registradas.</div>';
+    return;
+  }
+  const est = (v, i) => `<button class="badge ${badge(v.estado)}" data-i="${i}" title="Cambiar estado">${esc(v.estado)}</button>`;
+  $('visitas-table').innerHTML = visitas.map((v, i) => `
+    <tr><td><strong>${esc(v.cliente)}</strong></td>
+    <td class="sub">${esc(v.direccion || '—')} · ${esc(v.hora)}</td>
+    <td>${est(v, i)}</td><td class="sub">${esc(v.notas) || '—'}</td></tr>`).join('');
+  $('visitas-cards').innerHTML = visitas.map((v, i) => `
+    <div class="vitem"><div class="t"><div><strong>${esc(v.cliente)}</strong><div class="sub">${esc(v.direccion || '—')} · ${esc(v.hora)}</div></div>${est(v, i)}</div>
+    ${v.notas ? `<p>${esc(v.notas)}</p>` : ''}</div>`).join('');
+}
+function cambiarEstado(e) {
+  const b = e.target.closest('button.badge'); if (!b) return;
+  const v = visitas[+b.dataset.i];
+  v.estado = ESTADOS[(ESTADOS.indexOf(v.estado) + 1) % ESTADOS.length];
+  guardar(); renderVisitas();
+}
+$('visitas-table').addEventListener('click', cambiarEstado);
+$('visitas-cards').addEventListener('click', cambiarEstado);
+
+function openModal() {
+  $('v-err').classList.add('hidden');
+  $('modal-visita').classList.remove('hidden');
+  setTimeout(() => $('v-cliente').focus(), 50);
+}
+function closeModal() { $('modal-visita').classList.add('hidden'); $('form-visita').reset(); }
+$('open-visita').onclick = openModal;
+$('cancel-visita').onclick = closeModal;
+$('modal-visita').addEventListener('click', e => { if (e.target.id === 'modal-visita') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal-visita').classList.contains('hidden')) closeModal(); });
+
+$('form-visita').addEventListener('submit', e => {
+  e.preventDefault();
+  const cliente = $('v-cliente').value.trim(), hora = $('v-hora').value;
+  if (!cliente || !hora) { $('v-err').classList.remove('hidden'); return; }
+  visitas.unshift({ cliente, hora, estado: $('v-estado').value, direccion: $('v-direccion').value.trim(), notas: $('v-notas').value.trim() });
+  guardar(); renderVisitas(); renderClientes(); actualizarMetricas(); closeModal();
+  toast('Visita registrada');
+});
+
+// ---------- catálogo y carrito ----------
+function renderCatalogo() {
+  $('catalogo').innerHTML = productos.map(p => {
+    const libre = stockLibre(p.id);
+    return `<div class="card prod">
+      <div><div class="top"><h3>${esc(p.nombre)}</h3><span class="sku">${p.sku}</span></div>
+      <div class="price">${eur(p.precio)}</div>
+      <div class="sub">Stock disponible: ${libre} uds.</div></div>
+      <button class="add" data-id="${p.id}" ${libre <= 0 ? 'disabled style="opacity:.5"' : ''}><svg><use href="#i-plus"/></svg>Añadir</button>
+    </div>`;
+  }).join('');
+}
+$('catalogo').addEventListener('click', e => {
+  const b = e.target.closest('button.add'); if (!b || b.disabled) return;
+  setQty(+b.dataset.id, (carrito[b.dataset.id] || 0) + 1);
+});
+
+function setQty(id, q) {
+  const max = productos.find(p => p.id === id).stock;
+  q = Math.max(0, Math.min(q, max));
+  if (q === 0) delete carrito[id]; else carrito[id] = q;
+  renderCarrito(); renderCatalogo();
+}
+
+function totalCarrito() {
+  return Object.keys(carrito).reduce((t, id) => t + productos.find(p => p.id == id).precio * carrito[id], 0);
+}
+
+function renderCarrito() {
+  const ids = Object.keys(carrito);
+  $('submit').disabled = !ids.length;
+  if (!ids.length) {
+    $('cart').innerHTML = '<div class="empty" style="padding:14px">El carrito está vacío.</div>';
+  } else {
+    $('cart').innerHTML = ids.map(id => {
+      const p = productos.find(x => x.id == id);
+      return `<div class="line">
+        <div style="min-width:0;flex:1"><div class="name">${esc(p.nombre)}</div><div class="sub" style="font-size:12px">${eur(p.precio)} / ud.</div></div>
+        <div class="qty"><button data-id="${id}" data-d="-1" aria-label="Quitar uno">−</button><span>${carrito[id]}</span><button data-id="${id}" data-d="1" aria-label="Añadir uno">+</button></div>
+        <div class="sub-total">${eur(p.precio * carrito[id])}</div></div>`;
+    }).join('');
+  }
+  const t = totalCarrito();
+  $('cart-total').textContent = eur(t);
+  $('cart-comm').textContent = eur(t * COMISION);
+}
+$('cart').addEventListener('click', e => {
+  const b = e.target.closest('.qty button'); if (!b) return;
+  setQty(+b.dataset.id, carrito[b.dataset.id] + +b.dataset.d);
+});
+
+function renderClientes() {
+  const nombres = [...new Set([...visitas.map(v => v.cliente), ...ejemploVisitas.map(v => v.cliente)])];
+  const sel = $('pedido-cliente'), prev = sel.value;
+  sel.innerHTML = nombres.map(n => `<option>${esc(n)}</option>`).join('');
+  if (nombres.includes(prev)) sel.value = prev;
+  $('clientes-dl').innerHTML = nombres.map(n => `<option value="${esc(n)}">`).join('');
+}
+
+$('submit').addEventListener('click', () => {
+  const ids = Object.keys(carrito);
+  if (!ids.length) return;
+  const cliente = $('pedido-cliente').value;
+  ids.forEach(id => { productos.find(p => p.id == id).stock -= carrito[id]; });
+  pedidos.unshift({
+    cliente,
+    productos: ids.map(id => `${carrito[id]}× ${productos.find(p => p.id == id).nombre}`).join(', '),
+    total: totalCarrito()
+  });
+  carrito = {};
+  guardar(); renderCarrito(); renderCatalogo(); renderPedidos(); actualizarMetricas();
+  switchTab('dashboard');
+  toast(`Pedido de ${cliente} guardado`);
+});
+
+// ---------- dashboard ----------
+function renderPedidos() {
+  $('orders-list').innerHTML = pedidos.length
+    ? pedidos.map(p => `<tr><td><strong>${esc(p.cliente)}</strong></td><td class="sub">${esc(p.productos)}</td><td class="r"><strong>${eur(p.total)}</strong></td></tr>`).join('')
+    : '<tr><td colspan="3" class="empty">No se han registrado pedidos hoy.</td></tr>';
+}
+function actualizarMetricas() {
+  const total = pedidos.reduce((a, p) => a + p.total, 0);
+  $('m-visitas').textContent = visitas.length;
+  $('m-pedidos').textContent = pedidos.length;
+  $('m-ventas').textContent = eur(total);
+  $('m-comision').textContent = total ? `Comisión: ${eur(total * COMISION)}` : '';
+}
+
+$('reset').onclick = () => {
+  visitas = clonar(ejemploVisitas); pedidos = []; carrito = {};
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  renderTodo(); toast('Datos restablecidos');
+};
+
+function renderTodo() {
+  renderVisitas(); renderClientes(); renderCatalogo(); renderCarrito(); renderPedidos(); actualizarMetricas();
+}
+
+$('pct-label').textContent = Math.round(COMISION * 100);
+$('today').textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+cargar();
+renderTodo();
+</script>
+</body>
+</html>
