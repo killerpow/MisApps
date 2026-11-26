@@ -3,7 +3,7 @@
    - Envía cada entrenamiento nuevo (fuerza, spinning, deportes) con su duración y calorías. */
 (function () {
   if (!window.Salud) return;
-  var SK = 'jb-salud-v1', pend = {}, avisado = false;
+  var SK = 'jb-salud-v1', pend = {}, avisado = false, manual = false;
   function cfg() { try { return JSON.parse(localStorage.getItem(SK)) || {}; } catch (e) { return {}; } }
   function put(o) { try { localStorage.setItem(SK, JSON.stringify(o)); } catch (e) { } }
   function estado() { try { return Salud.estado(); } catch (e) { return 'no'; } }
@@ -43,6 +43,10 @@
 
   window.saludPasos = function (d, n) {
     n = Math.round(+n || 0);
+    if (manual && d === dia(0)) {
+      manual = false;
+      aviso(n > 0 ? '👣 Samsung Health: ' + n.toLocaleString('es-ES') + ' pasos hoy' : 'Samsung Health aún no ha enviado pasos de hoy');
+    }
     if (!listo() || n <= 0) return;
     S.steps = S.steps || {};
     if ((S.steps[d] || 0) >= n) return;
@@ -65,7 +69,11 @@
     else if (e === 'no') aviso('Este móvil no tiene Health Connect (hace falta Android 14 o superior)');
     else { aviso('Activa los permisos de Juanmi Booster en Health Connect'); try { Salud.abrirAjustes(); } catch (x) { } }
   };
-  window.saludError = function () { };
+  window.saludError = function (m) { if (manual) { manual = false; aviso('No se pudieron leer los pasos' + (m ? ': ' + m : '')); } };
+  window.saludSincronizar = function () {
+    if (estado() !== 'ok') { saludConectar(); return; }
+    manual = true; aviso('Sincronizando…'); sincro();
+  };
   window.saludConectar = function () { try { Salud.pedirPermisos(); } catch (e) { } };
 
   function iniciar() {
@@ -80,7 +88,7 @@
     var tarjeta = stepsCard;
     stepsCard = function () {
       var h = tarjeta.apply(this, arguments);
-      if (estado() === 'ok') return h;
+      if (estado() === 'ok') return h + '<button class="card actbtn" onclick="saludSincronizar()" style="padding:10px 14px"><span style="font-size:20px">🔄</span><span style="flex:1;text-align:left"><b>Sincronizar con Samsung Health</b><small class="mut" style="display:block">Coge ahora los pasos y envía los entrenos pendientes</small></span></button>';
       return h + '<button class="card actbtn" onclick="saludConectar()"><span style="font-size:24px">🔗</span><span style="flex:1;text-align:left"><b>Conectar con Samsung Health</b><small class="mut" style="display:block">Tus pasos se pondrán solos y tus entrenos aparecerán en Samsung Health</small></span><span class="mut">›</span></button>';
     };
     var guardar = save;
