@@ -219,6 +219,7 @@ select{font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid var(--l
   <div class="small" id="remHelp" style="margin-top:8px">Cada botón abre Google Calendar con el aviso ya rellenado: solo tienes que pulsar <b>Guardar</b> y volver a la agenda para el segundo. Calendar te avisará aunque la agenda esté cerrada.<br><br>
   <b>Solo la primera vez:</b> en Google Calendar → Ajustes → (tu cuenta) → Notificaciones de eventos, pon <b>"En el momento del evento"</b>, para que suene justo a las 20:00 y a las 07:00.<br><br>
   Además, si tienes la agenda abierta a esas horas, te saldrá un aviso en pantalla.</div>
+  <div id="remCustom"></div>
   <div style="margin-top:12px"><button class="btn ghost" id="rbOff">Quitar este recordatorio</button></div>
   </div>
 </div>
@@ -346,7 +347,8 @@ function goDate(s){cur=PAGE_OF[clampIso(s)];render(0);window.scrollTo({top:0})}
 // ---------- Editing ----------
 function cloneDay(prev){prev=prev||{};const o={h:Object.assign({},prev.h||{}),n:prev.n||""};
   if(prev.r&&Object.keys(prev.r).length)o.r=Object.assign({},prev.r);
-  if(prev.d&&Object.keys(prev.d).length)o.d=Object.assign({},prev.d);return o}
+  if(prev.d&&Object.keys(prev.d).length)o.d=Object.assign({},prev.d);
+  if(prev.rc&&Object.keys(prev.rc).length){o.rc={};for(const k in prev.rc)o.rc[k]=prev.rc[k].slice();}return o}
 $("page").addEventListener("input",e=>{
   const t=e.target; if(t.tagName!=="TEXTAREA")return; autosize(t);
   const s=t.dataset.d;
@@ -388,7 +390,7 @@ function openRemDay(d){
   Object.keys(o.h||{}).sort((a,b)=>a-b).forEach(h=>{if(remText(d,h))items.push(h)});
   if(remText(d,"n"))items.push("n");
   $("remDay").textContent="Elige qué quieres que te recuerde del "+fechaLarga(d)+":";
-  $("remList").innerHTML=items.length?items.map(h=>`<button data-pick="${d}|${h}"><span class="hh">${h==="n"?"Notas":h+":00"}</span><span class="tx">${esc(remText(d,h))}</span>${(o.d||{})[h]?'<span class="st">✓ hecho</span>':""}${(o.r||{})[h]?'<span class="st">🔔 puesto</span>':""}</button>`).join("")
+  $("remList").innerHTML=items.length?items.map(h=>`<button data-pick="${d}|${h}"><span class="hh">${h==="n"?"Notas":h+":00"}</span><span class="tx">${esc(remText(d,h))}</span>${(o.d||{})[h]?'<span class="st">✓ hecho</span>':""}${(o.r||{})[h]||((o.rc||{})[h]||[]).length?'<span class="st">🔔 puesto</span>':""}</button>`).join("")
     :'<div class="small">Este día todavía no tienes nada apuntado. Escribe algo primero y luego vuelve a pulsar el botón.</div>';
   $("remPick").style.display="";$("remDetail").style.display="none";openSheet("shRem")}
 $("remList").onclick=e=>{const b=e.target.closest("[data-pick]");if(!b)return;const [d,h]=b.dataset.pick.split("|");openRem(d,h,true)};
@@ -407,7 +409,8 @@ function openRem(d,h,fromList){
   if(NATIVO){const on=!!((S.days[d]||{}).r||{})[h];
     $("rb1").removeAttribute("href");$("rb1").removeAttribute("target");
     $("rb1").textContent=on?"✓ Aviso activado en el móvil":"🔔 Avisarme en el móvil";$("rb1").classList.toggle("done",on);
-    $("rb2").style.display="none";$("rbOff").style.display=on?"":"none";
+    $("rb2").style.display="none";$("rbOff").style.display=(on||(((S.days[d]||{}).rc||{})[h]||[]).length)?"":"none";
+    renderCustom(d,h);
     $("remHelp").innerHTML="Te llegará una <b>notificación</b> la víspera a las <b>20:00</b> y ese mismo día a las <b>07:00</b>, aunque la agenda esté cerrada o hayas reiniciado el móvil. No hace falta Google Calendar.";}
   openSheet("shRem")}
 function toggleDone(d,h){const o=S.days[d]=cloneDay(S.days[d]);const dd=Object.assign({},o.d||{});
@@ -423,7 +426,7 @@ $("page").addEventListener("click",e=>{const k=e.target.closest("[data-done]");i
 ["rb1","rb2"].forEach(id=>$(id).addEventListener("click",e=>{
   if(NATIVO){e.preventDefault();if(remCur){setRem(remCur[0],remCur[1],true);syncAvisos();}closeSheets();toast("Aviso puesto ✓ Te llegará una notificación");return}
   if(remCur)setRem(remCur[0],remCur[1],true);$(id).classList.add("done")}));
-$("rbOff").onclick=()=>{if(remCur)setRem(remCur[0],remCur[1],false);syncAvisos();closeSheets();toast(NATIVO?"Aviso quitado":"Recordatorio quitado (si lo guardaste en Calendar, bórralo allí)")};
+$("rbOff").onclick=()=>{if(remCur){const o=S.days[remCur[0]];if(o&&o.rc){delete o.rc[remCur[1]];if(!Object.keys(o.rc).length)delete o.rc;}setRem(remCur[0],remCur[1],false);}syncAvisos();closeSheets();toast(NATIVO?"Aviso quitado":"Recordatorio quitado (si lo guardaste en Calendar, bórralo allí)")};
 // aviso en pantalla mientras la agenda está abierta
 let shown={};try{shown=JSON.parse(localStorage.getItem("agenda_avisos_vistos")||"{}")}catch(e){}
 let actx=null;document.addEventListener("pointerdown",()=>{try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}},{passive:true});
@@ -445,15 +448,35 @@ const NATIVO=!!(window.AndroidApp&&window.AndroidApp.programarAviso);
 function syncAvisos(){
   if(!NATIVO)return;
   const A=window.AndroidApp, now=Date.now(), want={};
-  for(const d in S.days){const o=S.days[d];if(!o||!o.r)continue;
-    for(const h in o.r){const t=remText(d,h);if(!t)continue;const [a,b]=remTimes(d,h);
+  for(const d in S.days){const o=S.days[d];if(!o)continue;
+    for(const h in (o.r||{})){const t=remText(d,h);if(!t)continue;const [a,b]=remTimes(d,h);
       const cuando=fechaLarga(d)+(h==="n"?"":" a las "+h+":00");
       if(a.getTime()>now)want["ag|"+d+"|"+h+"|0"]=[a.getTime(),"🔔 Mañana"+(h==="n"?"":" a las "+h+":00"),t+" — "+cuando];
-      if(b.getTime()>now)want["ag|"+d+"|"+h+"|1"]=[b.getTime(),"🔔 Hoy"+(h==="n"?"":" a las "+h+":00"),t+" — "+cuando];}}
+      if(b.getTime()>now)want["ag|"+d+"|"+h+"|1"]=[b.getTime(),"🔔 Hoy"+(h==="n"?"":" a las "+h+":00"),t+" — "+cuando];}
+    for(const h in (o.rc||{})){const t=remText(d,h);if(!t)continue;const cuando=fechaLarga(d)+(h==="n"?"":" a las "+h+":00");
+      o.rc[h].forEach(x=>{const ms=new Date(x).getTime();if(ms>now)want["agc|"+d+"|"+h+"|"+x]=[ms,"🔔 Recordatorio",t+" — "+cuando];});}}
   let prev=[];try{prev=JSON.parse(localStorage.getItem("agenda_avisos_prog")||"[]")}catch(e){}
   prev.forEach(id=>{if(!want[id])A.cancelarAviso(id)});
   for(const id in want)A.programarAviso(id,want[id][0],want[id][1],want[id][2]);
   try{localStorage.setItem("agenda_avisos_prog",JSON.stringify(Object.keys(want)))}catch(e){}
+}
+function pad2(n){return String(n).padStart(2,"0")}
+function localDT(dt){return dt.getFullYear()+"-"+pad2(dt.getMonth()+1)+"-"+pad2(dt.getDate())+"T"+pad2(dt.getHours())+":"+pad2(dt.getMinutes())}
+function fmtDT(x){const dt=new Date(x);return DIAS[dt.getDay()].toLowerCase()+" "+dt.getDate()+" de "+MESES_c[dt.getMonth()].toLowerCase()+" a las "+pad2(dt.getHours())+":"+pad2(dt.getMinutes())}
+function renderCustom(d,h){const el=$("remCustom");if(!el)return;if(!NATIVO){el.innerHTML="";return}
+  const L=(((S.days[d]||{}).rc||{})[h]||[]).slice().sort();
+  const def=new Date(Date.now()+5*60000);
+  el.innerHTML=`<div class="remcard" style="margin-top:12px"><b>⏰ Aviso a la hora que quieras</b>
+   <div class="small" style="margin:4px 0 8px">Elige día y hora exactos. Puedes poner varios.</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="datetime-local" id="rcIn" value="${localDT(def)}" style="flex:1;min-width:0;font-size:16px;padding:8px;border:1px solid var(--line);border-radius:8px"><button class="btn" id="rcAdd">Añadir</button></div>
+   ${L.length?'<div style="margin-top:10px">'+L.map(x=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)"><span style="flex:1">${new Date(x).getTime()<Date.now()?"✓ ":"🔔 "}${esc(fmtDT(x))}</span><button class="btn ghost" data-rcdel="${x}" style="padding:4px 10px">×</button></div>`).join("")+'</div>':""}</div>`;
+  $("rcAdd").onclick=()=>{const v=$("rcIn").value;if(!v){toast("Elige día y hora");return}
+    if(new Date(v).getTime()<=Date.now()){toast("Esa hora ya ha pasado");return}
+    const o=S.days[d]=cloneDay(S.days[d]);o.rc=o.rc||{};o.rc[h]=(o.rc[h]||[]).filter(x=>x!==v).concat([v]);
+    const mk=mkey(d);S.ts[mk]=Date.now();saveLocal();syncAvisos();renderCustom(d,h);$("rbOff").style.display="";toast("Aviso puesto para el "+fmtDT(v));};
+  el.querySelectorAll("[data-rcdel]").forEach(b=>b.onclick=()=>{const o=S.days[d]=cloneDay(S.days[d]);
+    o.rc[h]=(o.rc[h]||[]).filter(x=>x!==b.dataset.rcdel);if(!o.rc[h].length)delete o.rc[h];if(!Object.keys(o.rc).length)delete o.rc;
+    const mk=mkey(d);S.ts[mk]=Date.now();saveLocal();syncAvisos();renderCustom(d,h);toast("Aviso quitado");});
 }
 let syncT;function syncLuego(){clearTimeout(syncT);syncT=setTimeout(syncAvisos,1500)}
 
