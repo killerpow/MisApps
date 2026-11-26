@@ -9,7 +9,7 @@
     var origFetch = window.fetch.bind(window), httpN = 0, httpCb = {};
     window.__httpFin = function (id, code, txt) {
       var cb = httpCb[id]; delete httpCb[id]; if (!cb) return;
-      if (!code) cb.no(new TypeError('Sin conexión: ' + txt));
+      if (!code) { try { B.toast('Sin conexión con Google: ' + txt); } catch (e) { } cb.no(new TypeError('Sin conexión: ' + txt)); }
       else cb.si(new Response(txt, { status: code, headers: { 'Content-Type': 'application/json' } }));
     };
     window.fetch = function (input, init) {
@@ -29,6 +29,7 @@
         if (init.signal) init.signal.addEventListener('abort', function () {
           if (httpCb[id]) { delete httpCb[id]; var e = new Error('Cancelado'); e.name = 'AbortError'; no(e); }
         });
+        try { B.toast('Conectando con Google…'); } catch (e) { }
         B.http(id, init.method || 'GET', url, JSON.stringify(h), typeof init.body === 'string' ? init.body : '');
       });
     };
