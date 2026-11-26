@@ -4,6 +4,31 @@
   var B = window.AndroidApp;
   if (!B) return;
 
+  /* Copias de seguridad hechas con otras apps (web to app, WhatsApp, notas...) a veces llegan
+     "estropeadas": codificadas como enlace (%7B...), con marcas invisibles o comillas tipográficas.
+     Si el texto normal falla, se intenta limpiar antes de rendirse. */
+  var origParse = JSON.parse;
+  JSON.parse = function (text, reviver) {
+    try { return origParse.call(JSON, text, reviver); } catch (err) {
+      if (typeof text !== 'string' || text.length < 2) throw err;
+      var t = text.replace(/^﻿/, '').replace(/[​-‍⁠]/g, '').trim();
+      if (/^data:/i.test(t)) t = t.replace(/^data:[^,]*,/i, '');
+      if (/^%7B/i.test(t) || /^%5B/i.test(t)) { try { t = decodeURIComponent(t); } catch (e) {} }
+      var cut = function (x) {
+        var i = x.indexOf('{'), j = x.lastIndexOf('}'), k = x.indexOf('[');
+        if (k >= 0 && (i < 0 || k < i)) { i = k; j = x.lastIndexOf(']'); }
+        return i >= 0 && j > i ? x.slice(i, j + 1) : x;
+      };
+      var tries = [t, cut(t)];
+      var q = t.replace(/[\u201C\u201D\u201E\u00AB\u00BB]/g, '"').replace(/[\u2018\u2019]/g, "'");
+      tries.push(q, cut(q));
+      for (var n = 0; n < tries.length; n++) {
+        try { return origParse.call(JSON, tries[n], reviver); } catch (e2) {}
+      }
+      throw err;
+    }
+  };
+
   function toDataUrl(blob, cb) {
     var r = new FileReader();
     r.onload = function () { cb(r.result); };
