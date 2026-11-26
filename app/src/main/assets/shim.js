@@ -4,6 +4,36 @@
   var B = window.AndroidApp;
   if (!B) return;
 
+  /* Las llamadas a Google (Gemini) se hacen desde Android: dentro de la app el navegador no puede llegar bien. */
+  if (B.http && window.fetch) {
+    var origFetch = window.fetch.bind(window), httpN = 0, httpCb = {};
+    window.__httpFin = function (id, code, txt) {
+      var cb = httpCb[id]; delete httpCb[id]; if (!cb) return;
+      if (!code) cb.no(new TypeError('Sin conexión: ' + txt));
+      else cb.si(new Response(txt, { status: code, headers: { 'Content-Type': 'application/json' } }));
+    };
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (!/^https:\/\/[^\/]*googleapis\.com\//i.test(url)) return origFetch(input, init);
+      init = init || {};
+      var h = {};
+      try {
+        if (init.headers) {
+          if (typeof Headers !== 'undefined' && init.headers instanceof Headers) init.headers.forEach(function (v, k) { h[k] = v; });
+          else for (var k in init.headers) h[k] = init.headers[k];
+        }
+      } catch (e) { }
+      return new Promise(function (si, no) {
+        var id = 'h' + (++httpN);
+        httpCb[id] = { si: si, no: no };
+        if (init.signal) init.signal.addEventListener('abort', function () {
+          if (httpCb[id]) { delete httpCb[id]; var e = new Error('Cancelado'); e.name = 'AbortError'; no(e); }
+        });
+        B.http(id, init.method || 'GET', url, JSON.stringify(h), typeof init.body === 'string' ? init.body : '');
+      });
+    };
+  }
+
   /* Copias de seguridad hechas con otras apps (web to app, WhatsApp, notas...) a veces llegan
      "estropeadas": codificadas como enlace (%7B...), con marcas invisibles o comillas tipográficas.
      Si el texto normal falla, se intenta limpiar antes de rendirse. */

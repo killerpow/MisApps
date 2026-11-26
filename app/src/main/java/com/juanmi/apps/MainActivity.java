@@ -639,6 +639,38 @@ public class MainActivity extends Activity {
     // ---------- Puente JavaScript ----------
 
     private class Bridge {
+        /** Petición HTTP hecha por Android (sin las limitaciones del navegador). Responde con window.__httpFin(id, estado, texto). */
+        @JavascriptInterface
+        public void http(String id, String method, String url, String headers, String body) {
+            new Thread(() -> {
+                int code = 0; String txt;
+                java.net.HttpURLConnection c = null;
+                try {
+                    c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                    c.setConnectTimeout(20000); c.setReadTimeout(60000);
+                    c.setRequestMethod(method == null || method.isEmpty() ? "GET" : method);
+                    if (headers != null && !headers.isEmpty()) {
+                        JSONObject h = new JSONObject(headers);
+                        java.util.Iterator<String> it = h.keys();
+                        while (it.hasNext()) { String k = it.next(); c.setRequestProperty(k, h.optString(k)); }
+                    }
+                    if (body != null && !body.isEmpty() && !"GET".equalsIgnoreCase(method)) {
+                        c.setDoOutput(true);
+                        try (java.io.OutputStream o = c.getOutputStream()) { o.write(body.getBytes(StandardCharsets.UTF_8)); }
+                    }
+                    code = c.getResponseCode();
+                    java.io.InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+                    java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                    if (in != null) { byte[] buf = new byte[16384]; int n; while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); in.close(); }
+                    txt = new String(bo.toByteArray(), StandardCharsets.UTF_8);
+                } catch (Throwable t) {
+                    code = 0; txt = String.valueOf(t.getMessage());
+                } finally { if (c != null) c.disconnect(); }
+                final String js = "window.__httpFin&&window.__httpFin(" + JSONObject.quote(id) + "," + code + "," + JSONObject.quote(txt) + ")";
+                runOnUiThread(() -> web.evaluateJavascript(js, null));
+            }).start();
+        }
+
         @JavascriptInterface
         public void saveText(String name, String text, String mime) {
             saveBytes(name, text.getBytes(StandardCharsets.UTF_8),
