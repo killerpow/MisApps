@@ -113,6 +113,7 @@
     <button data-f="completados">Completados</button>
     <button data-f="cobrar">Por cobrar</button>
     <button data-f="cobrados">Cobrados</button>
+    <button data-f="historial">📁 Historial</button>
   </div>
 
   <div id="lista"><div class="vacio">Cargando…</div></div>
@@ -178,8 +179,9 @@
 
 <div class="capa" id="capaBorrar">
   <div class="hoja dialogo">
-    <h2>¿Eliminar?</h2>
+    <h2 id="borrarTit">¿Eliminar?</h2>
     <p id="borrarTxt">Este trabajo se borrará para siempre.</p>
+    <button class="btn btn-prim" id="aHistorial" style="width:100%;margin-bottom:10px">📁 Pasar al historial (no se borra)</button>
     <div class="pie">
       <button class="btn btn-sec" id="noBorrar">No, dejarlo</button>
       <button class="btn btn-rojo" id="siBorrar">Sí, eliminar</button>
@@ -282,13 +284,17 @@
   const getOrden = t => (typeof t.orden==='number') ? t.orden : -(t.fecha||0);
   const porPrioridad = (a,b) => ((b.urgente?1:0)-(a.urgente?1:0)) || (getOrden(a)-getOrden(b));
   function pintar(){
-    const orden = [...trabajos].sort(porPrioridad);
+    const todo = [...trabajos].sort(porPrioridad);
+    const orden = todo.filter(t=>!t.archivado);
     const pend = orden.filter(t=>!t.completado);
     $('#rPend').textContent = pend.length;
     $('#rHechos').textContent = orden.length - pend.length;
-    $('#rCobrar').textContent = euros(orden.filter(t=>t.cobro!=='cobrado').reduce((s,t)=>s+(Number(t.precio)||0),0));
+    $('#rCobrar').textContent = euros(todo.filter(t=>t.cobro!=='cobrado').reduce((s,t)=>s+(Number(t.precio)||0),0));
 
-    const vis = orden.filter(t=>{
+    const enHist = filtro==='historial';
+    const vis = enHist
+      ? todo.filter(t=>t.archivado).sort((a,b)=>(b.archivadoEl||0)-(a.archivadoEl||0))
+      : orden.filter(t=>{
       if(filtro==='pendientes') return !t.completado;
       if(filtro==='completados') return t.completado;
       if(filtro==='cobrar') return t.cobro!=='cobrado';
@@ -296,8 +302,11 @@
       return true;
     });
     const L=$('#lista');
-    if(!vis.length){ L.innerHTML='<div class="vacio">No hay trabajos aquí.<br>Pulsa <b>＋ Apuntar trabajo</b> para empezar.</div>'; return; }
-    L.innerHTML = vis.map((t,i)=>{
+    if(!vis.length){ L.innerHTML = enHist
+      ? '<div class="vacio">El historial está vacío.<br>Aquí irán los trabajos que pases al historial.</div>'
+      : '<div class="vacio">No hay trabajos aquí.<br>Pulsa <b>＋ Apuntar trabajo</b> para empezar.</div>'; return; }
+    const cab = enHist ? `<div class="vacio" style="padding:6px 0 12px;font-size:14px">📁 ${vis.length} trabajo${vis.length===1?'':'s'} en el historial · ${euros(vis.reduce((s,t)=>s+(Number(t.precio)||0),0))}</div>` : '';
+    L.innerHTML = cab + vis.map((t,i)=>{
       const d=new Date(t.fecha||Date.now());
       const mats=(t.materiales||[]).filter(m=>m.nombre);
       const puedeSubir = i>0 && !!vis[i-1].urgente===!!t.urgente;
@@ -312,7 +321,7 @@
           </div>
           <div class="derecha">
             <div class="precio">${euros(t.precio)}</div>
-            <div class="mover">
+            <div class="mover" ${enHist?'style="display:none"':''}>
               <button data-a="subir" data-id="${t.id}" aria-label="Subir" ${puedeSubir?'':'disabled'}>▲</button>
               <button data-a="bajar" data-id="${t.id}" aria-label="Bajar" ${puedeBajar?'':'disabled'}>▼</button>
             </div>
@@ -325,13 +334,19 @@
           <span class="badge ${t.completado?'b-hecho':'b-pend'}">${t.completado?'✔ Completado':'⏳ Pendiente'}</span>
           <span class="badge ${t.cobro==='cobrado'?'b-cobrado':'b-cobrar'}">${t.cobro==='cobrado'?'💶 Cobrado':'💶 Pendiente de cobrar'}</span>
         </div>
-        <div class="botones">
+        ${t.archivado?`<div class="botones">
+          <button class="btn btn-sec btn-peq" data-a="desarchivar" data-id="${t.id}">↩ Sacar del historial</button>
+          <button class="btn btn-sec btn-peq" data-a="cobro" data-id="${t.id}">${t.cobro==='cobrado'?'Marcar sin cobrar':'Marcar cobrado'}</button>
+          <button class="btn btn-sec btn-peq" data-a="editar" data-id="${t.id}">✏️ Editar</button>
+          <button class="btn btn-sec btn-peq" data-a="borrar" data-id="${t.id}" style="color:var(--rojo)">🗑 Eliminar</button>
+        </div>`:`<div class="botones">
+          <button class="btn btn-prim btn-peq" data-a="terminar" data-id="${t.id}" style="flex:1 1 100%;width:100%;background:#16a34a">✅ Hecho y cobrado → Historial</button>
           <button class="btn ${t.completado?'btn-sec':'btn-prim'} btn-peq" data-a="hecho" data-id="${t.id}">${t.completado?'↩ Marcar pendiente':'✔ Completado'}</button>
           <button class="btn btn-sec btn-peq" data-a="cobro" data-id="${t.id}">${t.cobro==='cobrado'?'Marcar sin cobrar':'Marcar cobrado'}</button>
           <button class="btn ${t.urgente?'btn-urg-on':'btn-sec'} btn-peq" data-a="urgente" data-id="${t.id}">${t.urgente?'🔥 Quitar urgente':'🔥 Urgente'}</button>
           <button class="btn btn-sec btn-peq" data-a="editar" data-id="${t.id}">✏️ Editar</button>
           <button class="btn btn-sec btn-peq" data-a="borrar" data-id="${t.id}" style="color:var(--rojo)">🗑 Eliminar</button>
-        </div>
+        </div>`}
       </div>`;
     }).join('');
   }
@@ -354,6 +369,8 @@
       guardar({...t, orden:oo}).then(()=>guardar({...o, orden:ot}));
     }
     if(a==='borrar'){ pedirBorrar(t); }
+    if(a==='terminar'){ guardar({...t, completado:true, completadoEl:t.completadoEl||Date.now(), cobro:'cobrado', archivado:true, archivadoEl:Date.now()}); toast('✅ Hecho y cobrado: pasado al historial'); }
+    if(a==='desarchivar'){ guardar({...t, archivado:false, archivadoEl:null}); toast('Vuelve a la lista principal'); }
   });
 
   // ---------- Formulario ----------
@@ -403,7 +420,16 @@
 
   // ---------- Borrar ----------
   let aBorrar=null;
-  function pedirBorrar(t){ aBorrar=t; $('#borrarTxt').textContent=`Se borrará el trabajo de ${t.cliente||'este cliente'} para siempre.`; $('#capaBorrar').classList.add('ver'); }
+  function pedirBorrar(t){
+    aBorrar=t;
+    const h=!!t.archivado;
+    $('#borrarTit').textContent = h ? '¿Eliminar para siempre?' : '¿Quitar de la lista?';
+    $('#borrarTxt').textContent = h ? `Se borrará el trabajo de ${t.cliente||'este cliente'} para siempre.` : `Puedes guardar el trabajo de ${t.cliente||'este cliente'} en el historial, o borrarlo para siempre.`;
+    $('#aHistorial').style.display = h ? 'none' : '';
+    $('#siBorrar').textContent = h ? 'Sí, eliminar' : 'Eliminar para siempre';
+    $('#capaBorrar').classList.add('ver');
+  }
+  $('#aHistorial').onclick=()=>{ if(aBorrar) guardar({...aBorrar, archivado:true, archivadoEl:Date.now()}); $('#capaBorrar').classList.remove('ver'); toast('📁 Pasado al historial'); aBorrar=null; };
   $('#noBorrar').onclick=()=>{ $('#capaBorrar').classList.remove('ver'); aBorrar=null; };
   $('#siBorrar').onclick=()=>{ if(aBorrar) borrar(aBorrar.id); $('#capaBorrar').classList.remove('ver'); toast('Trabajo eliminado'); aBorrar=null; };
 
