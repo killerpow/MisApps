@@ -115,6 +115,16 @@
   </div>
 
   <div id="lista"><div class="vacio">Cargando…</div></div>
+
+  <div class="copias" style="margin:22px 0 10px;padding:14px;border:1px dashed var(--linea);border-radius:12px">
+    <div style="font-weight:700;margin-bottom:4px">🛡️ Copia de seguridad</div>
+    <div style="font-size:13px;opacity:.75;margin-bottom:10px">La app ya guarda una copia sola cada día en Descargas › MisApps. Aquí puedes hacer una cuando quieras o recuperarla.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sec" style="flex:1" id="btnCopia">💾 Guardar copia</button>
+      <button class="btn btn-sec" style="flex:1" id="btnRecuperar">📂 Recuperar copia</button>
+    </div>
+    <input type="file" id="fCopia" accept=".json,application/json,text/plain" style="display:none">
+  </div>
 </main>
 
 <!-- Formulario -->
@@ -426,6 +436,42 @@
     catch(e){ const t=$('#waTexto'); t.removeAttribute('readonly'); t.select(); toast('Selecciona y copia el texto'); }
   };
 
+  // ---------- Copias de seguridad ----------
+  function hoyIso(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  $('#btnCopia').onclick=()=>{
+    if(!trabajos.length){ toast('No hay trabajos todavía'); return; }
+    const txt=JSON.stringify({app:'mis-trabajos',fecha:new Date().toISOString(),trabajos},null,2);
+    const nombre='Copia_Mis_Trabajos_'+hoyIso()+'.json';
+    if(window.AndroidApp&&AndroidApp.saveText){ AndroidApp.saveText(nombre,txt,'application/json'); return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=nombre; document.body.appendChild(a); a.click(); a.remove();
+    toast('Copia guardada en Descargas');
+  };
+  $('#btnRecuperar').onclick=()=>$('#fCopia').click();
+  $('#fCopia').onchange=e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    const r=new FileReader(); r.onload=()=>recuperarDe(String(r.result)); r.readAsText(f);
+  };
+  async function recuperarDe(txt){
+    let d; try{ d=JSON.parse(txt); }catch(e){ alert('Ese archivo no es una copia válida.'); return; }
+    let lista = Array.isArray(d) ? d : (d && Array.isArray(d.trabajos)) ? d.trabajos : null;
+    if(!lista && d && typeof d==='object'){
+      // copia automática de la app: todo el almacenamiento guardado
+      const datos = d.datos || d.data || d.localStorage || d;
+      const v = datos && datos[LS];
+      if(v){ try{ lista = typeof v==='string' ? JSON.parse(v) : v; }catch(e){} }
+    }
+    if(!Array.isArray(lista)){ alert('Ese archivo no es una copia de Mis Trabajos.'); return; }
+    let nuevos=0;
+    for(const t of lista){
+      if(!t||!t.id) continue;
+      const i=trabajos.findIndex(x=>x.id===t.id);
+      if(i<0){ trabajos.push(t); nuevos++; } else trabajos[i]=Object.assign({},trabajos[i],t);
+      if(coleccion){ try{ const {id,...datos}=t; await coleccion.doc(id).set(datos); }catch(e){} }
+    }
+    guardarLocal(); pintar();
+    toast('Copia recuperada: '+nuevos+' trabajo'+(nuevos===1?'':'s')+' nuevo'+(nuevos===1?'':'s'));
+  }
+  window.restaurarCopiaApp = recuperarDe;
   iniciar();
 })();
 </script>
