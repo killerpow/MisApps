@@ -227,8 +227,13 @@
     <div class="hoy" id="vuCliente"></div>
     <label for="vuNota">¿Qué ha quedado pendiente?</label>
     <textarea id="vuNota" rows="4" placeholder="Ej: falta cambiar la llave de paso, traer el latiguillo de 40 cm…"></textarea>
-    <label for="vuFecha">¿Cuándo volvemos? (opcional)</label>
-    <input id="vuFecha" type="date">
+    <label>¿Cuándo volvemos?</label>
+    <div id="vuCuando" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <button type="button" class="btn btn-sec btn-peq" data-c="">Sin fecha</button>
+      <button type="button" class="btn btn-sec btn-peq" data-c="asap">⚡ Lo antes posible</button>
+      <button type="button" class="btn btn-sec btn-peq" data-c="dia">📅 Elegir día</button>
+    </div>
+    <input id="vuFecha" type="date" style="display:none">
     <div class="pie">
       <button class="btn btn-sec" id="vuCerrar">Cancelar</button>
       <button class="btn btn-prim" id="vuGuardar">Guardar</button>
@@ -474,7 +479,7 @@
   $('#siBorrar').onclick=()=>{ if(aBorrar) borrar(aBorrar.id); $('#capaBorrar').classList.remove('ver'); toast('Trabajo eliminado'); aBorrar=null; };
 
   // ---------- Hay que volver ----------
-  const diaVolver = iso => { const [y,m,d]=iso.split('-').map(Number); const f=new Date(y,m-1,d);
+  const diaVolver = iso => { if(iso==='asap') return 'lo antes posible'; const [y,m,d]=iso.split('-').map(Number); const f=new Date(y,m-1,d);
     const hoy=new Date(); hoy.setHours(0,0,0,0); const dif=Math.round((f-hoy)/864e5);
     if(dif===0) return 'hoy'; if(dif===1) return 'mañana';
     return `${DIAS[f.getDay()]} ${d} de ${MESES[m-1]}`; };
@@ -483,16 +488,28 @@
     vuT=t;
     $('#vuCliente').textContent=t.cliente||'Cliente sin nombre';
     $('#vuNota').value=(t.volver&&t.volver.nota)||'';
-    $('#vuFecha').value=(t.volver&&t.volver.fecha)||'';
+    const f=(t.volver&&t.volver.fecha)||'';
+    $('#vuFecha').value=/^\d{4}-/.test(f)?f:'';
+    marcarCuando(/^\d{4}-/.test(f)?'dia':f);
     $('#vuQuitar').style.display=t.volver?'':'none';
     $('#capaVolver').classList.add('ver');
     setTimeout(()=>$('#vuNota').focus(),100);
   }
+  let vuCuando='';
+  function marcarCuando(c){
+    vuCuando=c;
+    document.querySelectorAll('#vuCuando button').forEach(b=>{ const on=b.dataset.c===c;
+      b.style.background=on?'#7c3aed':''; b.style.color=on?'#fff':''; b.style.borderColor=on?'#7c3aed':''; });
+    $('#vuFecha').style.display = c==='dia' ? '' : 'none';
+    if(c==='dia' && !$('#vuFecha').value){ try{ $('#vuFecha').showPicker(); }catch(e){} }
+  }
+  $('#vuCuando').onclick=e=>{ const b=e.target.closest('button[data-c]'); if(b) marcarCuando(b.dataset.c); };
   $('#vuCerrar').onclick=()=>$('#capaVolver').classList.remove('ver');
   $('#vuGuardar').onclick=()=>{
     if(!vuT) return;
-    const nota=$('#vuNota').value.trim(), fecha=$('#vuFecha').value;
-    if(!nota && !fecha){ toast('Escribe qué queda pendiente o pon la fecha'); return; }
+    const nota=$('#vuNota').value.trim();
+    const fecha = vuCuando==='dia' ? $('#vuFecha').value : vuCuando;
+    if(vuCuando==='dia' && !fecha){ toast('Elige el día o pon «Sin fecha»'); return; }
     guardar({...vuT, completado:false, volver:{nota, fecha, desde:Date.now()}});
     $('#capaVolver').classList.remove('ver'); toast('🔁 Apuntado: hay que volver');
   };
@@ -517,11 +534,6 @@
       ['De camino', `${s} Vamos de camino para hacer el trabajo${que}. Llegamos en unos 15 minutos.`],
       ['¿Cuándo?', `${s} ¿Cuándo le vendría bien que pasemos a hacer el trabajo${que}?`]
     ];
-    if(t.volver){
-      const dia=t.volver.fecha?diaVolver(t.volver.fecha):'';
-      const pend=t.volver.nota?` (nos queda: ${t.volver.nota.trim().replace(/\s+/g,' ').replace(/\.$/,'')})`:'';
-      ops.unshift(['🔁 Volver para terminar', `${s} ¿Le va bien que volvamos${dia?' '+(dia==='hoy'||dia==='mañana'?dia:'el '+dia):' otro día'} para terminar el trabajo${pend}?`]);
-    }
     $('#avCliente').textContent=t.cliente||'Cliente sin nombre';
     $('#avTel').value=t.tel||'';
     $('#avOpciones').innerHTML=ops.map((o,i)=>`<button type="button" class="btn btn-sec btn-peq" data-i="${i}" style="justify-content:flex-start;text-align:left">${o[0]}</button>`).join('');
