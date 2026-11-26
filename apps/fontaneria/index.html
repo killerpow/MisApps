@@ -203,6 +203,22 @@
   </div>
 </div>
 
+<div class="capa" id="capaAviso">
+  <div class="hoja">
+    <h2>💬 Avisar al cliente</h2>
+    <div class="hoy" id="avCliente"></div>
+    <label for="avTel">Teléfono</label>
+    <input id="avTel" type="tel" placeholder="600 000 000">
+    <label>Elige un mensaje (puedes cambiarlo)</label>
+    <div id="avOpciones" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+    <textarea class="wa-texto" id="avTexto" style="min-height:110px"></textarea>
+    <div class="pie">
+      <button class="btn btn-sec" id="avCerrar">Cerrar</button>
+      <button class="btn btn-wa" id="avEnviar">Enviar por WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -340,6 +356,7 @@
           <button class="btn btn-sec btn-peq" data-a="editar" data-id="${t.id}">✏️ Editar</button>
           <button class="btn btn-sec btn-peq" data-a="borrar" data-id="${t.id}" style="color:var(--rojo)">🗑 Eliminar</button>
         </div>`:`<div class="botones">
+          ${!t.completado?`<button class="btn btn-wa btn-peq" data-a="avisar" data-id="${t.id}" style="flex:1 1 100%;width:100%">💬 Avisar al cliente por WhatsApp</button>`:''}
           <button class="btn btn-prim btn-peq" data-a="terminar" data-id="${t.id}" style="flex:1 1 100%;width:100%;background:#16a34a">✅ Hecho y cobrado → Historial</button>
           <button class="btn ${t.completado?'btn-sec':'btn-prim'} btn-peq" data-a="hecho" data-id="${t.id}">${t.completado?'↩ Marcar pendiente':'✔ Completado'}</button>
           <button class="btn btn-sec btn-peq" data-a="cobro" data-id="${t.id}">${t.cobro==='cobrado'?'Marcar sin cobrar':'Marcar cobrado'}</button>
@@ -370,6 +387,7 @@
     }
     if(a==='borrar'){ pedirBorrar(t); }
     if(a==='terminar'){ guardar({...t, completado:true, completadoEl:t.completadoEl||Date.now(), cobro:'cobrado', archivado:true, archivadoEl:Date.now()}); toast('✅ Hecho y cobrado: pasado al historial'); }
+    if(a==='avisar'){ abrirAviso(t); }
     if(a==='desarchivar'){ guardar({...t, archivado:false, archivadoEl:null}); toast('Vuelve a la lista principal'); }
   });
 
@@ -432,6 +450,38 @@
   $('#aHistorial').onclick=()=>{ if(aBorrar) guardar({...aBorrar, archivado:true, archivadoEl:Date.now()}); $('#capaBorrar').classList.remove('ver'); toast('📁 Pasado al historial'); aBorrar=null; };
   $('#noBorrar').onclick=()=>{ $('#capaBorrar').classList.remove('ver'); aBorrar=null; };
   $('#siBorrar').onclick=()=>{ if(aBorrar) borrar(aBorrar.id); $('#capaBorrar').classList.remove('ver'); toast('Trabajo eliminado'); aBorrar=null; };
+
+  // ---------- Avisar al cliente ----------
+  let avT=null;
+  function saludo(){ const h=new Date().getHours(); return h<14?'Buenos días':h<21?'Buenas tardes':'Buenas noches'; }
+  function abrirAviso(t){
+    avT=t;
+    const nom=(t.cliente||'').trim().split(/\s+/)[0]||'';
+    const s=saludo()+(nom?', '+nom:'')+'.';
+    const que=t.motivo?` (${t.motivo.trim().replace(/\.$/,'')})`:'';
+    const ops=[
+      ['Hoy', `${s} ¿Le va bien que nos acerquemos hoy a hacer el trabajo${que}?`],
+      ['Mañana', `${s} ¿Le va bien que nos pasemos mañana a hacer el trabajo${que}?`],
+      ['De camino', `${s} Vamos de camino para hacer el trabajo${que}. Llegamos en unos 15 minutos.`],
+      ['¿Cuándo?', `${s} ¿Cuándo le vendría bien que pasemos a hacer el trabajo${que}?`]
+    ];
+    $('#avCliente').textContent=t.cliente||'Cliente sin nombre';
+    $('#avTel').value=t.tel||'';
+    $('#avOpciones').innerHTML=ops.map((o,i)=>`<button type="button" class="btn btn-sec btn-peq" data-i="${i}" style="justify-content:flex-start;text-align:left">${o[0]}</button>`).join('');
+    $('#avOpciones').onclick=e=>{ const b=e.target.closest('button[data-i]'); if(b) $('#avTexto').value=ops[+b.dataset.i][1]; };
+    $('#avTexto').value=ops[0][1];
+    $('#capaAviso').classList.add('ver');
+  }
+  $('#avCerrar').onclick=()=>$('#capaAviso').classList.remove('ver');
+  $('#avEnviar').onclick=()=>{
+    let n=($('#avTel').value||'').replace(/[^\d+]/g,'');
+    if(n.startsWith('+')) n=n.slice(1); else if(n.startsWith('00')) n=n.slice(2); else if(n.length===9) n='34'+n;
+    if(n.length<9){ toast('Pon el teléfono del cliente'); $('#avTel').focus(); return; }
+    if(avT && !avT.tel && $('#avTel').value.trim()) guardar({...avT, tel:$('#avTel').value.trim()});
+    const url='https://wa.me/'+n+'?text='+encodeURIComponent($('#avTexto').value.trim());
+    if(window.AndroidApp&&AndroidApp.openExternal) AndroidApp.openExternal(url); else window.open(url,'_blank');
+    $('#capaAviso').classList.remove('ver');
+  };
 
   // ---------- WhatsApp ----------
   function textoWa(){
