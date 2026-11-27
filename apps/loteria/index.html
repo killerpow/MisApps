@@ -638,7 +638,9 @@ const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','
    5 · sorteo 102 · año (2)6 · fracción 04 · serie 086 > 0 · número 40465 · control 7793 */
 function parseCodigo(t){
   if(!t)return null;
-  const d=String(t).replace(/\D/g,'');
+  for(const linea of String(t).split(/[\n\r]+/)){
+  const d=linea.replace(/\D/g,'');
+  if(d.length<20||d.length>23)continue;
   for(let i=0;i+20<=d.length;i++){
     const m=/^(\d)(\d{3})(\d)(\d{2})(\d{3})(\d)(\d{5})(\d{4})$/.exec(d.slice(i,i+20));if(!m)continue;
     const frac=+m[4],serie=+m[5],sn=+m[2];
@@ -648,6 +650,7 @@ function parseCodigo(t){
     if(sn===102)sorteo=y===2026?'navidad2026':'ln-'+y+'-12-22';
     else if(sn===2)sorteo=y===2027?'nino2027':'ln-'+y+'-01-06';
     return {num:m[7],serie:String(serie),frac:String(frac),sorteo,sorteoNum:sn+'/'+String(y).slice(2),codigo:m[1]+m[2]+m[3]+m[4]+m[5]+'>'+m[6]+m[7]+m[8]};
+  }
   }
   return null;
 }
@@ -660,7 +663,7 @@ function datosTexto(t){
   if(/NAVIDAD/.test(t))r.sorteo='navidad2026';else if(/\bNINO\b/.test(t))r.sorteo='nino2027';
   m=new RegExp('\\b(\\d{1,2}) DE ('+MESES.join('|')+') DE (\\d{4})').exec(t);
   if(m&&!r.sorteo)r.sorteo=sorteoPorFecha(m[3]+'-'+String(MESES.indexOf(m[2])+1).padStart(2,'0')+'-'+m[1].padStart(2,'0'));
-  const pc=parseCodigo(t);if(pc){Object.assign(r,{num:pc.num,serie:pc.serie,frac:pc.frac,codigo:pc.codigo,deCodigo:true});if(pc.sorteo)r.sorteo=pc.sorteo;}
+  r.codPosible=parseCodigo(t);
   return r;
 }
 /* Código de barras: lector del propio móvil si lo tiene; si no, ZXing */
@@ -731,7 +734,7 @@ async function leerFoto(blob){
   const c=await reducir(blob,1800);
   const cod=await leerCodigo(c);
   const pcod=parseCodigo(cod);
-  if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>mezclar(x,parseCodigo(x.codTxt)));if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
+  if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>{const pc=parseCodigo(x.codTxt);if(pc&&pc.num===x.num)mezclar(x,pc);});if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
   const w=await lectorCifras();
   const {data}=await w.recognize(binarizar(await reducir(c,1800)));
   const nums=candidatos(data);
@@ -739,6 +742,7 @@ async function leerFoto(blob){
   if(!nums.length&&!cod&&!extra.deCodigo)return [];
   const res=Object.assign({num:nums[0]||'',alts:nums.slice(1,5),codigo:cod},extra);
   if(pcod)mezclar(res,pcod);
+  else if(extra.codPosible&&nums.includes(extra.codPosible.num))mezclar(res,extra.codPosible);
   if(res.deCodigo)res.alts=nums.filter(n=>n!==res.num).slice(0,3);
   return [res];
 }
@@ -816,33 +820,47 @@ $('camNo').onclick=cerrarCam;
 $('camLuz').onclick=()=>{if(!track)return;luz=!luz;track.applyConstraints({advanced:[{torch:luz}]}).catch(()=>{luz=false;toast('Este móvil no deja encender la luz desde aquí');});};
 function fotograma(){const v=$('vid'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);return c;}
 /* Recorta del vídeo justo lo que se ve dentro del recuadro */
-function recorteGuia(margen,ancho){
+function recorteGuia(margen,ancho,zona){
   margen=margen||0;
-  const v=$('vid'),vr=v.getBoundingClientRect(),g=$('guide').getBoundingClientRect();
+  const v=$('vid'),vr=v.getBoundingClientRect(),G=$('guide').getBoundingClientRect();
+  const z=zona||[0,0,1,1],g={left:G.left+G.width*z[0],top:G.top+G.height*z[1],width:G.width*(z[2]-z[0]),height:G.height*(z[3]-z[1])};
   const k=Math.max(vr.width/v.videoWidth,vr.height/v.videoHeight),ox=(vr.width-v.videoWidth*k)/2,oy=(vr.height-v.videoHeight*k)/2;
   const mx=g.width*margen,my=g.height*margen;
   const x=Math.max(0,(g.left-mx-vr.left-ox)/k),y=Math.max(0,(g.top-my-vr.top-oy)/k),w=Math.min(v.videoWidth-x,(g.width+2*mx)/k),h=Math.min(v.videoHeight-y,(g.height+2*my)/k);
   const s=Math.min(2.5,(ancho||1400)/w),c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
   c.getContext('2d').drawImage(v,x,y,w,h,0,0,c.width,c.height);return c;
 }
+/* Zonas dentro del recuadro (izquierda, arriba, derecha, abajo) */
+const ZNUM=[.30,.05,.84,.40],ZCOD=[.32,.82,1,1];
+let codLecturas=[];
 async function bucle(){
   while(escaneando){
     const v=$('vid');
     if(!v.videoWidth){await espera(200);continue;}
     try{
-      const {data}=await wDig.recognize(binarizar(recorteGuia()));
-      if(!escaneando)break;
-      const pcv=parseCodigo((data.text||'').replace(/\s+/g,''))||parseCodigo(data.text);
-      if(pcv){$('live').textContent=pcv.num;await detectado(pcv.num,[],pcv,true);break;}
-      const n=candidatos(data)[0]||null;
-      lecturas.push(n);if(lecturas.length>5)lecturas.shift();
-      $('live').textContent=n||'';
-      if(n){
-        const veces=lecturas.filter(x=>x===n).length;
+      nCiclo++;
+      if(nCiclo%2===1){
+        /* Número grande: hacen falta 3 lecturas iguales de las últimas 5 */
+        const {data}=await wDig.recognize(binarizar(recorteGuia(.03,1100,ZNUM)));
+        if(!escaneando)break;
+        const n=candidatos(data)[0]||null;
+        lecturas.push(n);if(lecturas.length>5)lecturas.shift();
+        $('live').textContent=n||'';
+        const veces=n?lecturas.filter(x=>x===n).length:0;
         $('guide').classList.toggle('ok',veces>=2);
-        if(veces>=2){await detectado(n,lecturas.filter(x=>x&&x!==n));break;}
-      }else $('guide').classList.remove('ok');
-      if(++nCiclo%2===0&&!codVivo)leerCodigo(await reducir(fotograma(),1600)).then(c=>{if(!c||!escaneando)return;codVivo=c;const pc=parseCodigo(c);if(pc){$('live').textContent=pc.num;detectado(pc.num,[],pc);}});
+        if(veces>=3){await detectado(n,lecturas.filter(x=>x&&x!==n));break;}
+      }else{
+        /* Línea del código: vale si se lee igual dos veces, o si su número coincide con el leído arriba */
+        const {data}=await wDig.recognize(binarizar(recorteGuia(.03,1500,ZCOD)));
+        if(!escaneando)break;
+        const pc=parseCodigo(data.text);
+        if(pc){
+          codLecturas.push(pc.codigo);if(codLecturas.length>4)codLecturas.shift();
+          if(codLecturas.filter(x=>x===pc.codigo).length>=2||lecturas.includes(pc.num)){$('live').textContent=pc.num;await detectado(pc.num,[],pc,true);break;}
+        }
+      }
+      /* Código de barras de verdad (lleva su propia comprobación) */
+      if(nCiclo%3===0&&!codVivo)leerCodigo(await reducir(fotograma(),1600)).then(c=>{if(!c||!escaneando)return;codVivo=c;const pc=parseCodigo(c);if(pc){$('live').textContent=pc.num;detectado(pc.num,[],pc);}});
     }catch(e){await espera(400);}
   }
 }
@@ -860,11 +878,11 @@ async function detectado(num,alts,pre,propio){
   mostrarPanel(it,'Buscando serie, fracción y código de barras…');
   /* En segundo plano: Gemini (si hay clave), lector de texto y código de barras */
   try{
-    if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';if(g&&!it.deCodigo&&parseCodigo(g.codTxt))mezclar(it,parseCodigo(g.codTxt));
+    if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';{const pg=g&&parseCodigo(g.codTxt);if(pg&&!it.deCodigo&&(pg.num===g.num||pg.num===it.num))mezclar(it,pg);}
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
       if(g){const rb=await fotoDecimo(frame,g);if(rb)it.fotoBlob=rb;}}catch(e){it.aviso=errGem(e);}}
     if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
-    if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');if(x.deCodigo&&!it.deCodigo){if(it.num&&it.num!==x.num)it.alts.unshift(it.num);mezclar(it,x);}it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
+    if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
   }catch(e){}
   if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
 }
@@ -900,7 +918,7 @@ function mostrarPanel(it,estado){
     toast('✓ '+pad(v.num)+': '+RES[res]+'. Pon el siguiente décimo');seguir();
   };
 }
-function seguir(){const p=$('panel');p.classList.remove('on');p.dataset.k='';lecturas=[];codVivo='';$('live').textContent='';
+function seguir(){const p=$('panel');p.classList.remove('on');p.dataset.k='';lecturas=[];codLecturas=[];codVivo='';$('live').textContent='';
   $('camStat').textContent='Buscando número…';if(stream&&!escaneando){escaneando=true;bucle();}}
 
 /* ================= Comprobar premios ================= */
