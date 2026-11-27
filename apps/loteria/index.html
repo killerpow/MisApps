@@ -297,6 +297,37 @@ const fotoUrl=id=>id&&URLS[id]||'';
 
 /* ================= Décimos ================= */
 function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,importe:+o.importe||PRECIO,recargo:num2(o.recargo),serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
+/* ¿Este décimo ya lo tengo? Mismo código de barras, o mismo número y sorteo con serie y fracción compatibles */
+function buscarIgual(v,sid,codigo){
+  if(codigo){const k=D.decimos.find(d=>d.codigo===codigo);if(k)return k;}
+  const n=pad(v.num),ok=(a,b)=>!a||!b||a===b;
+  const c=D.decimos.filter(d=>d.sorteo===sid&&d.num===n&&ok(v.serie,d.serie)&&ok(v.frac,d.frac));
+  return c.find(d=>!d.foto)||c[0]||null;
+}
+/* Guarda un décimo; si ya lo tengo y llega con foto, se la pone al que ya está en vez de duplicarlo.
+   Devuelve 'nuevo', 'foto' (le ha puesto foto), 'cambiada' o 'repe' (no ha hecho nada) */
+async function guardarDecimo(v,sid,codigo,fotoBlob,recargo){
+  const ig=buscarIgual(v,sid,codigo);
+  const exacto=ig&&(codigo&&ig.codigo===codigo||(v.serie&&v.frac&&ig.serie===v.serie&&ig.frac===v.frac));
+  if(ig&&(fotoBlob||exacto)){
+    const txt='Ya tienes el '+ig.num+(sf(ig)?' ('+sf(ig)+')':'');
+    if(fotoBlob){
+      let cambiar=true;
+      if(ig.foto)cambiar=await confirmar(txt+' con su foto. ¿Le pongo esta foto nueva o es otro décimo distinto?','Cambiar la foto','Es otro décimo');
+      else if(!exacto)cambiar=await confirmar(txt+' sin foto. ¿Le pongo esta foto o es otro décimo distinto?','Ponerle la foto','Es otro décimo');
+      if(cambiar){
+        const old=ig.foto;ig.foto=await fotoGuardar(fotoBlob).catch(()=>null)||old;if(old&&old!==ig.foto)fotoBorrar(old);
+        if(!ig.serie&&v.serie)ig.serie=v.serie;if(!ig.frac&&v.frac)ig.frac=v.frac;if(!ig.codigo&&codigo)ig.codigo=codigo;
+        return old?'cambiada':'foto';
+      }
+    }else if(!await confirmar(txt+'. ¿Lo añado otra vez?','Añadir otra vez','No'))return 'repe';
+  }
+  const foto=fotoBlob?await fotoGuardar(fotoBlob).catch(()=>null):null;
+  D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo,foto,recargo}));
+  return 'nuevo';
+}
+const RES={nuevo:'añadido',foto:'le he puesto la foto',cambiada:'foto cambiada',repe:'no se ha añadido'};
+function resumen(cuenta){const p=[];if(cuenta.nuevo)p.push(cuenta.nuevo+' nuevo'+(cuenta.nuevo>1?'s':''));if(cuenta.foto)p.push(cuenta.foto+' que ya tenías, ahora con foto');if(cuenta.cambiada)p.push(cuenta.cambiada+' con la foto cambiada');return p.join(' · ');}
 function grupos(){
   const m=new Map();
   D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).forEach(d=>{const k=d.num+'|'+d.sorteo;if(!m.has(k))m.set(k,[]);m.get(k).push(d);});
@@ -651,14 +682,11 @@ $('revOk').onclick=async()=>{
   const sid=$('revSort').value==='__otro'?sorteoPorDefecto():$('revSort').value;
   const vals=revItems.filter(it=>!it.quitado).map(it=>{const v={it};it.el.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));return v;}).filter(v=>v.num);
   if(vals.some(v=>v.num.length!==5)&&!await confirmar('Hay números con menos de 5 cifras. Se completarán con ceros delante. ¿Seguir?','Seguir','Corregir'))return;
-  busy('Guardando…');let n=0;
-  for(const v of vals){
-    if(v.it.codigo&&D.decimos.some(d=>d.codigo===v.it.codigo)){toast('El '+pad(v.num)+' ya estaba guardado (mismo código de barras)');continue;}
-    const foto=v.it.fotoBlob?await fotoGuardar(v.it.fotoBlob).catch(()=>null):null;
-    D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo:v.it.codigo,foto,recargo:$('revRec').value}));n++;
-  }
-  busy('');$('dRev').classList.remove('on');save();render();programarAvisos();
-  if(n)toast('Guardado'+(n>1?'s ':' ')+n+' décimo'+(n>1?'s':''));
+  const rec=$('revRec').value,cuenta={};
+  $('dRev').classList.remove('on');
+  for(const v of vals){const r=await guardarDecimo(v,sid,v.it.codigo,v.it.fotoBlob,rec);cuenta[r]=(cuenta[r]||0)+1;}
+  save();render();programarAvisos();
+  const t=resumen(cuenta);if(t)toast('✓ '+t);
 };
 $('bMano').onclick=()=>abrirRevision([{num:''}],'Añadir a mano','Escribe el número; la serie y la fracción son opcionales.');
 
@@ -755,7 +783,7 @@ function mostrarPanel(it,estado){
     (it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
     '<div class="f3"><div><label>Sorteo</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select></div><div></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
     '<p class="small mono">'+(estado?'⏳ '+esc(estado):it.codigo?'Código: '+esc(it.codigo):'No he podido leer el código de barras')+'</p>'+
-    (dup?'<p class="pr" style="font-size:14px">⚠️ Este décimo ya está guardado (mismo código de barras)</p>':'')+
+    (dup?'<p class="pr" style="font-size:14px">Este décimo ya lo tienes (mismo código de barras): al guardar te preguntaré si le cambio la foto.</p>':'')+
     '<div class="row"><button class="btn gold" id="pOk">Guardar y seguir</button><button class="btn ghost" id="pNo">Repetir</button></div>';
   p.querySelectorAll('[data-c]').forEach(i=>{const c=i.dataset.c;i.value=prev[c]!=null?prev[c]:(it[c]||'');if(prev[c]!=null)i.dataset.t=1;i.oninput=()=>i.dataset.t=1;});
   it.alts.forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{const i=p.querySelector('[data-c=num]');i.value=a;i.dataset.t=1;};p.querySelector('.alts').appendChild(b);});
@@ -767,13 +795,11 @@ function mostrarPanel(it,estado){
   $('pOk').onclick=async()=>{
     const v={};p.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));
     if(!v.num){toast('Falta el número');return;}
-    if(dup&&!await confirmar('Este décimo ya está guardado. ¿Guardarlo otra vez?','Guardar','No'))return seguir();
     const sid=$('pSort').value==='__otro'?sorteoPorDefecto():$('pSort').value;
-    const foto=await fotoGuardar(it.fotoBlob).catch(()=>null);
     recargoUltimo=num2($('pRec').value);
-    D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo:it.codigo,foto,recargo:recargoUltimo}));save();
-    guardadosCam++;$('camCnt').textContent=guardadosCam+' guardado'+(guardadosCam>1?'s':'');
-    toast('✓ '+pad(v.num)+' guardado. Pon el siguiente décimo');seguir();
+    const res=await guardarDecimo(v,sid,it.codigo,it.fotoBlob,recargoUltimo);save();
+    if(res!=='repe'){guardadosCam++;$('camCnt').textContent=guardadosCam+' guardado'+(guardadosCam>1?'s':'');}
+    toast('✓ '+pad(v.num)+': '+RES[res]+'. Pon el siguiente décimo');seguir();
   };
 }
 function seguir(){const p=$('panel');p.classList.remove('on');p.dataset.k='';lecturas=[];codVivo='';$('live').textContent='';
