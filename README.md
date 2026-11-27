@@ -5,4 +5,4 @@ GitHub las compila solas y publica los APK en **Releases**:
 
 `https://github.com/killerpow/MisApps/releases/latest/download/<app>.apk`
 
-(voleibol, regalos, juanmi, iptv, agenda, fontaneria, comercialpro, ruta, pokemon)
+(voleibol, regalos, juanmi, iptv, agenda, fontaneria, comercialpro, ruta, pokemon, notas, loteria)

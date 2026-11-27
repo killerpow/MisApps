@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mis Décimos</title>
+<style>
+/* VOICE: alegre pero clara, como un décimo de Navidad
+   IDEA: cada número es un décimo de papel; la lista es tu montón de décimos ordenado
+   PICTURE: el resumen arriba (cuántos décimos y cuánto has jugado) y los décimos como tiras
+   COLOUR: azul noche #0b1f3a, oro #e8b923, rojo premio #d7263d
+   TYPE: sistema, números grandes y tabulares */
+:root{--bg:#f4f1ea;--card:#fff;--ink:#14213d;--mut:#6b7280;--nav:#0b1f3a;--gold:#e8b923;--red:#d7263d;--ok:#15803d;--line:#e5e0d3}
+@media(prefers-color-scheme:dark){:root{--bg:#0a1424;--card:#13223a;--ink:#eef2f8;--mut:#9aa7bb;--line:#22344f}}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--nav);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 22px;position:relative;overflow:hidden}
+header:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#e8b92355,transparent 70%)}
+h1{margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:.2px}
+h1 span{color:var(--gold)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:#ffffff14;border:1px solid #ffffff22;border-radius:14px;padding:10px 12px}
+.stat b{display:block;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--gold)}
+.stat small{font-size:13px;opacity:.85}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:14px}
+.chip.on{background:var(--nav);color:#fff;border-color:var(--nav)}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px 16px}
+.big{border:0;border-radius:16px;padding:14px 6px;background:var(--card);box-shadow:0 1px 0 var(--line),0 4px 14px #0000000d;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:14px}
+.big i{font-style:normal;font-size:26px}
+.big.main{background:var(--gold);color:#14213d}
+.list{padding:4px 16px 16px;display:grid;gap:10px}
+.dec{background:var(--card);border-radius:14px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 12px;border-left:6px solid var(--gold);box-shadow:0 1px 0 var(--line)}
+.dec.win{border-left-color:var(--red);background:linear-gradient(90deg,#d7263d14,var(--card) 60%)}
+.dec.lose{opacity:.7;border-left-color:var(--mut)}
+.num{font-size:30px;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;font-family:ui-monospace,"Roboto Mono",monospace}
+.meta{font-size:13px;color:var(--mut);line-height:1.3}
+.meta .pr{color:var(--red);font-weight:800;font-size:15px}
+.meta .no{color:var(--mut)}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:20px;line-height:1}
+.step b{min-width:30px;text-align:center;font-size:18px}
+.empty{text-align:center;color:var(--mut);padding:40px 20px}
+.empty i{font-size:54px;font-style:normal;display:block}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{border:0;background:none;padding:10px 0 12px;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button i{font-style:normal;font-size:22px}
+nav button.on{color:var(--ink);font-weight:700}
+.view{display:none}.view.on{display:block}
+.box{background:var(--card);border-radius:16px;margin:14px 16px;padding:16px;box-shadow:0 1px 0 var(--line)}
+.box h2{margin:0 0 6px;font-size:18px}
+.box p{margin:6px 0;color:var(--mut);font-size:14px}
+.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--nav);color:#fff;font-weight:700;min-height:44px}
+.btn.gold{background:var(--gold);color:#14213d}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.red{background:var(--red)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+input[type=text],input[type=number],input[type=password],input[type=date],select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+.grid5{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.grid5 input{text-align:center;font-family:ui-monospace,monospace;padding:8px 4px}
+.res{font-size:15px;margin-top:10px}
+.res .w{color:var(--red);font-weight:800}
+.badge{display:inline-block;font-size:12px;border-radius:999px;padding:2px 8px;background:var(--bg);border:1px solid var(--line)}
+.won{font-size:34px;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums}
+/* Diálogos */
+.dlg{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;justify-content:center;z-index:20}
+.dlg.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 8px;font-size:19px}
+.cand{display:grid;grid-template-columns:auto 1fr 1fr 70px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.cand input[type=checkbox]{width:22px;height:22px}
+.cand input[type=text]{font-family:ui-monospace,monospace;font-size:20px;font-weight:700;letter-spacing:2px;padding:8px}
+.alts{grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap}
+.alts button{border:1px dashed var(--line);background:none;border-radius:8px;padding:2px 8px;font-family:ui-monospace,monospace;font-size:13px}
+/* Cámara */
+#cam{position:fixed;inset:0;background:#000;z-index:30;display:none;flex-direction:column}
+#cam.on{display:flex}
+#cam video{flex:1;width:100%;object-fit:cover;min-height:0}
+.guide{position:absolute;left:8%;right:8%;top:28%;height:30%;border:3px solid var(--gold);border-radius:14px;box-shadow:0 0 0 999px #0007;pointer-events:none}
+.guide span{position:absolute;top:-30px;left:0;right:0;text-align:center;color:#fff;font-size:14px}
+.cambar{display:flex;justify-content:space-around;align-items:center;padding:16px 16px calc(20px + env(safe-area-inset-bottom));background:#000}
+.shot{width:74px;height:74px;border-radius:50%;border:5px solid #fff;background:var(--gold)}
+.cambar .btn{background:#ffffff22}
+#busy{position:fixed;inset:0;background:#000b;z-index:40;display:none;align-items:center;justify-content:center;color:#fff;text-align:center;padding:30px}
+#busy.on{display:flex}
+.spin{width:46px;height:46px;border:5px solid #ffffff33;border-top-color:var(--gold);border-radius:50%;margin:0 auto 14px;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:16px;right:16px;bottom:96px;background:#14213d;color:#fff;border-radius:12px;padding:12px 14px;z-index:50;display:none;font-size:15px}
+.small{font-size:13px;color:var(--mut)}
+</style></head><body>
+
+<header>
+  <h1>🎄 Mis <span>Décimos</span></h1>
+  <div class="stats">
+    <div class="stat"><b id="sDec">0</b><small>décimos</small></div>
+    <div class="stat"><b id="sNum">0</b><small>números</small></div>
+    <div class="stat"><b id="sEur">0 €</b><small id="sEurL">jugado</small></div>
+  </div>
+</header>
+
+<!-- ============ MIS DÉCIMOS ============ -->
+<section class="view on" id="vLista">
+  <div class="chips" id="chips"></div>
+  <div class="acts">
+    <button class="big main" id="bCam"><i>📷</i>Escanear</button>
+    <button class="big" id="bFotos"><i>🖼️</i>Fotos</button>
+    <button class="big" id="bMano"><i>✍️</i>A mano</button>
+  </div>
+  <div class="list" id="lista"></div>
+</section>
+
+<!-- ============ RESULTADOS ============ -->
+<section class="view" id="vRes">
+  <div class="box">
+    <h2 id="rTit">Resultados</h2>
+    <p id="rInfo"></p>
+    <div id="rWon"></div>
+    <div class="row">
+      <button class="btn gold" id="bCheck">🔎 Comprobar ahora</button>
+      <button class="btn ghost" id="bOficial">Web oficial</button>
+    </div>
+    <div class="res" id="rOut"></div>
+  </div>
+  <div class="box" id="manualBox">
+    <h2>Premios principales a mano</h2>
+    <p>Por si la comprobación automática no responde: escribe los números de los premios grandes y la app calcula tus premios (aproximaciones, centenas, terminaciones y reintegro). La pedrea no se incluye.</p>
+    <label>1º · 2º · 3º premio</label>
+    <div class="grid5"><input id="m1" inputmode="numeric" maxlength="5" placeholder="1º"><input id="m2" inputmode="numeric" maxlength="5" placeholder="2º"><input id="m3" inputmode="numeric" maxlength="5" placeholder="3º"></div>
+    <label>4º premios (2)</label>
+    <div class="grid5"><input id="m4a" inputmode="numeric" maxlength="5"><input id="m4b" inputmode="numeric" maxlength="5"></div>
+    <label>5º premios (8)</label>
+    <div class="grid5" id="m5"></div>
+    <div class="row"><button class="btn" id="bManual">Calcular mis premios</button></div>
+  </div>
+</section>
+
+<!-- ============ AJUSTES ============ -->
+<section class="view" id="vAj">
+  <div class="box">
+    <h2>Lectura de décimos</h2>
+    <p>Sin configurar nada, la app lee el número con reconocimiento de texto (necesita internet la primera vez). Si pones una clave gratuita de Google Gemini, lee mucho mejor, puede leer varios décimos en una foto y sirve de comprobación extra de premios.</p>
+    <label for="kGem">Clave de Gemini (opcional)</label>
+    <input type="password" id="kGem" placeholder="AIza…" autocomplete="off">
+    <label for="mGem">Modelo</label>
+    <input type="text" id="mGem" placeholder="gemini-2.5-flash">
+    <div class="row"><button class="btn" id="bGuardaK">Guardar</button><a class="btn ghost" href="https://aistudio.google.com/apikey" style="text-decoration:none">Conseguir clave</a></div>
+  </div>
+  <div class="box">
+    <h2>Avisos</h2>
+    <p>La app te avisa el día del sorteo a las 14:00 para que la abras y compruebe tus números. Al abrirla después del sorteo, comprueba sola.</p>
+    <div class="row"><button class="btn ghost" id="bAvisos">Volver a programar avisos</button></div>
+  </div>
+  <div class="box">
+    <h2>Compartir y copia</h2>
+    <div class="row">
+      <button class="btn ghost" id="bShare">Compartir lista</button>
+      <button class="btn ghost" id="bExport">Guardar copia</button>
+      <button class="btn ghost" id="bImport">Cargar copia</button>
+      <button class="btn red" id="bBorrar">Borrar todo</button>
+    </div>
+    <input type="file" id="fImp" accept=".json,application/json,text/plain" hidden>
+  </div>
+  <p class="small" style="padding:0 18px">La comprobación automática usa servicios públicos de resultados. Antes de cobrar, confirma siempre el premio en la web oficial de Loterías o en tu administración.</p>
+</section>
+
+<nav>
+  <button class="on" data-v="vLista"><i>🎫</i>Décimos</button>
+  <button data-v="vRes"><i>🏆</i>Resultados</button>
+  <button data-v="vAj"><i>⚙️</i>Ajustes</button>
+</nav>
+
+<!-- Revisión de lo leído / añadir a mano -->
+<div class="dlg" id="dRev"><div class="sheet">
+  <h3 id="revTit">Revisa los números</h3>
+  <p class="small" id="revSub">Corrige lo que haga falta. Toca una alternativa si el número no es el bueno.</p>
+  <div id="revList"></div>
+  <div class="row"><button class="btn ghost" id="revMas">+ Otro número</button></div>
+  <div class="row"><button class="btn gold" id="revOk">Añadir</button><button class="btn ghost" id="revNo">Cancelar</button></div>
+</div></div>
+
+<!-- Editar un décimo -->
+<div class="dlg" id="dEd"><div class="sheet">
+  <h3>Décimo <span id="edNum"></span></h3>
+  <label>Sorteo</label><select id="edSort"></select>
+  <label>Nota (quién lo compró, dónde…)</label><input type="text" id="edNota">
+  <label>Premio por décimo (si ya lo sabes)</label><input type="number" id="edPrem" inputmode="decimal" placeholder="Vacío = sin comprobar">
+  <div class="row"><button class="btn" id="edOk">Guardar</button><button class="btn red" id="edDel">Eliminar</button><button class="btn ghost" id="edNo">Cerrar</button></div>
+</div></div>
+
+<!-- Confirmación -->
+<div class="dlg" id="dConf"><div class="sheet">
+  <h3 id="cfTxt"></h3>
+  <div class="row"><button class="btn red" id="cfOk">Sí</button><button class="btn ghost" id="cfNo">No</button></div>
+</div></div>
+
+<div id="cam">
+  <video id="vid" playsinline autoplay muted></video>
+  <div class="guide"><span>Encaja el número del décimo aquí</span></div>
+  <div class="cambar">
+    <button class="btn" id="camNo">Cerrar</button>
+    <button class="shot" id="camShot" aria-label="Hacer foto"></button>
+    <button class="btn" id="camGal">Galería</button>
+  </div>
+</div>
+<input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fGal" accept="image/*" multiple hidden>
+<div id="busy"><div><div class="spin"></div><div id="busyTxt">Leyendo…</div></div></div>
+<div id="toast"></div>
+
+<script>
+{
+const $=s=>document.getElementById(s);
+const B=window.AndroidApp||null;
+const PRECIO=20;
+
+/* ---------- Sorteos ---------- */
+const SORTEOS=[
+  {id:'navidad2026',nombre:'Navidad 2026',fecha:'2026-12-22',tipo:'navidad',api:'LoteriaNavidadPremiados'},
+  {id:'nino2027',nombre:'El Niño 2027',fecha:'2027-01-06',tipo:'nino',api:'LoteriaNinoPremiados'}
+];
+function sorteo(id){
+  const s=SORTEOS.find(x=>x.id===id); if(s) return s;
+  const m=/^ln-(\d{4}-\d{2}-\d{2})$/.exec(id||'');
+  if(m){const [y,mo,d]=m[1].split('-');return {id,nombre:'Lotería Nacional '+d+'/'+mo+'/'+y,fecha:m[1],tipo:'nacional'};}
+  return SORTEOS[0];
+}
+
+/* ---------- Datos ---------- */
+const KEY='misdecimos.v1';
+let D={decimos:[],filtro:'todos',gem:'',gemModel:'',manual:{},estado:{}};
+try{const t=localStorage.getItem(KEY);if(t)D=Object.assign(D,JSON.parse(t));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){}}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pad=n=>String(n).replace(/\D/g,'').slice(-5).padStart(5,'0');
+const eur=v=>(Math.round(v*100)/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' €';
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3200);}
+function busy(t){$('busyTxt').textContent=t||'';$('busy').classList.toggle('on',!!t);}
+function confirmar(txt){return new Promise(r=>{$('cfTxt').textContent=txt;$('dConf').classList.add('on');$('cfOk').onclick=()=>{$('dConf').classList.remove('on');r(true)};$('cfNo').onclick=()=>{$('dConf').classList.remove('on');r(false)};});}
+
+/** Añade décimos; si el número ya está en ese sorteo, suma la cantidad. */
+function addDecimo(num,sid,cant){
+  num=pad(num);cant=Math.max(1,cant|0||1);
+  const ex=D.decimos.find(d=>d.num===num&&d.sorteo===sid);
+  if(ex) ex.cant+=cant; else D.decimos.push({id:uid(),num,sorteo:sid,cant,nota:'',premio:null});
+}
+
+/* ---------- Pintar ---------- */
+function sorteosUsados(){const ids=[...new Set(D.decimos.map(d=>d.sorteo))];SORTEOS.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)});return ids.map(sorteo).sort((a,b)=>a.fecha.localeCompare(b.fecha));}
+function visibles(){return D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).sort((a,b)=>a.num.localeCompare(b.num)||a.sorteo.localeCompare(b.sorteo));}
+function render(){
+  const vs=visibles();
+  const nDec=vs.reduce((a,d)=>a+d.cant,0);
+  $('sDec').textContent=nDec;
+  $('sNum').textContent=new Set(vs.map(d=>d.num+'|'+d.sorteo)).size;
+  const ganado=vs.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
+  if(ganado>0){$('sEur').textContent=eur(ganado);$('sEurL').textContent='¡premiado!';}
+  else{$('sEur').textContent=eur(nDec*PRECIO);$('sEurL').textContent='jugado';}
+  const ch=[{id:'todos',nombre:'Todos'}].concat(sorteosUsados());
+  $('chips').innerHTML=ch.map(s=>'<button class="chip'+(D.filtro===s.id?' on':'')+'" data-f="'+esc(s.id)+'">'+esc(s.nombre)+'</button>').join('');
+  if(!vs.length){$('lista').innerHTML='<div class="empty"><i>🎫</i>Aún no tienes décimos aquí.<br>Escanéalos con la cámara, elige fotos o escríbelos a mano.</div>';}
+  else $('lista').innerHTML=vs.map(d=>{
+    const s=sorteo(d.sorteo);
+    let st='<span class="no">Sin comprobar</span>',cls='';
+    if(d.premio>0){cls=' win';st='<span class="pr">🎉 '+eur(d.premio)+' / décimo'+(d.cant>1?' · '+eur(d.premio*d.cant)+' total':'')+'</span>';}
+    else if(d.premio===0){cls=' lose';st='<span class="no">Sin premio</span>';}
+    return '<div class="dec'+cls+'" data-id="'+d.id+'"><div class="num" data-ed="'+d.id+'">'+d.num+'</div><div class="meta" data-ed="'+d.id+'">'+esc(s.nombre)+(d.nota?' · '+esc(d.nota):'')+'<br>'+st+'</div>'+
+      '<div class="step"><button data-m="'+d.id+'">−</button><b>'+d.cant+'</b><button data-p="'+d.id+'">+</button></div></div>';
+  }).join('');
+  renderRes();
+}
+$('chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;D.filtro=b.dataset.f;save();render();pintarManual();};
+$('lista').onclick=async e=>{
+  const t=e.target;let d;
+  if(t.dataset.p){d=D.decimos.find(x=>x.id===t.dataset.p);d.cant++;save();render();return;}
+  if(t.dataset.m){d=D.decimos.find(x=>x.id===t.dataset.m);
+    if(d.cant>1)d.cant--;else if(await confirmar('¿Quitar el '+d.num+'?'))D.decimos=D.decimos.filter(x=>x!==d);
+    save();render();return;}
+  const ed=t.closest('[data-ed]');if(ed)abrirEditor(ed.dataset.ed);
+};
+
+/* ---------- Navegación ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v));
+  window.scrollTo(0,0);
+});
+
+/* ---------- Editor ---------- */
+function opcionesSorteo(sel){
+  const ops=sorteosUsados().map(s=>'<option value="'+esc(s.id)+'"'+(s.id===sel?' selected':'')+'>'+esc(s.nombre)+'</option>');
+  ops.push('<option value="__otro">Otro sorteo (elegir fecha)…</option>');return ops.join('');
+}
+async function elegirSorteo(sel){
+  if(sel.value!=='__otro')return sel.value;
+  const f=await pedirFecha();if(!f){sel.value=SORTEOS[0].id;return SORTEOS[0].id;}
+  const id='ln-'+f;sel.insertAdjacentHTML('afterbegin','<option value="'+id+'">'+esc(sorteo(id).nombre)+'</option>');sel.value=id;return id;
+}
+function pedirFecha(){return new Promise(r=>{
+  $('cfTxt').innerHTML='Fecha del sorteo<br><input type="date" id="fSort" style="margin-top:10px">';
+  $('dConf').classList.add('on');$('cfOk').textContent='Aceptar';$('cfNo').textContent='Cancelar';
+  const fin=v=>{$('dConf').classList.remove('on');$('cfOk').textContent='Sí';$('cfNo').textContent='No';r(v)};
+  $('cfOk').onclick=()=>fin($('fSort').value||null);$('cfNo').onclick=()=>fin(null);
+});}
+let edId=null;
+function abrirEditor(id){
+  const d=D.decimos.find(x=>x.id===id);if(!d)return;edId=id;
+  $('edNum').textContent=d.num;$('edSort').innerHTML=opcionesSorteo(d.sorteo);
+  $('edNota').value=d.nota||'';$('edPrem').value=d.premio==null?'':d.premio;$('dEd').classList.add('on');
+}
+$('edSort').onchange=()=>elegirSorteo($('edSort'));
+$('edOk').onclick=()=>{const d=D.decimos.find(x=>x.id===edId);if(d){d.sorteo=$('edSort').value==='__otro'?d.sorteo:$('edSort').value;d.nota=$('edNota').value.trim();const p=$('edPrem').value.trim();d.premio=p===''?null:+p;}save();render();programarAvisos();$('dEd').classList.remove('on');};
+$('edDel').onclick=async()=>{const d=D.decimos.find(x=>x.id===edId);$('dEd').classList.remove('on');if(d&&await confirmar('¿Eliminar el '+d.num+' ('+d.cant+' décimo'+(d.cant>1?'s':'')+')?')){D.decimos=D.decimos.filter(x=>x!==d);save();render();}};
+$('edNo').onclick=()=>$('dEd').classList.remove('on');
+
+/* ---------- Revisión de números leídos ---------- */
+function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
+function abrirRevision(cands,titulo){
+  $('revTit').textContent=titulo||'Revisa los números';
+  $('revList').innerHTML='';
+  if(!cands.length)cands=[{num:'',alts:[]}];
+  cands.forEach(c=>filaRev(c));
+  $('dRev').classList.add('on');
+  const first=$('revList').querySelector('input[type=text]');if(first&&!first.value)setTimeout(()=>first.focus(),200);
+}
+function filaRev(c){
+  const div=document.createElement('div');div.className='cand';
+  const sid=c.sorteo||sorteoPorDefecto();
+  div.innerHTML='<input type="checkbox" checked><input type="text" inputmode="numeric" maxlength="5" placeholder="00000"><select>'+opcionesSorteo(sid)+'</select><input type="number" min="1" value="1" inputmode="numeric" title="Cantidad">'+
+    ((c.alts&&c.alts.length)?'<div class="alts"><span class="small">¿O es…?</span></div>':'');
+  const [chk,inp,sel,cant]=div.querySelectorAll('input,select');
+  inp.value=c.num||'';cant.value=c.cant||1;
+  sel.onchange=()=>elegirSorteo(sel);
+  if(c.alts)c.alts.forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{inp.value=a;chk.checked=true;};div.querySelector('.alts').appendChild(b);});
+  $('revList').appendChild(div);return inp;
+}
+$('revMas').onclick=()=>filaRev({num:''}).focus();
+$('revNo').onclick=()=>$('dRev').classList.remove('on');
+$('revOk').onclick=()=>{
+  let n=0,mal=0;
+  $('revList').querySelectorAll('.cand').forEach(r=>{
+    const [chk,inp,sel,cant]=r.querySelectorAll('input,select');
+    if(!chk.checked)return;
+    const raw=inp.value.replace(/\D/g,'');
+    if(!raw)return;
+    if(raw.length>5){mal++;return;}
+    const sid=sel.value==='__otro'?SORTEOS[0].id:sel.value;
+    addDecimo(raw,sid,+cant.value||1);n+=(+cant.value||1);
+  });
+  if(mal){toast('Hay números con más de 5 cifras: corrígelos');return;}
+  $('dRev').classList.remove('on');save();render();programarAvisos();
+  if(n)toast('Añadido'+(n>1?'s ':' ')+n+' décimo'+(n>1?'s':''));
+};
+
+$('bMano').onclick=()=>abrirRevision([{num:''}],'Añadir a mano');
+
+/* ---------- Cámara ---------- */
+let stream=null;
+$('bCam').onclick=async()=>{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('fCam').click();return;}
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    $('vid').srcObject=stream;$('cam').classList.add('on');
+  }catch(e){toast('No se pudo abrir la cámara. Usa la de tu móvil.');$('fCam').click();}
+};
+function cerrarCam(){$('cam').classList.remove('on');if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+$('camNo').onclick=cerrarCam;
+$('camGal').onclick=()=>{cerrarCam();$('fGal').click();};
+$('camShot').onclick=async()=>{
+  const v=$('vid');if(!v.videoWidth)return;
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  cerrarCam();
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.92));
+  procesarFotos([blob]);
+};
+$('bFotos').onclick=()=>{$('fGal').value='';$('fGal').click();};
+$('fGal').onchange=e=>{const f=[...e.target.files];if(f.length)procesarFotos(f);};
+$('fCam').onchange=e=>{const f=[...e.target.files];if(f.length)procesarFotos(f);};
+
+function cargarImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{res(i)};i.onerror=rej;i.src=u;});}
+async function reducir(blob,max){
+  const img=await cargarImg(blob);const k=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;
+}
+
+async function procesarFotos(files){
+  const todos=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      busy('Leyendo foto '+(i+1)+' de '+files.length+'…');
+      let r=[];
+      if(D.gem){try{r=await leerGemini(files[i]);}catch(e){toast('Gemini no respondió, uso el lector normal');}}
+      if(!r.length){try{r=await leerTesseract(files[i]);}catch(e){toast('No se pudo cargar el lector (¿sin internet?)');}}
+      todos.push(...r);
+    }
+  }finally{busy('');}
+  /* juntar repetidos */
+  const m=new Map();
+  todos.forEach(c=>{const k=c.num+'|'+(c.sorteo||'');if(m.has(k))m.get(k).cant+=(c.cant||1);else m.set(k,Object.assign({cant:1},c));});
+  const cands=[...m.values()];
+  abrirRevision(cands,cands.length?'He leído '+cands.length+' número'+(cands.length>1?'s':''):'No he encontrado el número');
+  if(!cands.length)$('revSub').textContent='Escríbelo a mano o prueba con otra foto más cerca y con buena luz.';
+  else $('revSub').textContent='Corrige lo que haga falta. Toca una alternativa si el número no es el bueno.';
+}
+
+/* Lector sin clave: Tesseract (se descarga la primera vez) */
+let tessP=null;
+function cargarTess(){
+  if(window.Tesseract)return Promise.resolve();
+  if(!tessP)tessP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=res;s.onerror=()=>{tessP=null;rej(new Error('sin red'))};document.head.appendChild(s);});
+  return tessP;
+}
+let tessW=null;
+async function leerTesseract(blob){
+  await cargarTess();
+  if(!tessW){busy('Preparando el lector (solo la primera vez)…');tessW=await Tesseract.createWorker('spa');}
+  busy('Leyendo el número…');
+  const c=await reducir(blob,1800);
+  /* Escala de grises con contraste para que los números grandes destaquen */
+  const x=c.getContext('2d'),im=x.getImageData(0,0,c.width,c.height),p=im.data;
+  for(let i=0;i<p.length;i+=4){let g=.3*p[i]+.59*p[i+1]+.11*p[i+2];g=g<140?Math.max(0,g-40):Math.min(255,g+40);p[i]=p[i+1]=p[i+2]=g;}
+  x.putImageData(im,0,0);
+  const {data}=await tessW.recognize(c);
+  const texto=(data.text||'').toUpperCase();
+  let sid=null;if(/NAVIDAD/.test(texto))sid='navidad2026';else if(/NI[ÑN]O/.test(texto))sid='nino2027';
+  /* Busca grupos de 5 cifras; puntúa por el tamaño de la letra (el número del décimo es el más grande) */
+  const cand=[];
+  (data.lines||[]).forEach(l=>{
+    const t=(l.text||'').toUpperCase().replace(/[OQD]/g,'0').replace(/[IL|]/g,'1').replace(/S/g,'5').replace(/B/g,'8').replace(/Z/g,'2');
+    const h=(l.bbox?l.bbox.y1-l.bbox.y0:10)||10;
+    const solo=t.replace(/(\d)[\s.·'-]+(?=\d)/g,'$1');
+    (solo.match(/\d+/g)||[]).forEach(g=>{
+      if(g.length===5)cand.push({num:g,score:h*2});
+      else if(g.length>5&&g.length<=7)for(let i=0;i+5<=g.length;i++)cand.push({num:g.slice(i,i+5),score:h*.6});
+    });
+  });
+  cand.sort((a,b)=>b.score-a.score);
+  const vistos=[];cand.forEach(c=>{if(!vistos.includes(c.num))vistos.push(c.num)});
+  if(!vistos.length)return [];
+  return [{num:vistos[0],alts:vistos.slice(1,5),sorteo:sid,cant:1}];
+}
+
+/* ---------- Red (desde Android para evitar bloqueos del navegador) ---------- */
+let hN=0;const hCb={};
+if(B&&B.http){const prev=window.__httpFin;window.__httpFin=function(id,code,txt){if(hCb[id]){const f=hCb[id];delete hCb[id];f({code,txt});}else if(prev)prev(id,code,txt);};}
+function http(method,url,headers,body){
+  if(B&&B.http)return new Promise(res=>{const id='lot'+(++hN);hCb[id]=res;setTimeout(()=>{if(hCb[id]){delete hCb[id];res({code:0,txt:'tiempo agotado'});}},70000);B.http(id,method,url,JSON.stringify(headers||{}),body||'');});
+  return fetch(url,{method,headers,body:body||undefined}).then(async r=>({code:r.status,txt:await r.text()})).catch(e=>({code:0,txt:String(e)}));
+}
+function jsonDe(txt){const i=txt.indexOf('{'),j=txt.lastIndexOf('}');if(i<0||j<i)throw new Error('sin json');return JSON.parse(txt.slice(i,j+1));}
+
+/* ---------- Gemini (opcional) ---------- */
+async function gemini(parts,conBusqueda){
+  const model=(D.gemModel||'gemini-2.5-flash').trim();
+  const body={contents:[{role:'user',parts}],generationConfig:{temperature:0}};
+  if(conBusqueda)body.tools=[{google_search:{}}];else body.generationConfig.responseMimeType='application/json';
+  const r=await http('POST','https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(D.gem),{'Content-Type':'application/json'},JSON.stringify(body));
+  if(r.code!==200)throw new Error('Gemini '+r.code);
+  const j=JSON.parse(r.txt);
+  return ((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
+}
+async function leerGemini(blob){
+  busy('Leyendo con Gemini…');
+  const c=await reducir(blob,1600);const b64=c.toDataURL('image/jpeg',.88).split(',')[1];
+  const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:
+    'En la imagen hay uno o varios décimos de la Lotería Nacional de España (o una lista de números). '+
+    'Devuelve SOLO JSON: {"decimos":[{"numero":"12345","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","cantidad":1}]}. '+
+    'El número del décimo tiene 5 cifras y es el más grande impreso; no confundas con serie, fracción, precio ni número de sorteo. '+
+    'Si el mismo número aparece en varios décimos distintos, cuéntalos en cantidad. Si no hay ninguno, {"decimos":[]}.'}]);
+  const j=jsonDe(txt);
+  return (j.decimos||[]).filter(d=>/\d/.test(d.numero||'')).map(d=>{
+    let sid=null;
+    if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
+    else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=SORTEOS.find(s=>s.fecha===d.fecha)?SORTEOS.find(s=>s.fecha===d.fecha).id:'ln-'+d.fecha;
+    return {num:pad(d.numero),sorteo:sid,cant:Math.max(1,d.cantidad|0||1),alts:[]};
+  });
+}
+
+/* ---------- Comprobar premios ---------- */
+function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function sorteoActivo(){
+  if(D.filtro!=='todos')return sorteo(D.filtro);
+  const us=sorteosUsados().filter(s=>D.decimos.some(d=>d.sorteo===s.id));
+  const lista=us.length?us:SORTEOS;
+  return lista.filter(s=>s.fecha<=hoy()).pop()||lista[0];
+}
+const ESTADOS={0:'El sorteo no ha empezado',1:'Sorteo en marcha',2:'Sorteo terminado (lista provisional)',3:'Lista semioficial',4:'Lista oficial'};
+
+function renderRes(){
+  const s=sorteoActivo();
+  $('rTit').textContent=s.nombre;
+  const ds=D.decimos.filter(d=>d.sorteo===s.id);
+  const fecha=new Date(s.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const est=D.estado[s.id];
+  $('rInfo').textContent=fecha+' · '+ds.reduce((a,d)=>a+d.cant,0)+' décimos'+(est?' · '+est:'');
+  const g=ds.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
+  const comp=ds.filter(d=>d.premio!=null).length;
+  $('rWon').innerHTML=comp?'<div class="won">'+eur(g)+'</div><div class="small">'+(g>0?'ganado en total':'Por ahora no ha tocado nada')+' · '+comp+' de '+ds.length+' números comprobados</div>':'';
+  const pr=ds.filter(d=>d.premio>0).sort((a,b)=>b.premio-a.premio);
+  $('rOut').innerHTML=pr.map(d=>'<div>🎉 <b class="num" style="font-size:20px">'+d.num+'</b> · <span class="w">'+eur(d.premio)+'</span> × '+d.cant+(d.det?' <span class="badge">'+esc(d.det)+'</span>':'')+'</div>').join('');
+  $('manualBox').style.display=s.tipo==='navidad'?'':'none';
+}
+
+async function comprobar(silencioso){
+  const s=sorteoActivo();
+  const ds=D.decimos.filter(d=>d.sorteo===s.id);
+  if(!ds.length){if(!silencioso)toast('No tienes décimos de '+s.nombre);return;}
+  if(s.fecha>hoy()){if(!silencioso)toast('El sorteo es el '+s.fecha.split('-').reverse().join('/')+'. Te aviso ese día.');return;}
+  let ok=false;
+  if(s.api){
+    if(!silencioso)busy('Comprobando '+ds.length+' números…');
+    let fallos=0,estado=null;
+    for(let i=0;i<ds.length;i++){
+      if(!silencioso)busy('Comprobando '+(i+1)+' de '+ds.length+'…');
+      const r=await http('GET','https://api.elpais.com/ws/'+s.api+'?n='+(+ds[i].num),{'User-Agent':'Mozilla/5.0'});
+      try{
+        const j=jsonDe(r.txt);
+        if(j.error&&+j.error!==0)throw 0;
+        estado=j.status;
+        if(+j.status>0){ds[i].premio=+j.premio||0;ds[i].det=null;}
+      }catch(e){fallos++;}
+    }
+    busy('');
+    if(fallos<ds.length){ok=true;D.estado[s.id]=ESTADOS[estado]||'';
+      if(+estado===0&&!silencioso)toast('El sorteo todavía no ha empezado');}
+  }
+  if(!ok&&D.gem){
+    try{if(!silencioso)busy('Consultando resultados con Gemini…');await comprobarGemini(s,ds);ok=true;}catch(e){}
+    busy('');
+  }
+  if(!ok&&s.tipo==='navidad'&&D.manual[s.id]&&D.manual[s.id].p1){calcularManual();ok=true;}
+  save();render();
+  if(!ok){if(!silencioso)toast('No he podido conectar con los resultados. Prueba en un rato, usa la web oficial o pon los premios a mano.');return;}
+  const g=ds.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
+  if(g>0){toast('🎉 ¡Te ha tocado! '+eur(g)+' en total');try{B&&B.toast&&silencioso&&B.toast('🎉 ¡Te ha tocado '+eur(g)+'!');}catch(e){}}
+  else if(!silencioso)toast('Comprobado: de momento no ha tocado');
+}
+async function comprobarGemini(s,ds){
+  const nums=ds.map(d=>d.num).join(', ');
+  const txt=await gemini([{text:'Busca los resultados oficiales del sorteo de Lotería Nacional de España "'+s.nombre+'" celebrado el '+s.fecha+
+    '. Para cada uno de estos números di el premio total en euros que corresponde a UN décimo de 20 €, incluyendo pedrea, aproximaciones, centenas, terminaciones y reintegro: '+nums+
+    '. Responde SOLO con JSON {"terminado":true|false,"resultados":[{"numero":"12345","premio":0}]}. Si el sorteo no se ha celebrado o no hay datos, terminado=false.'}],true);
+  const j=jsonDe(txt);
+  if(!j.terminado)throw new Error('sin datos');
+  (j.resultados||[]).forEach(r=>{const d=ds.find(x=>x.num===pad(r.numero));if(d){d.premio=+r.premio||0;d.det='Gemini';}});
+  D.estado[s.id]='Consultado con Gemini: confírmalo en la web oficial';
+}
+
+/* Cálculo propio para Navidad a partir de los premios grandes (sin pedrea) */
+function premioNavidad(n,P){
+  const N=+n;let t=0;const det=[];
+  const add=(v,x)=>{t+=v;det.push(x)};
+  const ant=x=>(x+99999)%100000,pos=x=>(x+1)%100000;
+  const main=[[P.p1,400000,2000,'1º'],[P.p2,125000,1250,'2º'],[P.p3,50000,960,'3º']].concat((P.p4||[]).map(x=>[x,20000,560,'4º']));
+  main.forEach(([x,p,a,nom])=>{
+    if(x==null||x==='')return;x=+x;
+    if(N===x)add(p,nom+' premio');
+    if(N===ant(x)||N===pos(x))add(a,'aproximación '+nom);
+    if(N!==x&&Math.floor(N/100)===Math.floor(x/100))add(100,'centena '+nom);
+  });
+  (P.p5||[]).forEach(x=>{if(x!==''&&x!=null&&N===+x)add(6000,'5º premio');});
+  [P.p1,P.p2,P.p3].forEach((x,i)=>{if(x!=null&&x!==''&&N!==+x&&N%100===(+x)%100)add(100,'2 últimas cifras del '+(i+1)+'º');});
+  if(P.p1!=null&&P.p1!==''&&N!==+P.p1&&N%10===(+P.p1)%10)add(20,'reintegro');
+  return {t,det:det.join(', ')};
+}
+function leerManual(){
+  const v=id=>{const x=$(id).value.replace(/\D/g,'');return x?x.padStart(5,'0'):''};
+  return {p1:v('m1'),p2:v('m2'),p3:v('m3'),p4:[v('m4a'),v('m4b')].filter(Boolean),p5:[...$('m5').querySelectorAll('input')].map(i=>i.value.replace(/\D/g,'')).filter(Boolean).map(x=>x.padStart(5,'0'))};
+}
+function calcularManual(){
+  const s=sorteoActivo();const P=D.manual[s.id];if(!P||!P.p1)return;
+  D.decimos.filter(d=>d.sorteo===s.id).forEach(d=>{const r=premioNavidad(d.num,P);d.premio=r.t;d.det=r.det||null;});
+  D.estado[s.id]='Calculado con los premios escritos a mano (sin pedrea)';
+}
+$('m5').innerHTML=Array.from({length:8},()=>'<input inputmode="numeric" maxlength="5">').join('');
+function pintarManual(){const s=sorteoActivo(),P=D.manual[s.id]||{};$('m1').value=P.p1||'';$('m2').value=P.p2||'';$('m3').value=P.p3||'';$('m4a').value=(P.p4||[])[0]||'';$('m4b').value=(P.p4||[])[1]||'';[...$('m5').querySelectorAll('input')].forEach((i,k)=>i.value=(P.p5||[])[k]||'');}
+$('bManual').onclick=()=>{const s=sorteoActivo(),P=leerManual();if(!P.p1){toast('Escribe al menos el 1º premio');return;}D.manual[s.id]=P;calcularManual();save();render();
+  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0)*d.cant,0);toast(g>0?'🎉 Te ha tocado '+eur(g)+' (más la pedrea, si la hay)':'Con esos premios no te toca nada (falta mirar la pedrea)');};
+$('bCheck').onclick=()=>comprobar(false);
+$('bOficial').onclick=()=>{const u='https://www.loteriasyapuestas.es/es/loteria-nacional';if(B&&B.openExternal)B.openExternal(u);else window.open(u);};
+
+/* ---------- Avisos del día del sorteo ---------- */
+function programarAvisos(manual){
+  if(!B||!B.programarAviso){if(manual)toast('Los avisos solo funcionan en la app instalada');return;}
+  let n=0;
+  sorteosUsados().forEach(s=>{
+    const cuantos=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+d.cant,0);
+    const id='sorteo-'+s.id;
+    const cuando=new Date(s.fecha+'T14:00:00').getTime();
+    if(!cuantos||cuando<Date.now()){try{B.cancelarAviso(id);}catch(e){}return;}
+    try{B.programarAviso(id,cuando,'🎄 Hoy es el sorteo: '+s.nombre,'Tienes '+cuantos+' décimo'+(cuantos>1?'s':'')+'. Abre Mis Décimos y mira si te ha tocado.');n++;}catch(e){}
+  });
+  if(manual)toast(n?'Avisos programados: '+n:'No hay sorteos próximos con décimos');
+}
+$('bAvisos').onclick=()=>programarAvisos(true);
+
+/* ---------- Ajustes ---------- */
+$('kGem').value=D.gem||'';$('mGem').value=D.gemModel||'';
+$('bGuardaK').onclick=()=>{D.gem=$('kGem').value.trim();D.gemModel=$('mGem').value.trim();save();toast(D.gem?'Clave guardada':'Sin clave: se usa el lector normal');};
+function textoLista(){
+  return sorteosUsados().map(s=>{const ds=D.decimos.filter(d=>d.sorteo===s.id).sort((a,b)=>a.num.localeCompare(b.num));if(!ds.length)return '';
+    return s.nombre+' ('+ds.reduce((a,d)=>a+d.cant,0)+' décimos)\n'+ds.map(d=>d.num+(d.cant>1?' x'+d.cant:'')+(d.premio>0?' → '+eur(d.premio):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
+}
+$('bShare').onclick=()=>{const t=textoLista();if(!t){toast('No hay décimos');return;}
+  if(B&&B.share)B.share('Mis décimos',t);else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Lista copiada'));};
+$('bExport').onclick=()=>{const t=JSON.stringify({misDecimos:1,decimos:D.decimos,manual:D.manual},null,1);
+  if(window.androidSaveFile)window.androidSaveFile('mis-decimos-'+hoy()+'.json',t,'application/json');
+  else{const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(t);a.download='mis-decimos.json';a.click();}};
+$('bImport').onclick=()=>{$('fImp').value='';$('fImp').click();};
+function restaurar(txt){
+  try{const j=JSON.parse(txt);if(!j.decimos)throw 0;D.decimos=j.decimos;D.manual=j.manual||{};save();render();programarAvisos();toast('Copia cargada: '+D.decimos.length+' números');}
+  catch(e){toast('Ese archivo no es una copia de Mis Décimos');}
+}
+window.restaurarCopiaApp=restaurar;
+$('fImp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restaurar(r.result);r.readAsText(f);};
+$('bBorrar').onclick=async()=>{if(await confirmar('¿Borrar todos los décimos?')){D.decimos=[];D.estado={};save();render();programarAvisos();}};
+
+/* ---------- Inicio ---------- */
+render();pintarManual();programarAvisos();
+/* Si el sorteo ya ha sido y queda algo sin comprobar, comprueba solo al abrir */
+function autoComprobar(){
+  const s=sorteoActivo();
+  if(s.fecha<=hoy()&&D.decimos.some(d=>d.sorteo===s.id&&(d.premio==null||D.estado[s.id]!==ESTADOS[4])))comprobar(true);
+}
+setTimeout(autoComprobar,1200);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoComprobar();});
+/* El día del sorteo, mientras la app esté abierta, vuelve a mirar cada 3 minutos */
+setInterval(()=>{const s=sorteoActivo();if(s.fecha===hoy()&&!document.hidden&&D.estado[s.id]!==ESTADOS[4])comprobar(true);},180000);
+}
+</script>
+</body></html>

@@ -78,5 +78,13 @@
     "letra": "N",
     "emoji": "🧾",
     "color2": "#D4AF37"
+  },
+  {
+    "id": "loteria",
+    "name": "Mis Décimos",
+    "color": "#0b1f3a",
+    "letra": "L",
+    "emoji": "🎫",
+    "color2": "#e8b923"
   }
 ]
