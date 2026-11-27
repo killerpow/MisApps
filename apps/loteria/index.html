@@ -73,6 +73,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 .sheet h3{margin:0 0 8px;font-size:19px}
 .f3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
 .f3 input{font-family:ui-monospace,monospace}.f3 input[type=text]{font-family:inherit}
+.f2{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px}
 .f3 .n{font-size:20px;font-weight:800;letter-spacing:2px}
 .cand{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .cand .thumb{width:64px;height:84px}
@@ -204,7 +205,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 <div class="dlg" id="dRev"><div class="sheet">
   <h3 id="revTit">Revisa los décimos</h3>
   <p class="small" id="revSub"></p>
-  <div class="f3"><div><label>Sorteo</label><select id="revSort"></select></div><div></div><div><label>Recargo € c/u</label><input id="revRec" inputmode="decimal" placeholder="0"></div></div>
+  <div class="row" style="margin-top:4px"><label for="revRec" style="margin:0">Recargo por décimo €</label><input id="revRec" inputmode="decimal" placeholder="0" style="width:90px"></div>
   <div id="revList"></div>
   <div class="row"><button class="btn ghost" id="revMas">+ Otro décimo</button></div>
   <div class="row"><button class="btn gold" id="revOk">Guardar</button><button class="btn ghost" id="revNo">Cancelar</button></div>
@@ -263,7 +264,9 @@ const SORTEOS=[
 function sorteo(id){
   const s=SORTEOS.find(x=>x.id===id);if(s)return s;
   const m=/^ln-(\d{4}-\d{2}-\d{2})$/.exec(id||'');
-  if(m){const [y,mo,d]=m[1].split('-');return {id,nombre:'Lotería Nacional '+d+'/'+mo+'/'+y,fecha:m[1],tipo:'nacional'};}
+  if(m){const [y,mo,d]=m[1].split('-'),dia=new Date(m[1]+'T12:00:00').getDay();
+    const tipo=dia===4?'Jueves':dia===6?'Sábado':'Lotería Nacional';
+    return {id,nombre:tipo+' '+d+'/'+mo+'/'+y,fecha:m[1],tipo:'nacional'};}
   return SORTEOS[0];
 }
 function sorteoPorFecha(f){const s=SORTEOS.find(x=>x.fecha===f);return s?s.id:'ln-'+f;}
@@ -779,7 +782,7 @@ async function leerGemini(c){
   return (j.decimos||[]).filter(d=>/\d/.test(d.numero||'')).map(d=>{
     let sid=null;const fi=fechaISO(d.fecha);
     if(fi)sid=sorteoPorFecha(fi);else if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
-    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||'',importe:+d.precio>0&&+d.precio<=200?+d.precio:null};
+    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||'',importe:(()=>{const v=num2(String(d.precio||'').replace(/[^\d.,]/g,''));return v>0&&v<=200?v:null;})(),fuente:'Gemini'};
   });
 }
 /* Lectura completa de una foto de la galería */
@@ -802,13 +805,15 @@ async function leerFoto(blob,esEscaneo){
   /* La línea leída por zonas vale si su número coincide con el leído arriba */
   if(!pcod&&zonas&&zonas.pc&&zonas.nums.includes(zonas.pc.num))pcod=zonas.pc;
   if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>{const pc=parseCodigo(x.codTxt);if(pc&&pc.num===x.num)mezclar(x,pc);});
-    if(r.length===1&&!pcod&&zonas&&zonas.pc&&zonas.pc.num===r[0].num)pcod=zonas.pc;if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
+    if(r.length===1&&!pcod&&zonas&&zonas.pc&&zonas.pc.num===r[0].num)pcod=zonas.pc;
+    if(r.length===1&&(!r[0].sorteo||!r[0].importe)){try{const t=await lectorTexto();const tx=await t.recognize(c);const x=datosTexto(tx.data.text||'');if(!r[0].sorteo&&x.sorteo)r[0].sorteo=x.sorteo;if(!r[0].importe&&x.importe)r[0].importe=x.importe;}catch(e){}}if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');var errG=errGem(e);}}
   const w=await lectorCifras();
   const {data}=await w.recognize(binarizar(await reducir(c,1800)));
   const nums=zonas&&zonas.nums.length?zonas.nums.concat(candidatos(data).filter(n=>!zonas.nums.includes(n))):candidatos(data);
   let extra={};try{const t=await lectorTexto();const r=await t.recognize(c);extra=datosTexto(r.data.text||'');}catch(e){}
   if(!nums.length&&!cod&&!extra.deCodigo)return [];
-  const res=Object.assign({num:nums[0]||'',alts:nums.slice(1,5),codigo:cod},extra);
+  if(typeof errG!=='undefined')extra.aviso=errG;
+  const res=Object.assign({num:nums[0]||'',alts:nums.slice(1,5),codigo:cod,fuente:'lector de la app'},extra);
   if(pcod)mezclar(res,pcod);
   else if(extra.codPosible&&nums.includes(extra.codPosible.num))mezclar(res,extra.codPosible);
   if(res.deCodigo)res.alts=nums.filter(n=>n!==res.num).slice(0,3);
@@ -820,7 +825,8 @@ let revItems=[];
 function abrirRevision(items,titulo,sub){
   revItems=items;$('revRec').value='';$('revTit').textContent=titulo;$('revSub').textContent=sub||'';
   items.forEach(i=>{i.sorteo=coherente(i.sorteo,i.sorteoNum);});
-  $('revSort').innerHTML=opcionesSorteo((items.find(i=>i.sorteo)||{}).sorteo||(items.some(i=>i.sorteoNum)?'':sorteoPorDefecto()));
+  const comun=(items.find(i=>i.sorteo)||{}).sorteo||null;
+  items.forEach(i=>{if(!i.sorteo&&!i.sorteoNum&&comun)i.sorteo=comun;});
   $('revList').innerHTML='';items.forEach(filaRev);$('dRev').classList.add('on');
 }
 function filaRev(it){
@@ -830,24 +836,30 @@ function filaRev(it){
     '<div class="f3"><div><label>Número</label><input class="n" data-c="num" inputmode="numeric" maxlength="5" placeholder="00000"></div>'+
     '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
     (it.alts&&it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
-    (it.codigo?'<p class="small mono">Código: '+esc(it.codigo)+'</p>':'')+
+    '<div class="f2"><div><label>Sorteo'+(it.sorteoNum?' '+esc(it.sorteoNum):'')+'</label><select data-s></select></div><div><label>Precio €</label><input data-p inputmode="decimal"></div></div>'+
+    (it.aviso?'<p class="pr" style="font-size:13px">⚠️ '+esc(it.aviso)+'</p>':'')+
+    (it.sorteoNum&&!it.sorteo?'<p class="pr" style="font-size:13px">⚠️ No sé la fecha del sorteo '+esc(it.sorteoNum)+': elígela en Sorteo → "Otro sorteo".</p>':'')+
+    '<p class="small mono">'+(it.fuente?'Leído con '+esc(it.fuente)+(it.deCodigo?' y el código del décimo':'')+'<br>':'')+(it.codigo?'Código: '+esc(it.codigo):'')+'</p>'+
     '<button class="x" data-q>Quitar</button></div>';
   div.querySelectorAll('[data-c]').forEach(i=>i.value=it[i.dataset.c]||'');
+  const sel=div.querySelector('[data-s]');sel.innerHTML=opcionesSorteo(it.sorteo||(it.sorteoNum?'':sorteoPorDefecto()));
+  sel.onchange=()=>selSorteo(sel,it.sorteo);
+  const sv=sorteo(sel.value||sorteoPorDefecto());
+  div.querySelector('[data-p]').value=it.importe||(sv.tipo!=='nacional'?PRECIO:'')||'';
   (it.alts||[]).forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>div.querySelector('[data-c=num]').value=a;div.querySelector('.alts').appendChild(b);});
   div.querySelector('[data-q]').onclick=()=>{it.quitado=true;div.remove();};
   $('revList').appendChild(div);return div;
 }
-$('revSort').onchange=()=>selSorteo($('revSort'));
 $('revMas').onclick=()=>{const it={num:''};revItems.push(it);filaRev(it).querySelector('input').focus();};
 $('revNo').onclick=()=>$('dRev').classList.remove('on');
 $('revOk').onclick=async()=>{
-  const sid=$('revSort').value;
-  if(!sid||sid==='__otro'){toast('Elige primero el sorteo');return;}
-  const vals=revItems.filter(it=>!it.quitado).map(it=>{const v={it};it.el.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));return v;}).filter(v=>v.num);
+  const vals=revItems.filter(it=>!it.quitado).map(it=>{const v={it};it.el.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));
+    v.sid=it.el.querySelector('[data-s]').value;v.importe=num2(it.el.querySelector('[data-p]').value)||PRECIO;return v;}).filter(v=>v.num);
+  if(vals.some(v=>!v.sid||v.sid==='__otro')){toast('Elige el sorteo de cada décimo');return;}
   if(vals.some(v=>v.num.length!==5)&&!await confirmar('Hay números con menos de 5 cifras. Se completarán con ceros delante. ¿Seguir?','Seguir','Corregir'))return;
   const rec=$('revRec').value,cuenta={};
   $('dRev').classList.remove('on');
-  for(const v of vals){const r=await guardarDecimo(v,sid,v.it.codigo,v.it.fotoBlob,rec,{importe:v.it.importe,sorteoNum:v.it.sorteoNum});cuenta[r]=(cuenta[r]||0)+1;}
+  for(const v of vals){const r=await guardarDecimo(v,v.sid,v.it.codigo,v.it.fotoBlob,rec,{importe:v.importe,sorteoNum:v.it.sorteoNum});cuenta[r]=(cuenta[r]||0)+1;}
   save();render();programarAvisos();
   const t=resumen(cuenta);if(t)toast('✓ '+t);
 };
