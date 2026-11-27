@@ -66,7 +66,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 .sheet{background:var(--card);width:100%;max-width:560px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .sheet h3{margin:0 0 8px;font-size:19px}
 .f3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
-.f3 input{font-family:ui-monospace,monospace}
+.f3 input{font-family:ui-monospace,monospace}.f3 input[type=text]{font-family:inherit}
 .f3 .n{font-size:20px;font-weight:800;letter-spacing:2px}
 .cand{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .cand .thumb{width:64px;height:84px}
@@ -235,6 +235,10 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 const $=s=>document.getElementById(s);
 const B=window.AndroidApp||null;
 const PRECIO=20;
+const imp=d=>+d.importe||PRECIO;
+/* El premio guardado es el de un décimo de 20 €; una participación cobra en proporción */
+const gan=d=>(d.premio||0)*imp(d)/PRECIO;
+const sumaGan=ds=>ds.reduce((a,d)=>a+gan(d),0);
 
 /* ================= Sorteos ================= */
 const SORTEOS=[
@@ -277,7 +281,7 @@ function fotoBorrar(id){if(!db||!id)return;tx('readwrite',st=>st.delete(id)).cat
 const fotoUrl=id=>id&&URLS[id]||'';
 
 /* ================= Décimos ================= */
-function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
+function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,importe:+o.importe||PRECIO,serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
 function grupos(){
   const m=new Map();
   D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).forEach(d=>{const k=d.num+'|'+d.sorteo;if(!m.has(k))m.set(k,[]);m.get(k).push(d);});
@@ -324,7 +328,7 @@ function decimoSVG(d){
    '<text x="164" y="124" text-anchor="middle" font-size="50" font-weight="800" fill="#111" letter-spacing="6" font-family="ui-monospace,Roboto Mono,monospace">'+d.num+'</text>'+
    '<text x="40" y="160" font-size="11" font-weight="700" fill="#222">SERIE '+esc(d.serie||'—')+(d.serie?'ª':'')+'</text>'+
    '<text x="40" y="178" font-size="11" font-weight="700" fill="#222">FRACCIÓN '+esc(d.frac||'—')+(d.frac?'ª':'')+'</text>'+
-   '<text x="150" y="171" font-size="16" font-weight="800" fill="'+pal[1]+'">'+PRECIO+' €</text>'+
+   '<text x="150" y="171" font-size="16" font-weight="800" fill="'+pal[1]+'">'+esc(String(imp(d)).replace('.',','))+' €</text>'+
    '<g fill="#222">'+bars+'</g>'+
    (d.codigo?'':'<text x="243" y="196" text-anchor="middle" font-size="6" fill="#777">sin foto · dibujo</text>')+
   '</svg>';
@@ -335,9 +339,9 @@ const svgUrl=d=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(decimoSVG
 function render(){
   const gs=grupos(),todos=gs.flat();
   $('sDec').textContent=todos.length;$('sNum').textContent=gs.length;
-  const ganado=todos.reduce((a,d)=>a+(d.premio||0),0);
+  const ganado=sumaGan(todos);
   if(ganado>0){$('sEur').textContent=eur(ganado);$('sEurL').textContent='¡premiado!';}
-  else{$('sEur').textContent=eur(todos.length*PRECIO);$('sEurL').textContent='jugado';}
+  else{$('sEur').textContent=eur(todos.reduce((a,d)=>a+imp(d),0));$('sEurL').textContent='jugado';}
   $('chips').innerHTML=[{id:'todos',nombre:'Todos'}].concat(sorteosUsados()).map(s=>'<button class="chip'+(D.filtro===s.id?' on':'')+'" data-f="'+esc(s.id)+'">'+esc(s.nombre)+'</button>').join('');
   if(!gs.length)$('lista').innerHTML='<div class="empty"><i>🎫</i>Aún no tienes décimos aquí.<br>Escanéalos con la cámara, elige fotos o escríbelos a mano.</div>';
   else $('lista').innerHTML=gs.map(g=>{
@@ -367,7 +371,7 @@ function abrirVisor(k){
   const p=g[0].premio;
   let h='<div class="vhead"><span class="num">'+num+'</span><span class="badge">'+g.length+' décimo'+(g.length>1?'s':'')+'</span></div>'+
     '<label>Sorteo</label><select id="vSort">'+opcionesSorteo(sid)+'</select>'+
-    (p>0?'<p class="pr">🎉 '+eur(p)+' por décimo · '+eur(p*g.length)+' en total'+(g[0].det?'<br><span class="small">'+esc(g[0].det)+'</span>':'')+'</p>':p===0?'<p class="small">Sin premio</p>':'');
+    (p>0?'<p class="pr">🎉 '+eur(p)+' por décimo de 20 € · '+eur(sumaGan(g))+' en total'+(g[0].det?'<br><span class="small">'+esc(g[0].det)+'</span>':'')+'</p>':p===0?'<p class="small">Sin premio</p>':'');
   g.forEach((d,i)=>{
     const u=fotoUrl(d.foto);
     h+='<div class="piece" data-id="'+d.id+'">'+
@@ -376,7 +380,7 @@ function abrirVisor(k){
       '<div class="f3" style="margin-top:8px"><div><label>Décimo '+(i+1)+'</label><input class="n" value="'+d.num+'" disabled></div>'+
       '<div><label>Serie</label><input data-c="serie" inputmode="numeric" value="'+esc(d.serie)+'"></div>'+
       '<div><label>Fracción</label><input data-c="frac" inputmode="numeric" value="'+esc(d.frac)+'"></div></div>'+
-      '<label>Nota (quién, dónde…)</label><input type="text" data-c="nota" value="'+esc(d.nota)+'">'+
+      '<div class="f3"><div><label>Nota (quién, dónde…)</label><input type="text" data-c="nota" value="'+esc(d.nota)+'"></div><div></div><div><label>Importe €</label><input data-c="importe" inputmode="decimal" value="'+imp(d)+'"></div></div>'+
       (d.codigo?'<p class="small mono">Código: '+esc(d.codigo)+'</p>':'')+
       '<div class="row">'+(u?'<button class="x" data-addf="'+d.id+'">Cambiar foto</button>':'')+'<button class="x" data-del="'+d.id+'">Eliminar este décimo</button></div></div>';
   });
@@ -393,7 +397,7 @@ function guardarVisor(){
   const ns=sel.value==='__otro'?null:sel.value;
   $('verSheet').querySelectorAll('.piece').forEach(p=>{
     const d=D.decimos.find(x=>x.id===p.dataset.id);if(!d)return;
-    p.querySelectorAll('[data-c]').forEach(i=>d[i.dataset.c]=i.dataset.c==='nota'?i.value.trim():i.value.replace(/\D/g,''));
+    p.querySelectorAll('[data-c]').forEach(i=>{const c=i.dataset.c;d[c]=c==='nota'?i.value.trim():c==='importe'?(+i.value.replace(',','.')||PRECIO):i.value.replace(/\D/g,'');});
     if(ns&&ns!==d.sorteo){d.sorteo=ns;d.premio=null;d.det=null;}
   });
   if(ns)verK=verK.split('|')[0]+'|'+ns;
@@ -716,10 +720,10 @@ function renderRes(){
   $('rTit').textContent=s.nombre;
   const fecha=new Date(s.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   $('rInfo').textContent=fecha+' · '+ds.length+' décimos de '+nums.length+' números'+(D.estado[s.id]?' · '+D.estado[s.id]:'');
-  const g=ds.reduce((a,d)=>a+(d.premio||0),0),comp=ds.filter(d=>d.premio!=null).length;
+  const g=sumaGan(ds),comp=ds.filter(d=>d.premio!=null).length;
   $('rWon').innerHTML=comp?'<div class="won">'+eur(g)+'</div><div class="small">'+(g>0?'ganado en total':'Por ahora no ha tocado nada')+' · '+comp+' de '+ds.length+' décimos comprobados</div>':'';
   const pr=nums.map(n=>ds.filter(d=>d.num===n)).filter(x=>x[0].premio>0).sort((a,b)=>b[0].premio-a[0].premio);
-  $('rOut').innerHTML=pr.map(x=>'<div>🎉 <b class="mono" style="font-size:20px">'+x[0].num+'</b> · <span class="pr">'+eur(x[0].premio)+'</span> × '+x.length+(x[0].det?' <span class="badge">'+esc(x[0].det)+'</span>':'')+'</div>').join('');
+  $('rOut').innerHTML=pr.map(x=>'<div>🎉 <b class="mono" style="font-size:20px">'+x[0].num+'</b> · <span class="pr">'+eur(x[0].premio)+'</span> · '+x.length+' · total '+eur(sumaGan(x))+(x[0].det?' <span class="badge">'+esc(x[0].det)+'</span>':'')+'</div>').join('');
   $('manualBox').style.display=s.tipo==='navidad'?'':'none';
 }
 function ponPremio(s,num,premio,det){D.decimos.forEach(d=>{if(d.sorteo===s.id&&d.num===num){d.premio=premio;d.det=det||null;}});}
@@ -742,7 +746,7 @@ async function comprobar(silencioso){
   if(!ok&&s.tipo==='navidad'&&D.manual[s.id]&&D.manual[s.id].p1){calcularManual();ok=true;}
   save();render();
   if(!ok){if(!silencioso)toast('No he podido conectar con los resultados. Prueba en un rato, usa la web oficial o pon los premios a mano.');return;}
-  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0),0);
+  const g=sumaGan(D.decimos.filter(d=>d.sorteo===s.id));
   if(g>0)toast('🎉 ¡Te ha tocado! '+eur(g)+' en total');else if(!silencioso)toast('Comprobado: de momento no ha tocado');
 }
 async function comprobarGemini(s,nums){
@@ -779,7 +783,7 @@ function calcularManual(){
 $('m5').innerHTML=Array.from({length:8},()=>'<input inputmode="numeric" maxlength="5">').join('');
 function pintarManual(){const P=D.manual[sorteoActivo().id]||{};$('m1').value=P.p1||'';$('m2').value=P.p2||'';$('m3').value=P.p3||'';$('m4a').value=(P.p4||[])[0]||'';$('m4b').value=(P.p4||[])[1]||'';[...$('m5').querySelectorAll('input')].forEach((i,k)=>i.value=(P.p5||[])[k]||'');}
 $('bManual').onclick=()=>{const s=sorteoActivo(),P=leerManual();if(!P.p1){toast('Escribe al menos el 1º premio');return;}D.manual[s.id]=P;calcularManual();save();render();
-  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0),0);toast(g>0?'🎉 Te ha tocado '+eur(g)+' (más la pedrea, si la hay)':'Con esos premios no te toca nada (falta mirar la pedrea)');};
+  const g=sumaGan(D.decimos.filter(d=>d.sorteo===s.id));toast(g>0?'🎉 Te ha tocado '+eur(g)+' (más la pedrea, si la hay)':'Con esos premios no te toca nada (falta mirar la pedrea)');};
 $('bCheck').onclick=()=>comprobar(false);
 function abrirFuera(u){if(B&&B.openExternal)B.openExternal(u);else window.open(u);}
 $('bOficial').onclick=()=>abrirFuera('https://www.loteriasyapuestas.es/es/loteria-nacional');
@@ -807,7 +811,7 @@ $('kGem').value=D.gem||'';$('mGem').value=D.gemModel||'';
 $('bGuardaK').onclick=()=>{D.gem=$('kGem').value.trim();D.gemModel=$('mGem').value.trim();save();toast(D.gem?(D.gem.startsWith('AIza')?'Clave guardada':'Guardada, pero no parece una clave de Gemini (empiezan por AIza)'):'Sin clave: se usa el lector normal');};
 function textoLista(){
   return sorteosUsados().map(s=>{const ds=D.decimos.filter(d=>d.sorteo===s.id).sort((a,b)=>a.num.localeCompare(b.num));if(!ds.length)return '';
-    return s.nombre+' ('+ds.length+' décimos)\n'+ds.map(d=>d.num+(sf(d)?' ('+sf(d)+')':'')+(d.premio>0?' → '+eur(d.premio):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
+    return s.nombre+' ('+ds.length+' décimos)\n'+ds.map(d=>d.num+(sf(d)?' ('+sf(d)+')':'')+(imp(d)!==PRECIO?' ['+imp(d)+' €]':'')+(d.premio>0?' → '+eur(gan(d)):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
 }
 $('bShare').onclick=()=>{const t=textoLista();if(!t){toast('No hay décimos');return;}if(B&&B.share)B.share('Mis décimos',t);else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Lista copiada'));};
 const aDataUrl=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b);});
