@@ -567,11 +567,29 @@ function mejorar(c){
   x.putImageData(im,0,0);return c;
 }
 /* Foto final del décimo: escaneado con esquinas; si no, recorte con la caja; si no, nada */
+async function afinarEsquinas(c,P){
+  if(!D.gem)return P;
+  try{
+    const W=c.width,H=c.height,xs=P.map(p=>p[0]/1000*W),ys=P.map(p=>p[1]/1000*H);
+    const mx=(Math.max(...xs)-Math.min(...xs))*.08,my=(Math.max(...ys)-Math.min(...ys))*.08;
+    const x0=Math.max(0,Math.min(...xs)-mx),y0=Math.max(0,Math.min(...ys)-my),x1=Math.min(W,Math.max(...xs)+mx),y1=Math.min(H,Math.max(...ys)+my);
+    const k=Math.min(1,1400/Math.max(x1-x0,y1-y0)),z=document.createElement('canvas');z.width=Math.round((x1-x0)*k);z.height=Math.round((y1-y0)*k);
+    z.getContext('2d').drawImage(c,x0,y0,x1-x0,y1-y0,0,0,z.width,z.height);
+    const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:z.toDataURL('image/jpeg',.88).split(',')[1]}},{text:
+      'En esta imagen hay un décimo de lotería de papel. Marca con la máxima precisión las 4 esquinas EXACTAS del borde del papel (justo donde acaba el papel y empieza el fondo), '+
+      'en orden arriba-izquierda, arriba-derecha, abajo-derecha, abajo-izquierda según se lee el décimo. Devuelve SOLO JSON {"esquinas":[[y,x],[y,x],[y,x],[y,x]]} con valores de 0 a 1000 relativos a ESTA imagen.'}]);
+    const Q=esquinasValidas(jsonDe(txt).esquinas);if(!Q)return P;
+    const R=Q.map(([x,y])=>[(x0+x/1000*(x1-x0))/W*1000,(y0+y/1000*(y1-y0))/H*1000]);
+    /* Si la segunda pasada se va muy lejos de la primera, no se fía */
+    const lejos=R.some((q,i)=>Math.hypot(q[0]-P[i][0],q[1]-P[i][1])>120);
+    return lejos?P:R;
+  }catch(e){return P;}
+}
 async function fotoDecimo(src,g){
   try{
     const c=src instanceof HTMLCanvasElement?src:await reducir(src,2200);
-    const P=esquinasValidas(g&&g.esquinas);
-    if(P)return aBlob(mejorar(enderezar(c,P)),.9);
+    let P=esquinasValidas(g&&g.esquinas);
+    if(P){P=await afinarEsquinas(c,P);if(g)g.enderezado=true;return aBlob(mejorar(enderezar(c,P)),.9);}
     if(g&&g.caja){const b=await recortar(c,g.caja);if(b)return aBlob(mejorar(await reducir(b,1600)),.9);}
   }catch(e){}
   return null;
@@ -890,13 +908,15 @@ async function detectado(num,alts,pre,propio){
   if(pre)mezclar(it,pre);else{const pc=parseCodigo(codVivo,true);if(pc)mezclar(it,pc);}
   mostrarPanel(it,'Buscando serie, fracción y código de barras…');
   /* En segundo plano: Gemini (si hay clave), lector de texto y código de barras */
+  let fin;it.listo=new Promise(ok=>fin=ok);
   try{
     if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';{const pg=g&&parseCodigo(g.codTxt);if(pg&&!it.deCodigo&&(pg.num===g.num||pg.num===it.num))mezclar(it,pg);}
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
-      if(g){const rb=await fotoDecimo(frame,g);if(rb)it.fotoBlob=rb;}}catch(e){it.aviso=errGem(e);}}
+      if(g){if($('panel').dataset.k===it.k)mostrarPanel(it,'Enderezando la foto del décimo…');const rb=await fotoDecimo(frame,g);if(rb){it.fotoBlob=rb;it.recto=!!g.enderezado;}}}catch(e){it.aviso=errGem(e);}}
     if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo,true);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
     if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
   }catch(e){}
+  fin();it.listo=null;
   if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
 }
 function mostrarPanel(it,estado){
@@ -910,6 +930,7 @@ function mostrarPanel(it,estado){
     '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
     (it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
     '<div class="f3"><div><label>Sorteo</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select></div><div></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
+    (it.recto&&!estado?'<p class="small" style="color:#15803d;font-weight:700">📐 Foto enderezada como un escaneado</p>':'')+
     (it.aviso&&!estado?'<p class="pr" style="font-size:14px">⚠️ '+esc(it.aviso)+'</p>':'')+
     '<p class="small mono">'+(it.deCodigo?'✅ Leído del código del décimo: '+esc(it.codigo)+'<br>':'')+(estado?'⏳ '+esc(estado):it.deCodigo?'':it.codigo?'Código: '+esc(it.codigo):'No he podido leer el código de barras')+'</p>'+
     (dup?'<p class="pr" style="font-size:14px">Este décimo ya lo tienes (mismo código de barras): al guardar te preguntaré si le cambio la foto.</p>':'')+
@@ -922,6 +943,7 @@ function mostrarPanel(it,estado){
   p.classList.add('on');
   $('pNo').onclick=seguir;
   $('pOk').onclick=async()=>{
+    if(it.listo){busy('Terminando la foto del décimo…');await Promise.race([it.listo,espera(25000)]);busy('');}
     const v={};p.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));
     if(!v.num){toast('Falta el número');return;}
     const sid=$('pSort').value==='__otro'?sorteoPorDefecto():$('pSort').value;
