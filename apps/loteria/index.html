@@ -609,6 +609,12 @@ function lectorCifras(){
     await w.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'11'});return wDig=w;})().catch(e=>{pDig=null;throw e;});
   return pDig;
 }
+let pCod=null,wCod=null;
+function lectorLinea(){
+  if(!pCod)pCod=(async()=>{await cargarScript(TESS);const w=await Tesseract.createWorker('eng');
+    await w.setParameters({tessedit_char_whitelist:'0123456789>',tessedit_pageseg_mode:'7'});return wCod=w;})().catch(e=>{pCod=null;throw e;});
+  return pCod;
+}
 function lectorTexto(){
   if(!pTxt)pTxt=(async()=>{await cargarScript(TESS);return wTxt=await Tesseract.createWorker('spa');})().catch(e=>{pTxt=null;throw e;});
   return pTxt;
@@ -636,21 +642,27 @@ function candidatos(data){
 const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 /* Línea bajo el código de barras, p. ej. 5102604086>0404657793 =
    5 · sorteo 102 · año (2)6 · fracción 04 · serie 086 > 0 · número 40465 · control 7793 */
-function parseCodigo(t){
+function parseCodigo(t,deBarras){
   if(!t)return null;
-  for(const linea of String(t).split(/[\n\r]+/)){
-  const d=linea.replace(/\D/g,'');
-  if(d.length<20||d.length>23)continue;
-  for(let i=0;i+20<=d.length;i++){
-    const m=/^(\d)(\d{3})(\d)(\d{2})(\d{3})(\d)(\d{5})(\d{4})$/.exec(d.slice(i,i+20));if(!m)continue;
+  const prueba=(a,b)=>{
+    const m=/^(\d)(\d{3})(\d)(\d{2})(\d{3})(\d)(\d{5})(\d{4})$/.exec(a+b);if(!m)return null;
     const frac=+m[4],serie=+m[5],sn=+m[2];
-    if(frac<1||frac>10||serie<1||sn<1)continue;
+    if(frac<1||frac>10||serie<1||sn<1)return null;
     let y=2020+ +m[3];const ya=new Date().getFullYear();while(y<ya-3)y+=10;while(y>ya+5)y-=10;
     let sorteo=null;
     if(sn===102)sorteo=y===2026?'navidad2026':'ln-'+y+'-12-22';
     else if(sn===2)sorteo=y===2027?'nino2027':'ln-'+y+'-01-06';
     return {num:m[7],serie:String(serie),frac:String(frac),sorteo,sorteoNum:sn+'/'+String(y).slice(2),codigo:m[1]+m[2]+m[3]+m[4]+m[5]+'>'+m[6]+m[7]+m[8]};
-  }
+  };
+  for(const linea of String(t).split(/[\n\r]+/)){
+    /* Con el ">" en su sitio: 10 cifras > 10 cifras */
+    const m=/(\d[\d ]{9,13})>\s*(\d[\d ]{9,13})/.exec(linea);
+    if(m){const a=m[1].replace(/\D/g,''),b=m[2].replace(/\D/g,'');if(a.length>=10&&b.length>=10){const pc=prueba(a.slice(-10),b.slice(0,10));if(pc)return pc;}continue;}
+    /* Sin ">": solo del código de barras (lleva su propia comprobación) */
+    if(!deBarras)continue;
+    const d=linea.replace(/\D/g,'');
+    if(d.length<20||d.length>23)continue;
+    for(let k=0;k+20<=d.length;k++){const pc=prueba(d.slice(k,k+10),d.slice(k+10,k+20));if(pc)return pc;}
   }
   return null;
 }
@@ -733,7 +745,7 @@ async function leerGemini(c){
 async function leerFoto(blob){
   const c=await reducir(blob,1800);
   const cod=await leerCodigo(c);
-  const pcod=parseCodigo(cod);
+  const pcod=parseCodigo(cod,true);
   if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>{const pc=parseCodigo(x.codTxt);if(pc&&pc.num===x.num)mezclar(x,pc);});if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
   const w=await lectorCifras();
   const {data}=await w.recognize(binarizar(await reducir(c,1800)));
@@ -851,7 +863,8 @@ async function bucle(){
         if(veces>=3){await detectado(n,lecturas.filter(x=>x&&x!==n));break;}
       }else{
         /* Línea del código: vale si se lee igual dos veces, o si su número coincide con el leído arriba */
-        const {data}=await wDig.recognize(binarizar(recorteGuia(.03,1500,ZCOD)));
+        const wl=await lectorLinea();
+        const {data}=await wl.recognize(binarizar(recorteGuia(.03,1500,ZCOD)));
         if(!escaneando)break;
         const pc=parseCodigo(data.text);
         if(pc){
@@ -860,7 +873,7 @@ async function bucle(){
         }
       }
       /* Código de barras de verdad (lleva su propia comprobación) */
-      if(nCiclo%3===0&&!codVivo)leerCodigo(await reducir(fotograma(),1600)).then(c=>{if(!c||!escaneando)return;codVivo=c;const pc=parseCodigo(c);if(pc){$('live').textContent=pc.num;detectado(pc.num,[],pc);}});
+      if(nCiclo%3===0&&!codVivo)leerCodigo(await reducir(fotograma(),1600)).then(c=>{if(!c||!escaneando)return;codVivo=c;const pc=parseCodigo(c,true);if(pc){$('live').textContent=pc.num;detectado(pc.num,[],pc);}});
     }catch(e){await espera(400);}
   }
 }
@@ -874,14 +887,14 @@ async function detectado(num,alts,pre,propio){
   try{navigator.vibrate&&navigator.vibrate(90);}catch(e){}
   const frame=fotograma(),fotoBlob=await aBlob(mejorar(recorteGuia(.04,1600)),.9);
   const it={k:uid(),num,alts:[...new Set(alts)].slice(0,3),codigo:codVivo,fotoBlob,serie:'',frac:'',sorteo:null};
-  if(pre)mezclar(it,pre);else{const pc=parseCodigo(codVivo);if(pc)mezclar(it,pc);}
+  if(pre)mezclar(it,pre);else{const pc=parseCodigo(codVivo,true);if(pc)mezclar(it,pc);}
   mostrarPanel(it,'Buscando serie, fracción y código de barras…');
   /* En segundo plano: Gemini (si hay clave), lector de texto y código de barras */
   try{
     if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';{const pg=g&&parseCodigo(g.codTxt);if(pg&&!it.deCodigo&&(pg.num===g.num||pg.num===it.num))mezclar(it,pg);}
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
       if(g){const rb=await fotoDecimo(frame,g);if(rb)it.fotoBlob=rb;}}catch(e){it.aviso=errGem(e);}}
-    if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
+    if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo,true);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
     if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
   }catch(e){}
   if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
