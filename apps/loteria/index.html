@@ -343,7 +343,7 @@ function sorteosUsados(){const ids=[...new Set(D.decimos.map(d=>d.sorteo))];SORT
 function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
 function opcionesSorteo(sel){
   const l=sorteosUsados();if(sel&&!l.some(s=>s.id===sel))l.unshift(sorteo(sel));
-  return l.map(s=>'<option value="'+esc(s.id)+'"'+(s.id===sel?' selected':'')+'>'+esc(s.nombre)+'</option>').join('')+'<option value="__otro">Otro sorteo (elegir fecha)…</option>';
+  return (sel===''?'<option value="" selected>— Elige el sorteo —</option>':'')+l.map(s=>'<option value="'+esc(s.id)+'"'+(s.id===sel?' selected':'')+'>'+esc(s.nombre)+'</option>').join('')+'<option value="__otro">Otro sorteo (elegir fecha)…</option>';
 }
 function pedirFecha(){return new Promise(r=>{
   $('cfTxt').innerHTML='Fecha del sorteo<input type="date" id="fSort" style="margin-top:10px">';
@@ -359,6 +359,23 @@ async function selSorteo(sel,prev){
 }
 function aprenderSorteo(num,sid){if(!num||!sid||!/^ln-/.test(sid))return;D.sorteoFechas=D.sorteoFechas||{};if(D.sorteoFechas[num]!==sid){D.sorteoFechas[num]=sid;save();}}
 const sorteoDeNum=num=>num&&D.sorteoFechas&&D.sorteoFechas[num]||null;
+function coherente(sid,sorteoNum){
+  if(!sid||!sorteoNum)return sid||null;
+  const n=parseInt(sorteoNum,10),sv=sorteo(sid);
+  if(sv.tipo==='navidad'&&n!==102)return null;
+  if(sv.tipo==='nino'&&n!==2)return null;
+  return sid;
+}
+/* Fecha en cualquier forma: 2026-12-03, 3/12/2026, 3 de diciembre de 2026 */
+function fechaISO(f){
+  if(!f)return null;f=String(f).trim();
+  let m=/^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(f);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(f);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  const t=f.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  m=new RegExp('(\\d{1,2}) (?:DE )?('+MESES.join('|')+')(?: DE)? (\\d{4})').exec(t);
+  if(m)return m[3]+'-'+String(MESES.indexOf(m[2])+1).padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
 const sf=d=>[d.serie?'S '+d.serie:'',d.frac?'F '+d.frac:''].filter(Boolean).join(' · ');
 /* Dibujo de un décimo con sus datos (para los que no tienen foto) */
 function decimoSVG(d){
@@ -760,9 +777,8 @@ async function leerGemini(c){
     'No confundas con el precio, el número de sorteo (por ejemplo 102/2026) ni el código de barras. Si un dato no se ve, pon "". Si no hay décimos, {"decimos":[]}.'}]);
   const j=jsonDe(txt);
   return (j.decimos||[]).filter(d=>/\d/.test(d.numero||'')).map(d=>{
-    let sid=null;
-    if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
-    else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=sorteoPorFecha(d.fecha);
+    let sid=null;const fi=fechaISO(d.fecha);
+    if(fi)sid=sorteoPorFecha(fi);else if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
     return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||'',importe:+d.precio>0&&+d.precio<=200?+d.precio:null};
   });
 }
@@ -788,7 +804,8 @@ async function leerFoto(blob){
 let revItems=[];
 function abrirRevision(items,titulo,sub){
   revItems=items;$('revRec').value='';$('revTit').textContent=titulo;$('revSub').textContent=sub||'';
-  $('revSort').innerHTML=opcionesSorteo((items.find(i=>i.sorteo)||{}).sorteo||sorteoPorDefecto());
+  items.forEach(i=>{i.sorteo=coherente(i.sorteo,i.sorteoNum);});
+  $('revSort').innerHTML=opcionesSorteo((items.find(i=>i.sorteo)||{}).sorteo||(items.some(i=>i.sorteoNum)?'':sorteoPorDefecto()));
   $('revList').innerHTML='';items.forEach(filaRev);$('dRev').classList.add('on');
 }
 function filaRev(it){
@@ -809,7 +826,8 @@ $('revSort').onchange=()=>selSorteo($('revSort'));
 $('revMas').onclick=()=>{const it={num:''};revItems.push(it);filaRev(it).querySelector('input').focus();};
 $('revNo').onclick=()=>$('dRev').classList.remove('on');
 $('revOk').onclick=async()=>{
-  const sid=$('revSort').value==='__otro'?sorteoPorDefecto():$('revSort').value;
+  const sid=$('revSort').value;
+  if(!sid||sid==='__otro'){toast('Elige primero el sorteo');return;}
   const vals=revItems.filter(it=>!it.quitado).map(it=>{const v={it};it.el.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));return v;}).filter(v=>v.num);
   if(vals.some(v=>v.num.length!==5)&&!await confirmar('Hay números con menos de 5 cifras. Se completarán con ceros delante. ¿Seguir?','Seguir','Corregir'))return;
   const rec=$('revRec').value,cuenta={};
@@ -919,10 +937,10 @@ async function detectado(num,alts,pre,propio){
   try{
     if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';{const pg=g&&parseCodigo(g.codTxt);if(pg&&!it.deCodigo&&(pg.num===g.num||pg.num===it.num))mezclar(it,pg);}
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
-      if(g){if(!it.sorteo&&g.sorteo)it.sorteo=g.sorteo;if(!it.importe&&g.importe)it.importe=g.importe;}
+      if(g){const sg=coherente(g.sorteo,it.sorteoNum);if(!it.sorteo&&sg)it.sorteo=sg;if(!it.importe&&g.importe)it.importe=g.importe;}
       if(g){if($('panel').dataset.k===it.k)mostrarPanel(it,'Enderezando la foto del décimo…');const rb=await fotoDecimo(frame,g);if(rb){it.fotoBlob=rb;it.recto=!!g.enderezado;}}}catch(e){it.aviso=errGem(e);}}
     if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo,true);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
-    if(!it.serie||!it.frac||!it.sorteo||!it.importe){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;it.importe=it.importe||x.importe||null;}
+    if(!it.serie||!it.frac||!it.sorteo||!it.importe){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||coherente(x.sorteo,it.sorteoNum)||null;it.importe=it.importe||x.importe||null;}
   }catch(e){}
   fin();it.listo=null;
   if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
@@ -937,7 +955,7 @@ function mostrarPanel(it,estado){
   p.innerHTML='<div class="f3"><div><label>Número</label><input class="n" data-c="num" inputmode="numeric" maxlength="5"></div>'+
     '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
     (it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
-    '<div class="f3"><div><label>Sorteo'+(it.sorteoNum?' '+esc(it.sorteoNum):'')+'</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select></div><div><label>Precio €</label><input id="pImp" inputmode="decimal"></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
+    '<div class="f3"><div><label>Sorteo'+(it.sorteoNum?' '+esc(it.sorteoNum):'')+'</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||(it.sorteoNum?'':sorteoPorDefecto()))+'</select></div><div><label>Precio €</label><input id="pImp" inputmode="decimal"></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
     (!estado&&it.sorteoNum&&!it.sorteo?'<p class="pr" style="font-size:14px">⚠️ No sé la fecha del sorteo '+esc(it.sorteoNum)+'. Elígela en Sorteo → "Otro sorteo". La próxima vez lo sabré.</p>':'')+
     (it.recto&&!estado?'<p class="small" style="color:#15803d;font-weight:700">📐 Foto enderezada como un escaneado</p>':'')+
     (it.aviso&&!estado?'<p class="pr" style="font-size:14px">⚠️ '+esc(it.aviso)+'</p>':'')+
@@ -958,7 +976,8 @@ function mostrarPanel(it,estado){
     if(it.listo){busy('Terminando la foto del décimo…');await Promise.race([it.listo,espera(25000)]);busy('');}
     const v={};p.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));
     if(!v.num){toast('Falta el número');return;}
-    const sid=$('pSort').value==='__otro'?sorteoPorDefecto():$('pSort').value;
+    const sid=$('pSort').value;
+    if(!sid||sid==='__otro'){toast('Elige primero el sorteo');return;}
     recargoUltimo=num2($('pRec').value);
     const res=await guardarDecimo(v,sid,it.codigo,it.fotoBlob,recargoUltimo,{importe:num2($('pImp').value)||it.importe,sorteoNum:it.sorteoNum});save();
     if(res!=='repe'){guardadosCam++;$('camCnt').textContent=guardadosCam+' guardado'+(guardadosCam>1?'s':'');}
