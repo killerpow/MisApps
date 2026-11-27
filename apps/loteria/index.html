@@ -825,8 +825,20 @@ async function restaurar(txt){
     const j=JSON.parse(txt);if(!j.decimos)throw 0;
     busy('Cargando copia…');
     if(j.fotos&&db)for(const id in j.fotos){try{const b=await (await fetch(j.fotos[id])).blob();await tx('readwrite',st=>st.put(b,id));URLS[id]=URL.createObjectURL(b);}catch(e){}}
-    D.decimos=j.decimos.flatMap(d=>{const n=d.cant||1;delete d.cant;return Array.from({length:n},(_,i)=>Object.assign({},d,{id:(d.id||uid())+(i?'-'+i:'')}));});
-    D.manual=j.manual||{};save();busy('');render();programarAvisos();toast('Copia cargada: '+D.decimos.length+' décimos');
+    const nuevos=j.decimos.flatMap(d=>{const n=d.cant||1;delete d.cant;return Array.from({length:n},(_,i)=>Object.assign({},d,{id:(d.id||uid())+(i?'-'+i:'')}));});
+    busy('');
+    const sumar=!D.decimos.length||await confirmar('Este archivo trae '+nuevos.length+' décimos. ¿Qué hago con '+(D.decimos.length===1?'el que ya tienes':'los '+D.decimos.length+' que ya tienes')+'?','Añadirlos a los míos','Sustituirlos');
+    if(sumar){
+      let n=0,rep=0;
+      nuevos.forEach(d=>{
+        const igual=D.decimos.find(x=>x.id===d.id||(d.codigo&&x.codigo===d.codigo)||(x.num===d.num&&x.sorteo===d.sorteo&&d.serie&&x.serie===d.serie&&x.frac===d.frac));
+        if(igual){rep++;if(d.foto&&!igual.foto)igual.foto=d.foto;return;}
+        D.decimos.push(d);n++;
+      });
+      toast('Añadido'+(n===1?' 1 décimo':'s '+n+' décimos')+(rep?' ('+rep+' ya los tenías)':''));
+    }else{D.decimos=nuevos;toast('Copia cargada: '+D.decimos.length+' décimos');}
+    if(j.manual)D.manual=Object.assign({},D.manual,j.manual);
+    save();render();programarAvisos();
   }catch(e){busy('');toast('Ese archivo no es una copia de Mis Décimos');}
 }
 window.restaurarCopiaApp=restaurar;
