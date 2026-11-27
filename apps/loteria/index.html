@@ -4,18 +4,18 @@
 <title>Mis Décimos</title>
 <style>
 /* VOICE: alegre pero clara, como un décimo de Navidad
-   IDEA: cada número es un décimo de papel; la lista es tu montón de décimos ordenado
-   PICTURE: el resumen arriba (cuántos décimos y cuánto has jugado) y los décimos como tiras
+   IDEA: cada número es un montón de décimos de papel; tocarlo abre tus décimos con su foto
+   PICTURE: resumen arriba (décimos, números, dinero) y los décimos como tiras con su miniatura
    COLOUR: azul noche #0b1f3a, oro #e8b923, rojo premio #d7263d
-   TYPE: sistema, números grandes y tabulares */
-:root{--bg:#f4f1ea;--card:#fff;--ink:#14213d;--mut:#6b7280;--nav:#0b1f3a;--gold:#e8b923;--red:#d7263d;--ok:#15803d;--line:#e5e0d3}
+   TYPE: sistema; números grandes, monoespaciados y tabulares */
+:root{--bg:#f4f1ea;--card:#fff;--ink:#14213d;--mut:#6b7280;--nav:#0b1f3a;--gold:#e8b923;--red:#d7263d;--line:#e5e0d3}
 @media(prefers-color-scheme:dark){:root{--bg:#0a1424;--card:#13223a;--ink:#eef2f8;--mut:#9aa7bb;--line:#22344f}}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
 button,input,select,textarea{font:inherit;color:inherit}
 header{background:var(--nav);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 22px;position:relative;overflow:hidden}
 header:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#e8b92355,transparent 70%)}
-h1{margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:.2px}
+h1{margin:0 0 12px;font-size:22px;font-weight:800}
 h1 span{color:var(--gold)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .stat{background:#ffffff14;border:1px solid #ffffff22;border-radius:14px;padding:10px 12px}
@@ -29,16 +29,14 @@ h1 span{color:var(--gold)}
 .big i{font-style:normal;font-size:26px}
 .big.main{background:var(--gold);color:#14213d}
 .list{padding:4px 16px 16px;display:grid;gap:10px}
-.dec{background:var(--card);border-radius:14px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 12px;border-left:6px solid var(--gold);box-shadow:0 1px 0 var(--line)}
+.dec{background:var(--card);border-radius:14px;display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;padding:8px 12px 8px 8px;border-left:6px solid var(--gold);box-shadow:0 1px 0 var(--line)}
 .dec.win{border-left-color:var(--red);background:linear-gradient(90deg,#d7263d14,var(--card) 60%)}
-.dec.lose{opacity:.7;border-left-color:var(--mut)}
-.num{font-size:30px;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;font-family:ui-monospace,"Roboto Mono",monospace}
-.meta{font-size:13px;color:var(--mut);line-height:1.3}
-.meta .pr{color:var(--red);font-weight:800;font-size:15px}
-.meta .no{color:var(--mut)}
-.step{display:flex;align-items:center;gap:2px}
-.step button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:transparent;font-size:20px;line-height:1}
-.step b{min-width:30px;text-align:center;font-size:18px}
+.dec.lose{opacity:.72;border-left-color:var(--mut)}
+.thumb{width:56px;height:56px;border-radius:10px;background:var(--bg) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--mut)}
+.num{font-size:28px;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;font-family:ui-monospace,"Roboto Mono",monospace;line-height:1.1}
+.meta{font-size:13px;color:var(--mut);line-height:1.3;overflow:hidden;text-overflow:ellipsis}
+.pr{color:var(--red);font-weight:800;font-size:15px}
+.cnt{font-size:20px;font-weight:800;background:var(--bg);border-radius:12px;padding:6px 10px;font-variant-numeric:tabular-nums}
 .empty{text-align:center;color:var(--mut);padding:40px 20px}
 .empty i{font-size:54px;font-style:normal;display:block}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:5}
@@ -49,43 +47,65 @@ nav button.on{color:var(--ink);font-weight:700}
 .box{background:var(--card);border-radius:16px;margin:14px 16px;padding:16px;box-shadow:0 1px 0 var(--line)}
 .box h2{margin:0 0 6px;font-size:18px}
 .box p{margin:6px 0;color:var(--mut);font-size:14px}
-.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--nav);color:#fff;font-weight:700;min-height:44px}
+.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--nav);color:#fff;font-weight:700;min-height:44px;text-decoration:none;display:inline-flex;align-items:center}
 .btn.gold{background:var(--gold);color:#14213d}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn.red{background:var(--red)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-input[type=text],input[type=number],input[type=password],input[type=date],select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px}
+input[type=text],input[type=number],input[type=password],input[type=date],input:not([type]),select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px}
 label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
-.grid5{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.grid5 input{text-align:center;font-family:ui-monospace,monospace;padding:8px 4px}
-.res{font-size:15px;margin-top:10px}
-.res .w{color:var(--red);font-weight:800}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.grid4 input{text-align:center;font-family:ui-monospace,monospace;padding:8px 4px}
+.res{font-size:15px;margin-top:10px;display:grid;gap:6px}
 .badge{display:inline-block;font-size:12px;border-radius:999px;padding:2px 8px;background:var(--bg);border:1px solid var(--line)}
 .won{font-size:34px;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums}
-/* Diálogos */
+.small{font-size:13px;color:var(--mut)}
+.mono{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
 .dlg{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;justify-content:center;z-index:20}
 .dlg.on{display:flex}
-.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+#dConf{z-index:65}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .sheet h3{margin:0 0 8px;font-size:19px}
-.cand{display:grid;grid-template-columns:auto 1fr 1fr 70px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.cand input[type=checkbox]{width:22px;height:22px}
-.cand input[type=text]{font-family:ui-monospace,monospace;font-size:20px;font-weight:700;letter-spacing:2px;padding:8px}
-.alts{grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap}
-.alts button{border:1px dashed var(--line);background:none;border-radius:8px;padding:2px 8px;font-family:ui-monospace,monospace;font-size:13px}
-/* Cámara */
+.f3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.f3 input{font-family:ui-monospace,monospace}
+.f3 .n{font-size:20px;font-weight:800;letter-spacing:2px}
+.cand{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.cand .thumb{width:64px;height:84px}
+.alts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.alts button{border:1px dashed var(--line);background:none;border-radius:8px;padding:4px 10px;font-family:ui-monospace,monospace;font-size:14px}
+.x{border:0;background:none;color:var(--mut);font-size:13px;text-decoration:underline;padding:6px 0}
+.vhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.vhead .num{font-size:40px}
+.piece{border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:12px}
+.photo{width:100%;aspect-ratio:3/2;border-radius:10px;background:var(--bg) center/cover no-repeat;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--mut);border:0;font-size:14px}
+.photo b{font-size:30px}
+#full{position:fixed;inset:0;background:#000;z-index:45;display:none;flex-direction:column}
+#full.on{display:flex}
+#fullWrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center}
+#fullImg{max-width:100%;max-height:100%}
+#full.zoom #fullWrap{display:block}
+#full.zoom #fullImg{max-width:none;max-height:none;width:260%}
+.fullbar{display:flex;gap:10px;justify-content:space-between;padding:12px 16px calc(14px + env(safe-area-inset-bottom))}
+.fullbar .btn{background:#ffffff22}
 #cam{position:fixed;inset:0;background:#000;z-index:30;display:none;flex-direction:column}
 #cam.on{display:flex}
-#cam video{flex:1;width:100%;object-fit:cover;min-height:0}
-.guide{position:absolute;left:8%;right:8%;top:28%;height:30%;border:3px solid var(--gold);border-radius:14px;box-shadow:0 0 0 999px #0007;pointer-events:none}
-.guide span{position:absolute;top:-30px;left:0;right:0;text-align:center;color:#fff;font-size:14px}
-.cambar{display:flex;justify-content:space-around;align-items:center;padding:16px 16px calc(20px + env(safe-area-inset-bottom));background:#000}
-.shot{width:74px;height:74px;border-radius:50%;border:5px solid #fff;background:var(--gold)}
+.camv{position:relative;flex:1;min-height:0;overflow:hidden}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.guide{position:absolute;left:10%;right:10%;top:32%;height:18%;border:3px solid var(--gold);border-radius:14px;box-shadow:0 0 0 999px #0008;pointer-events:none;transition:border-color .2s}
+.guide.ok{border-color:#22c55e}
+.ghint{position:absolute;left:0;right:0;top:calc(32% - 34px);text-align:center;color:#fff;font-size:14px;text-shadow:0 1px 3px #000;z-index:1}
+.live{position:absolute;left:0;right:0;top:calc(50% + 14px);text-align:center;color:#fff;font:800 34px ui-monospace,monospace;letter-spacing:4px;text-shadow:0 2px 6px #000}
+.camtop{position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));display:flex;justify-content:space-between;gap:10px;color:#fff;font-size:14px;text-shadow:0 1px 3px #000}
+.cambar{display:flex;justify-content:space-around;align-items:center;padding:14px 16px calc(18px + env(safe-area-inset-bottom));background:#000}
+.shot{width:70px;height:70px;border-radius:50%;border:5px solid #fff;background:var(--gold)}
 .cambar .btn{background:#ffffff22}
-#busy{position:fixed;inset:0;background:#000b;z-index:40;display:none;align-items:center;justify-content:center;color:#fff;text-align:center;padding:30px}
+#panel{position:absolute;left:0;right:0;bottom:0;background:var(--card);color:var(--ink);border-radius:20px 20px 0 0;padding:16px 16px 16px;display:none;z-index:2;max-height:80%;overflow:auto}
+#panel.on{display:block}
+#busy{position:fixed;inset:0;background:#000b;z-index:60;display:none;align-items:center;justify-content:center;color:#fff;text-align:center;padding:30px}
 #busy.on{display:flex}
 .spin{width:46px;height:46px;border:5px solid #ffffff33;border-top-color:var(--gold);border-radius:50%;margin:0 auto 14px;animation:s 1s linear infinite}
 @keyframes s{to{transform:rotate(360deg)}}
-#toast{position:fixed;left:16px;right:16px;bottom:96px;background:#14213d;color:#fff;border-radius:12px;padding:12px 14px;z-index:50;display:none;font-size:15px}
-.small{font-size:13px;color:var(--mut)}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+#toast{position:fixed;left:16px;right:16px;bottom:96px;background:#14213d;color:#fff;border-radius:12px;padding:12px 14px;z-index:70;display:none;font-size:15px}
 </style></head><body>
 
 <header>
@@ -97,7 +117,6 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
   </div>
 </header>
 
-<!-- ============ MIS DÉCIMOS ============ -->
 <section class="view on" id="vLista">
   <div class="chips" id="chips"></div>
   <div class="acts">
@@ -108,7 +127,6 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
   <div class="list" id="lista"></div>
 </section>
 
-<!-- ============ RESULTADOS ============ -->
 <section class="view" id="vRes">
   <div class="box">
     <h2 id="rTit">Resultados</h2>
@@ -122,35 +140,40 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
   </div>
   <div class="box" id="manualBox">
     <h2>Premios principales a mano</h2>
-    <p>Por si la comprobación automática no responde: escribe los números de los premios grandes y la app calcula tus premios (aproximaciones, centenas, terminaciones y reintegro). La pedrea no se incluye.</p>
+    <p>Por si la comprobación automática no responde: escribe los premios grandes y la app calcula aproximaciones, centenas, terminaciones y reintegro. La pedrea no se incluye.</p>
     <label>1º · 2º · 3º premio</label>
-    <div class="grid5"><input id="m1" inputmode="numeric" maxlength="5" placeholder="1º"><input id="m2" inputmode="numeric" maxlength="5" placeholder="2º"><input id="m3" inputmode="numeric" maxlength="5" placeholder="3º"></div>
+    <div class="grid4"><input id="m1" inputmode="numeric" maxlength="5" placeholder="1º"><input id="m2" inputmode="numeric" maxlength="5" placeholder="2º"><input id="m3" inputmode="numeric" maxlength="5" placeholder="3º"></div>
     <label>4º premios (2)</label>
-    <div class="grid5"><input id="m4a" inputmode="numeric" maxlength="5"><input id="m4b" inputmode="numeric" maxlength="5"></div>
+    <div class="grid4"><input id="m4a" inputmode="numeric" maxlength="5"><input id="m4b" inputmode="numeric" maxlength="5"></div>
     <label>5º premios (8)</label>
-    <div class="grid5" id="m5"></div>
+    <div class="grid4" id="m5"></div>
     <div class="row"><button class="btn" id="bManual">Calcular mis premios</button></div>
   </div>
 </section>
 
-<!-- ============ AJUSTES ============ -->
 <section class="view" id="vAj">
   <div class="box">
     <h2>Lectura de décimos</h2>
-    <p>Sin configurar nada, la app lee el número con reconocimiento de texto (necesita internet la primera vez). Si pones una clave gratuita de Google Gemini, lee mucho mejor, puede leer varios décimos en una foto y sirve de comprobación extra de premios.</p>
-    <label for="kGem">Clave de Gemini (opcional)</label>
+    <p>Sin configurar nada, la app lee el número, la serie, la fracción y el código de barras con su propio lector (necesita internet la primera vez). Con una clave gratuita de Google Gemini lee mucho mejor.</p>
+    <label for="kGem">Clave de Gemini (opcional, empieza por AIza)</label>
     <input type="password" id="kGem" placeholder="AIza…" autocomplete="off">
     <label for="mGem">Modelo</label>
     <input type="text" id="mGem" placeholder="gemini-2.5-flash">
-    <div class="row"><button class="btn" id="bGuardaK">Guardar</button><a class="btn ghost" href="https://aistudio.google.com/apikey" style="text-decoration:none">Conseguir clave</a></div>
+    <div class="row"><button class="btn" id="bGuardaK">Guardar</button><a class="btn ghost" id="aKey" href="https://aistudio.google.com/apikey">Conseguir clave</a></div>
+  </div>
+  <div class="box">
+    <h2>Códigos de barras leídos</h2>
+    <p>Sirve para averiguar cómo guarda Loterías el número, la serie y la fracción dentro del código. Haz una captura de esta lista y mándasela a Claude.</p>
+    <div id="codes" class="res mono"></div>
   </div>
   <div class="box">
     <h2>Avisos</h2>
-    <p>La app te avisa el día del sorteo a las 14:00 para que la abras y compruebe tus números. Al abrirla después del sorteo, comprueba sola.</p>
+    <p>El día del sorteo te llega un aviso a las 14:00. Al abrir la app después del sorteo, comprueba sola.</p>
     <div class="row"><button class="btn ghost" id="bAvisos">Volver a programar avisos</button></div>
   </div>
   <div class="box">
     <h2>Compartir y copia</h2>
+    <p>La copia incluye las fotos de los décimos.</p>
     <div class="row">
       <button class="btn ghost" id="bShare">Compartir lista</button>
       <button class="btn ghost" id="bExport">Guardar copia</button>
@@ -168,41 +191,42 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
   <button data-v="vAj"><i>⚙️</i>Ajustes</button>
 </nav>
 
-<!-- Revisión de lo leído / añadir a mano -->
 <div class="dlg" id="dRev"><div class="sheet">
-  <h3 id="revTit">Revisa los números</h3>
-  <p class="small" id="revSub">Corrige lo que haga falta. Toca una alternativa si el número no es el bueno.</p>
+  <h3 id="revTit">Revisa los décimos</h3>
+  <p class="small" id="revSub"></p>
+  <label>Sorteo</label><select id="revSort"></select>
   <div id="revList"></div>
-  <div class="row"><button class="btn ghost" id="revMas">+ Otro número</button></div>
-  <div class="row"><button class="btn gold" id="revOk">Añadir</button><button class="btn ghost" id="revNo">Cancelar</button></div>
+  <div class="row"><button class="btn ghost" id="revMas">+ Otro décimo</button></div>
+  <div class="row"><button class="btn gold" id="revOk">Guardar</button><button class="btn ghost" id="revNo">Cancelar</button></div>
 </div></div>
 
-<!-- Editar un décimo -->
-<div class="dlg" id="dEd"><div class="sheet">
-  <h3>Décimo <span id="edNum"></span></h3>
-  <label>Sorteo</label><select id="edSort"></select>
-  <label>Nota (quién lo compró, dónde…)</label><input type="text" id="edNota">
-  <label>Premio por décimo (si ya lo sabes)</label><input type="number" id="edPrem" inputmode="decimal" placeholder="Vacío = sin comprobar">
-  <div class="row"><button class="btn" id="edOk">Guardar</button><button class="btn red" id="edDel">Eliminar</button><button class="btn ghost" id="edNo">Cerrar</button></div>
-</div></div>
+<div class="dlg" id="dVer"><div class="sheet" id="verSheet"></div></div>
 
-<!-- Confirmación -->
 <div class="dlg" id="dConf"><div class="sheet">
   <h3 id="cfTxt"></h3>
   <div class="row"><button class="btn red" id="cfOk">Sí</button><button class="btn ghost" id="cfNo">No</button></div>
 </div></div>
 
+<div id="full"><div id="fullWrap"><img id="fullImg" alt="Foto del décimo"></div>
+  <div class="fullbar"><button class="btn" id="fullZoom">🔍 Ampliar</button><button class="btn" id="fullNo">Cerrar</button></div></div>
+
 <div id="cam">
-  <video id="vid" playsinline autoplay muted></video>
-  <div class="guide"><span>Encaja el número del décimo aquí</span></div>
+  <div class="camv">
+    <video id="vid" playsinline autoplay muted></video>
+    <div class="ghint">Pon el número grande del décimo dentro del recuadro</div>
+    <div class="guide" id="guide"></div>
+    <div class="live" id="live"></div>
+    <div class="camtop"><span id="camStat">Preparando el escáner…</span><span id="camCnt"></span></div>
+    <div id="panel"></div>
+  </div>
   <div class="cambar">
-    <button class="btn" id="camNo">Cerrar</button>
-    <button class="shot" id="camShot" aria-label="Hacer foto"></button>
-    <button class="btn" id="camGal">Galería</button>
+    <button class="btn" id="camNo">Terminar</button>
+    <button class="shot" id="camShot" aria-label="Leer ahora"></button>
+    <button class="btn" id="camLuz">🔦 Luz</button>
   </div>
 </div>
-<input type="file" id="fCam" accept="image/*" capture="environment" hidden>
 <input type="file" id="fGal" accept="image/*" multiple hidden>
+<input type="file" id="fFoto" accept="image/*" hidden>
 <div id="busy"><div><div class="spin"></div><div id="busyTxt">Leyendo…</div></div></div>
 <div id="toast"></div>
 
@@ -212,236 +236,246 @@ const $=s=>document.getElementById(s);
 const B=window.AndroidApp||null;
 const PRECIO=20;
 
-/* ---------- Sorteos ---------- */
+/* ================= Sorteos ================= */
 const SORTEOS=[
   {id:'navidad2026',nombre:'Navidad 2026',fecha:'2026-12-22',tipo:'navidad',api:'LoteriaNavidadPremiados'},
   {id:'nino2027',nombre:'El Niño 2027',fecha:'2027-01-06',tipo:'nino',api:'LoteriaNinoPremiados'}
 ];
 function sorteo(id){
-  const s=SORTEOS.find(x=>x.id===id); if(s) return s;
+  const s=SORTEOS.find(x=>x.id===id);if(s)return s;
   const m=/^ln-(\d{4}-\d{2}-\d{2})$/.exec(id||'');
   if(m){const [y,mo,d]=m[1].split('-');return {id,nombre:'Lotería Nacional '+d+'/'+mo+'/'+y,fecha:m[1],tipo:'nacional'};}
   return SORTEOS[0];
 }
+function sorteoPorFecha(f){const s=SORTEOS.find(x=>x.fecha===f);return s?s.id:'ln-'+f;}
 
-/* ---------- Datos ---------- */
+/* ================= Datos ================= */
 const KEY='misdecimos.v1';
 let D={decimos:[],filtro:'todos',gem:'',gemModel:'',manual:{},estado:{}};
 try{const t=localStorage.getItem(KEY);if(t)D=Object.assign(D,JSON.parse(t));}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){}}
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+/* Versión anterior guardaba "cant": ahora hay un registro por cada décimo */
+D.decimos=D.decimos.flatMap(d=>{const n=d.cant||1;delete d.cant;return Array.from({length:n},(_,i)=>Object.assign({},d,{id:d.id+(i?'-'+i:'')}));});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){toast('No queda espacio para guardar');}}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const pad=n=>String(n).replace(/\D/g,'').slice(-5).padStart(5,'0');
 const eur=v=>(Math.round(v*100)/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' €';
-const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const espera=ms=>new Promise(r=>setTimeout(r,ms));
 
-function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3200);}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3500);}
 function busy(t){$('busyTxt').textContent=t||'';$('busy').classList.toggle('on',!!t);}
-function confirmar(txt){return new Promise(r=>{$('cfTxt').textContent=txt;$('dConf').classList.add('on');$('cfOk').onclick=()=>{$('dConf').classList.remove('on');r(true)};$('cfNo').onclick=()=>{$('dConf').classList.remove('on');r(false)};});}
+function confirmar(txt,si,no){return new Promise(r=>{$('cfTxt').textContent=txt;$('cfOk').textContent=si||'Sí';$('cfNo').textContent=no||'No';$('dConf').classList.add('on');
+  $('cfOk').onclick=()=>{$('dConf').classList.remove('on');r(true)};$('cfNo').onclick=()=>{$('dConf').classList.remove('on');r(false)};});}
 
-/** Añade décimos; si el número ya está en ese sorteo, suma la cantidad. */
-function addDecimo(num,sid,cant){
-  num=pad(num);cant=Math.max(1,cant|0||1);
-  const ex=D.decimos.find(d=>d.num===num&&d.sorteo===sid);
-  if(ex) ex.cant+=cant; else D.decimos.push({id:uid(),num,sorteo:sid,cant,nota:'',premio:null});
+/* ================= Fotos (IndexedDB) ================= */
+const URLS={};let db=null;
+function idbOpen(){return new Promise((ok,ko)=>{const r=indexedDB.open('misdecimos-fotos',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});}
+function tx(mode,fn){return new Promise((ok,ko)=>{const t=db.transaction('f',mode),st=t.objectStore('f');const q=fn(st);t.oncomplete=()=>ok(q&&q.result);t.onerror=()=>ko(t.error);});}
+async function fotoGuardar(blob){if(!db||!blob)return null;const id='f'+uid();await tx('readwrite',st=>st.put(blob,id));URLS[id]=URL.createObjectURL(blob);return id;}
+function fotoBorrar(id){if(!db||!id)return;tx('readwrite',st=>st.delete(id)).catch(()=>{});if(URLS[id]){URL.revokeObjectURL(URLS[id]);delete URLS[id];}}
+const fotoUrl=id=>id&&URLS[id]||'';
+
+/* ================= Décimos ================= */
+function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
+function grupos(){
+  const m=new Map();
+  D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).forEach(d=>{const k=d.num+'|'+d.sorteo;if(!m.has(k))m.set(k,[]);m.get(k).push(d);});
+  return [...m.values()].sort((a,b)=>a[0].num.localeCompare(b[0].num)||sorteo(a[0].sorteo).fecha.localeCompare(sorteo(b[0].sorteo).fecha));
 }
-
-/* ---------- Pintar ---------- */
 function sorteosUsados(){const ids=[...new Set(D.decimos.map(d=>d.sorteo))];SORTEOS.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)});return ids.map(sorteo).sort((a,b)=>a.fecha.localeCompare(b.fecha));}
-function visibles(){return D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).sort((a,b)=>a.num.localeCompare(b.num)||a.sorteo.localeCompare(b.sorteo));}
-function render(){
-  const vs=visibles();
-  const nDec=vs.reduce((a,d)=>a+d.cant,0);
-  $('sDec').textContent=nDec;
-  $('sNum').textContent=new Set(vs.map(d=>d.num+'|'+d.sorteo)).size;
-  const ganado=vs.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
-  if(ganado>0){$('sEur').textContent=eur(ganado);$('sEurL').textContent='¡premiado!';}
-  else{$('sEur').textContent=eur(nDec*PRECIO);$('sEurL').textContent='jugado';}
-  const ch=[{id:'todos',nombre:'Todos'}].concat(sorteosUsados());
-  $('chips').innerHTML=ch.map(s=>'<button class="chip'+(D.filtro===s.id?' on':'')+'" data-f="'+esc(s.id)+'">'+esc(s.nombre)+'</button>').join('');
-  if(!vs.length){$('lista').innerHTML='<div class="empty"><i>🎫</i>Aún no tienes décimos aquí.<br>Escanéalos con la cámara, elige fotos o escríbelos a mano.</div>';}
-  else $('lista').innerHTML=vs.map(d=>{
-    const s=sorteo(d.sorteo);
-    let st='<span class="no">Sin comprobar</span>',cls='';
-    if(d.premio>0){cls=' win';st='<span class="pr">🎉 '+eur(d.premio)+' / décimo'+(d.cant>1?' · '+eur(d.premio*d.cant)+' total':'')+'</span>';}
-    else if(d.premio===0){cls=' lose';st='<span class="no">Sin premio</span>';}
-    return '<div class="dec'+cls+'" data-id="'+d.id+'"><div class="num" data-ed="'+d.id+'">'+d.num+'</div><div class="meta" data-ed="'+d.id+'">'+esc(s.nombre)+(d.nota?' · '+esc(d.nota):'')+'<br>'+st+'</div>'+
-      '<div class="step"><button data-m="'+d.id+'">−</button><b>'+d.cant+'</b><button data-p="'+d.id+'">+</button></div></div>';
-  }).join('');
-  renderRes();
-}
-$('chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;D.filtro=b.dataset.f;save();render();pintarManual();};
-$('lista').onclick=async e=>{
-  const t=e.target;let d;
-  if(t.dataset.p){d=D.decimos.find(x=>x.id===t.dataset.p);d.cant++;save();render();return;}
-  if(t.dataset.m){d=D.decimos.find(x=>x.id===t.dataset.m);
-    if(d.cant>1)d.cant--;else if(await confirmar('¿Quitar el '+d.num+'?'))D.decimos=D.decimos.filter(x=>x!==d);
-    save();render();return;}
-  const ed=t.closest('[data-ed]');if(ed)abrirEditor(ed.dataset.ed);
-};
-
-/* ---------- Navegación ---------- */
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v));
-  window.scrollTo(0,0);
-});
-
-/* ---------- Editor ---------- */
+function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
 function opcionesSorteo(sel){
-  const ops=sorteosUsados().map(s=>'<option value="'+esc(s.id)+'"'+(s.id===sel?' selected':'')+'>'+esc(s.nombre)+'</option>');
-  ops.push('<option value="__otro">Otro sorteo (elegir fecha)…</option>');return ops.join('');
-}
-async function elegirSorteo(sel){
-  if(sel.value!=='__otro')return sel.value;
-  const f=await pedirFecha();if(!f){sel.value=SORTEOS[0].id;return SORTEOS[0].id;}
-  const id='ln-'+f;sel.insertAdjacentHTML('afterbegin','<option value="'+id+'">'+esc(sorteo(id).nombre)+'</option>');sel.value=id;return id;
+  const l=sorteosUsados();if(sel&&!l.some(s=>s.id===sel))l.unshift(sorteo(sel));
+  return l.map(s=>'<option value="'+esc(s.id)+'"'+(s.id===sel?' selected':'')+'>'+esc(s.nombre)+'</option>').join('')+'<option value="__otro">Otro sorteo (elegir fecha)…</option>';
 }
 function pedirFecha(){return new Promise(r=>{
-  $('cfTxt').innerHTML='Fecha del sorteo<br><input type="date" id="fSort" style="margin-top:10px">';
-  $('dConf').classList.add('on');$('cfOk').textContent='Aceptar';$('cfNo').textContent='Cancelar';
-  const fin=v=>{$('dConf').classList.remove('on');$('cfOk').textContent='Sí';$('cfNo').textContent='No';r(v)};
-  $('cfOk').onclick=()=>fin($('fSort').value||null);$('cfNo').onclick=()=>fin(null);
-});}
-let edId=null;
-function abrirEditor(id){
-  const d=D.decimos.find(x=>x.id===id);if(!d)return;edId=id;
-  $('edNum').textContent=d.num;$('edSort').innerHTML=opcionesSorteo(d.sorteo);
-  $('edNota').value=d.nota||'';$('edPrem').value=d.premio==null?'':d.premio;$('dEd').classList.add('on');
+  $('cfTxt').innerHTML='Fecha del sorteo<input type="date" id="fSort" style="margin-top:10px">';
+  $('cfOk').textContent='Aceptar';$('cfNo').textContent='Cancelar';$('dConf').classList.add('on');
+  const fin=v=>{$('dConf').classList.remove('on');r(v)};
+  $('cfOk').onclick=()=>fin($('fSort').value||null);$('cfNo').onclick=()=>fin(null);});}
+async function selSorteo(sel,prev){
+  if(sel.value!=='__otro')return sel.value;
+  const f=await pedirFecha();
+  if(!f){sel.value=prev||SORTEOS[0].id;return sel.value;}
+  const id=sorteoPorFecha(f);if(!sel.querySelector('option[value="'+id+'"]'))sel.insertAdjacentHTML('afterbegin','<option value="'+id+'">'+esc(sorteo(id).nombre)+'</option>');
+  sel.value=id;return id;
 }
-$('edSort').onchange=()=>elegirSorteo($('edSort'));
-$('edOk').onclick=()=>{const d=D.decimos.find(x=>x.id===edId);if(d){d.sorteo=$('edSort').value==='__otro'?d.sorteo:$('edSort').value;d.nota=$('edNota').value.trim();const p=$('edPrem').value.trim();d.premio=p===''?null:+p;}save();render();programarAvisos();$('dEd').classList.remove('on');};
-$('edDel').onclick=async()=>{const d=D.decimos.find(x=>x.id===edId);$('dEd').classList.remove('on');if(d&&await confirmar('¿Eliminar el '+d.num+' ('+d.cant+' décimo'+(d.cant>1?'s':'')+')?')){D.decimos=D.decimos.filter(x=>x!==d);save();render();}};
-$('edNo').onclick=()=>$('dEd').classList.remove('on');
+const sf=d=>[d.serie?'S '+d.serie:'',d.frac?'F '+d.frac:''].filter(Boolean).join(' · ');
 
-/* ---------- Revisión de números leídos ---------- */
-function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
-function abrirRevision(cands,titulo){
-  $('revTit').textContent=titulo||'Revisa los números';
-  $('revList').innerHTML='';
-  if(!cands.length)cands=[{num:'',alts:[]}];
-  cands.forEach(c=>filaRev(c));
-  $('dRev').classList.add('on');
-  const first=$('revList').querySelector('input[type=text]');if(first&&!first.value)setTimeout(()=>first.focus(),200);
+/* ================= Lista ================= */
+function render(){
+  const gs=grupos(),todos=gs.flat();
+  $('sDec').textContent=todos.length;$('sNum').textContent=gs.length;
+  const ganado=todos.reduce((a,d)=>a+(d.premio||0),0);
+  if(ganado>0){$('sEur').textContent=eur(ganado);$('sEurL').textContent='¡premiado!';}
+  else{$('sEur').textContent=eur(todos.length*PRECIO);$('sEurL').textContent='jugado';}
+  $('chips').innerHTML=[{id:'todos',nombre:'Todos'}].concat(sorteosUsados()).map(s=>'<button class="chip'+(D.filtro===s.id?' on':'')+'" data-f="'+esc(s.id)+'">'+esc(s.nombre)+'</button>').join('');
+  if(!gs.length)$('lista').innerHTML='<div class="empty"><i>🎫</i>Aún no tienes décimos aquí.<br>Escanéalos con la cámara, elige fotos o escríbelos a mano.</div>';
+  else $('lista').innerHTML=gs.map(g=>{
+    const d=g[0],s=sorteo(d.sorteo),f=g.find(x=>fotoUrl(x.foto));
+    let st='Sin comprobar',cls='';
+    if(d.premio>0){cls=' win';st='<span class="pr">🎉 '+eur(d.premio)+' / décimo</span>';}
+    else if(d.premio===0){cls=' lose';st='Sin premio';}
+    const series=g.map(sf).filter(Boolean).join(' | ');
+    return '<div class="dec'+cls+'" data-k="'+esc(d.num+'|'+d.sorteo)+'"><div class="thumb"'+(f?' style="background-image:url('+fotoUrl(f.foto)+')"':'')+'>'+(f?'':'🎫')+'</div>'+
+      '<div><div class="num">'+d.num+'</div><div class="meta">'+esc(s.nombre)+(series?' · '+esc(series):'')+'<br>'+st+'</div></div>'+
+      '<div class="cnt">×'+g.length+'</div></div>';
+  }).join('');
+  renderRes();renderCodes();
 }
-function filaRev(c){
-  const div=document.createElement('div');div.className='cand';
-  const sid=c.sorteo||sorteoPorDefecto();
-  div.innerHTML='<input type="checkbox" checked><input type="text" inputmode="numeric" maxlength="5" placeholder="00000"><select>'+opcionesSorteo(sid)+'</select><input type="number" min="1" value="1" inputmode="numeric" title="Cantidad">'+
-    ((c.alts&&c.alts.length)?'<div class="alts"><span class="small">¿O es…?</span></div>':'');
-  const [chk,inp,sel,cant]=div.querySelectorAll('input,select');
-  inp.value=c.num||'';cant.value=c.cant||1;
-  sel.onchange=()=>elegirSorteo(sel);
-  if(c.alts)c.alts.forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{inp.value=a;chk.checked=true;};div.querySelector('.alts').appendChild(b);});
-  $('revList').appendChild(div);return inp;
-}
-$('revMas').onclick=()=>filaRev({num:''}).focus();
-$('revNo').onclick=()=>$('dRev').classList.remove('on');
-$('revOk').onclick=()=>{
-  let n=0,mal=0;
-  $('revList').querySelectorAll('.cand').forEach(r=>{
-    const [chk,inp,sel,cant]=r.querySelectorAll('input,select');
-    if(!chk.checked)return;
-    const raw=inp.value.replace(/\D/g,'');
-    if(!raw)return;
-    if(raw.length>5){mal++;return;}
-    const sid=sel.value==='__otro'?SORTEOS[0].id:sel.value;
-    addDecimo(raw,sid,+cant.value||1);n+=(+cant.value||1);
+$('chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;D.filtro=b.dataset.f;save();render();pintarManual();};
+$('lista').onclick=e=>{const r=e.target.closest('[data-k]');if(r)abrirVisor(r.dataset.k);};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v));window.scrollTo(0,0);});
+
+/* ================= Visor de un número: sus décimos con foto ================= */
+let verK=null,fotoPara=null;
+function abrirVisor(k){
+  verK=k;const [num,sid]=k.split('|');
+  const g=D.decimos.filter(d=>d.num===num&&d.sorteo===sid);
+  if(!g.length){$('dVer').classList.remove('on');render();return;}
+  const p=g[0].premio;
+  let h='<div class="vhead"><span class="num">'+num+'</span><span class="badge">'+g.length+' décimo'+(g.length>1?'s':'')+'</span></div>'+
+    '<label>Sorteo</label><select id="vSort">'+opcionesSorteo(sid)+'</select>'+
+    (p>0?'<p class="pr">🎉 '+eur(p)+' por décimo · '+eur(p*g.length)+' en total'+(g[0].det?'<br><span class="small">'+esc(g[0].det)+'</span>':'')+'</p>':p===0?'<p class="small">Sin premio</p>':'');
+  g.forEach((d,i)=>{
+    const u=fotoUrl(d.foto);
+    h+='<div class="piece" data-id="'+d.id+'">'+
+      (u?'<button class="photo" data-full="'+d.id+'" style="background-image:url('+u+')" aria-label="Ver foto"></button>':'<button class="photo" data-addf="'+d.id+'"><b>📷</b>Añadir foto de este décimo</button>')+
+      '<div class="f3" style="margin-top:8px"><div><label>Décimo '+(i+1)+'</label><input class="n" value="'+d.num+'" disabled></div>'+
+      '<div><label>Serie</label><input data-c="serie" inputmode="numeric" value="'+esc(d.serie)+'"></div>'+
+      '<div><label>Fracción</label><input data-c="frac" inputmode="numeric" value="'+esc(d.frac)+'"></div></div>'+
+      '<label>Nota (quién, dónde…)</label><input type="text" data-c="nota" value="'+esc(d.nota)+'">'+
+      (d.codigo?'<p class="small mono">Código: '+esc(d.codigo)+'</p>':'')+
+      '<div class="row">'+(u?'<button class="x" data-addf="'+d.id+'">Cambiar foto</button>':'')+'<button class="x" data-del="'+d.id+'">Eliminar este décimo</button></div></div>';
   });
-  if(mal){toast('Hay números con más de 5 cifras: corrígelos');return;}
-  $('dRev').classList.remove('on');save();render();programarAvisos();
-  if(n)toast('Añadido'+(n>1?'s ':' ')+n+' décimo'+(n>1?'s':''));
-};
-
-$('bMano').onclick=()=>abrirRevision([{num:''}],'Añadir a mano');
-
-/* ---------- Cámara ---------- */
-let stream=null;
-$('bCam').onclick=async()=>{
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('fCam').click();return;}
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
-    $('vid').srcObject=stream;$('cam').classList.add('on');
-  }catch(e){toast('No se pudo abrir la cámara. Usa la de tu móvil.');$('fCam').click();}
-};
-function cerrarCam(){$('cam').classList.remove('on');if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
-$('camNo').onclick=cerrarCam;
-$('camGal').onclick=()=>{cerrarCam();$('fGal').click();};
-$('camShot').onclick=async()=>{
-  const v=$('vid');if(!v.videoWidth)return;
-  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
-  cerrarCam();
-  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.92));
-  procesarFotos([blob]);
-};
-$('bFotos').onclick=()=>{$('fGal').value='';$('fGal').click();};
-$('fGal').onchange=e=>{const f=[...e.target.files];if(f.length)procesarFotos(f);};
-$('fCam').onchange=e=>{const f=[...e.target.files];if(f.length)procesarFotos(f);};
-
-function cargarImg(blob){return new Promise((res,rej)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{res(i)};i.onerror=rej;i.src=u;});}
-async function reducir(blob,max){
-  const img=await cargarImg(blob);const k=Math.min(1,max/Math.max(img.width,img.height));
-  const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
-  c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;
+  h+='<div class="row"><button class="btn ghost" id="vMas">+ Otro décimo del '+num+'</button></div>'+
+    '<div class="row"><button class="btn" id="vOk">Guardar</button><button class="btn ghost" id="vNo">Cerrar</button></div>';
+  $('verSheet').innerHTML=h;$('dVer').classList.add('on');
+  $('vSort').onchange=()=>selSorteo($('vSort'),sid);
+  $('vNo').onclick=()=>{guardarVisor();$('dVer').classList.remove('on');render();};
+  $('vOk').onclick=()=>{guardarVisor();$('dVer').classList.remove('on');render();programarAvisos();};
+  $('vMas').onclick=()=>{guardarVisor();const [n2,s2]=verK.split('|');D.decimos.push(nuevoDecimo({num:n2,sorteo:s2}));save();render();abrirVisor(verK);};
 }
-
-async function procesarFotos(files){
-  const todos=[];
-  try{
-    for(let i=0;i<files.length;i++){
-      busy('Leyendo foto '+(i+1)+' de '+files.length+'…');
-      let r=[];
-      if(D.gem){try{r=await leerGemini(files[i]);}catch(e){toast('Gemini no respondió, uso el lector normal');}}
-      if(!r.length){try{r=await leerTesseract(files[i]);}catch(e){toast('No se pudo cargar el lector (¿sin internet?)');}}
-      todos.push(...r);
-    }
-  }finally{busy('');}
-  /* juntar repetidos */
-  const m=new Map();
-  todos.forEach(c=>{const k=c.num+'|'+(c.sorteo||'');if(m.has(k))m.get(k).cant+=(c.cant||1);else m.set(k,Object.assign({cant:1},c));});
-  const cands=[...m.values()];
-  abrirRevision(cands,cands.length?'He leído '+cands.length+' número'+(cands.length>1?'s':''):'No he encontrado el número');
-  if(!cands.length)$('revSub').textContent='Escríbelo a mano o prueba con otra foto más cerca y con buena luz.';
-  else $('revSub').textContent='Corrige lo que haga falta. Toca una alternativa si el número no es el bueno.';
+function guardarVisor(){
+  const sel=$('vSort');if(!sel)return;
+  const ns=sel.value==='__otro'?null:sel.value;
+  $('verSheet').querySelectorAll('.piece').forEach(p=>{
+    const d=D.decimos.find(x=>x.id===p.dataset.id);if(!d)return;
+    p.querySelectorAll('[data-c]').forEach(i=>d[i.dataset.c]=i.dataset.c==='nota'?i.value.trim():i.value.replace(/\D/g,''));
+    if(ns&&ns!==d.sorteo){d.sorteo=ns;d.premio=null;d.det=null;}
+  });
+  if(ns)verK=verK.split('|')[0]+'|'+ns;
+  save();
 }
+$('verSheet').onclick=async e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.full){const d=D.decimos.find(x=>x.id===t.dataset.full);verFoto(fotoUrl(d&&d.foto));}
+  else if(t.dataset.addf){guardarVisor();fotoPara=t.dataset.addf;$('fFoto').value='';$('fFoto').click();}
+  else if(t.dataset.del){const d=D.decimos.find(x=>x.id===t.dataset.del);
+    if(d&&await confirmar('¿Eliminar este décimo del '+d.num+(sf(d)?' ('+sf(d)+')':'')+'?')){guardarVisor();fotoBorrar(d.foto);D.decimos=D.decimos.filter(x=>x!==d);save();render();abrirVisor(verK);}}
+};
+$('fFoto').onchange=async e=>{
+  const f=e.target.files[0],d=D.decimos.find(x=>x.id===fotoPara);if(!f||!d)return;
+  busy('Guardando foto…');
+  try{const b=await reducirBlob(f,1600);const old=d.foto;d.foto=await fotoGuardar(b);fotoBorrar(old);
+    if(!d.codigo){const c=await leerCodigo(await reducir(b,1600));if(c)d.codigo=c;}
+    if(!d.foto)toast('Este móvil no deja guardar fotos');
+    save();}catch(err){toast('No se pudo guardar la foto');}
+  busy('');render();abrirVisor(verK);
+};
+function verFoto(u){if(!u)return;$('fullImg').src=u;$('full').classList.remove('zoom');$('fullZoom').textContent='🔍 Ampliar';$('full').classList.add('on');}
+$('fullNo').onclick=()=>$('full').classList.remove('on');
+$('fullZoom').onclick=()=>{const z=$('full').classList.toggle('zoom');$('fullZoom').textContent=z?'↩︎ Ajustar':'🔍 Ampliar';};
+$('fullImg').ondblclick=()=>$('fullZoom').click();
 
-/* Lector sin clave: Tesseract (se descarga la primera vez) */
-let tessP=null;
-function cargarTess(){
-  if(window.Tesseract)return Promise.resolve();
-  if(!tessP)tessP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=res;s.onerror=()=>{tessP=null;rej(new Error('sin red'))};document.head.appendChild(s);});
-  return tessP;
+/* ================= Imagen ================= */
+function cargarImg(blob){return new Promise((ok,ko)=>{const u=URL.createObjectURL(blob);const i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=ko;i.src=u;});}
+async function reducir(src,max){
+  const img=src instanceof HTMLCanvasElement?src:await cargarImg(src);
+  const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,k=Math.min(1,max/Math.max(w,h));
+  const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;
 }
-let tessW=null;
-async function leerTesseract(blob){
-  await cargarTess();
-  if(!tessW){busy('Preparando el lector (solo la primera vez)…');tessW=await Tesseract.createWorker('spa');}
-  busy('Leyendo el número…');
-  const c=await reducir(blob,1800);
-  /* Escala de grises con contraste para que los números grandes destaquen */
-  const x=c.getContext('2d'),im=x.getImageData(0,0,c.width,c.height),p=im.data;
-  for(let i=0;i<p.length;i+=4){let g=.3*p[i]+.59*p[i+1]+.11*p[i+2];g=g<140?Math.max(0,g-40):Math.min(255,g+40);p[i]=p[i+1]=p[i+2]=g;}
-  x.putImageData(im,0,0);
-  const {data}=await tessW.recognize(c);
-  const texto=(data.text||'').toUpperCase();
-  let sid=null;if(/NAVIDAD/.test(texto))sid='navidad2026';else if(/NI[ÑN]O/.test(texto))sid='nino2027';
-  /* Busca grupos de 5 cifras; puntúa por el tamaño de la letra (el número del décimo es el más grande) */
-  const cand=[];
+const aBlob=(c,q)=>new Promise(r=>c.toBlob(r,'image/jpeg',q||.85));
+async function reducirBlob(b,max){return aBlob(await reducir(b,max));}
+/* Gris + umbral automático (Otsu): cifras negras sobre blanco */
+function binarizar(c){
+  const x=c.getContext('2d'),im=x.getImageData(0,0,c.width,c.height),p=im.data,n=p.length/4,hist=new Array(256).fill(0),g=new Uint8Array(n);
+  for(let i=0;i<n;i++){const v=(.3*p[i*4]+.59*p[i*4+1]+.11*p[i*4+2])|0;g[i]=v;hist[v]++;}
+  let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];
+  let sB=0,wB=0,max=0,th=128;
+  for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=n-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)*(mB-mF);if(v>max){max=v;th=t;}}
+  let osc=0;for(let i=0;i<n;i++)if(g[i]<=th)osc++;
+  const inv=osc>n*.6;
+  for(let i=0;i<n;i++){let v=g[i]>th?255:0;if(inv)v=255-v;p[i*4]=p[i*4+1]=p[i*4+2]=v;}
+  x.putImageData(im,0,0);return c;
+}
+function rotar(c){const r=document.createElement('canvas');r.width=c.height;r.height=c.width;const x=r.getContext('2d');x.translate(r.width,0);x.rotate(Math.PI/2);x.drawImage(c,0,0);return r;}
+
+/* ================= Lectores (se descargan la primera vez) ================= */
+const scripts={};
+function cargarScript(url){if(!scripts[url])scripts[url]=new Promise((ok,ko)=>{const s=document.createElement('script');s.src=url;s.onload=ok;s.onerror=()=>{delete scripts[url];ko(new Error('sin red'))};document.head.appendChild(s);});return scripts[url];}
+const TESS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+let wDig=null,wTxt=null,pDig=null,pTxt=null;
+function lectorCifras(){
+  if(!pDig)pDig=(async()=>{await cargarScript(TESS);const w=await Tesseract.createWorker('eng');
+    await w.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'11'});return wDig=w;})().catch(e=>{pDig=null;throw e;});
+  return pDig;
+}
+function lectorTexto(){
+  if(!pTxt)pTxt=(async()=>{await cargarScript(TESS);return wTxt=await Tesseract.createWorker('spa');})().catch(e=>{pTxt=null;throw e;});
+  return pTxt;
+}
+/* Grupos de 5 cifras, juntando cifras sueltas de la misma línea; puntúa por tamaño y confianza */
+function candidatos(data){
+  const out=[];
   (data.lines||[]).forEach(l=>{
-    const t=(l.text||'').toUpperCase().replace(/[OQD]/g,'0').replace(/[IL|]/g,'1').replace(/S/g,'5').replace(/B/g,'8').replace(/Z/g,'2');
-    const h=(l.bbox?l.bbox.y1-l.bbox.y0:10)||10;
-    const solo=t.replace(/(\d)[\s.·'-]+(?=\d)/g,'$1');
-    (solo.match(/\d+/g)||[]).forEach(g=>{
-      if(g.length===5)cand.push({num:g,score:h*2});
-      else if(g.length>5&&g.length<=7)for(let i=0;i+5<=g.length;i++)cand.push({num:g.slice(i,i+5),score:h*.6});
-    });
+    const ws=(l.words||[]).filter(w=>/^\d+$/.test(w.text)).sort((a,b)=>a.bbox.x0-b.bbox.x0);
+    for(let i=0;i<ws.length;i++){
+      let txt='',conf=0,k=0,prev=null;const h=ws[i].bbox.y1-ws[i].bbox.y0;
+      for(let j=i;j<ws.length&&txt.length<5;j++){
+        const w=ws[j],wh=w.bbox.y1-w.bbox.y0;
+        if(prev&&(w.bbox.x0-prev.bbox.x1>1.2*h||wh/h>1.5||h/wh>1.5))break;
+        txt+=w.text;conf+=w.confidence;k++;prev=w;
+      }
+      if(txt.length===5)out.push({num:txt,score:h*(conf/k/100)});
+    }
   });
-  cand.sort((a,b)=>b.score-a.score);
-  const vistos=[];cand.forEach(c=>{if(!vistos.includes(c.num))vistos.push(c.num)});
-  if(!vistos.length)return [];
-  return [{num:vistos[0],alts:vistos.slice(1,5),sorteo:sid,cant:1}];
+  out.sort((a,b)=>b.score-a.score);
+  const seen=[];out.forEach(c=>{if(!seen.includes(c.num))seen.push(c.num)});
+  return seen;
+}
+/* Serie, fracción, sorteo y fecha a partir del texto del décimo */
+const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+function datosTexto(t){
+  t=t.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+  const r={};
+  let m=/SERIE\s*[:.]?\s*(\d{1,3})\b/.exec(t)||/\b(\d{1,3})\s*[ªA°º.]?\s*SERIE/.exec(t);if(m&&+m[1]>0)r.serie=String(+m[1]);
+  m=/FRACCION\s*[:.]?\s*(\d{1,2})\b/.exec(t)||/\b(\d{1,2})\s*[ªA°º.]?\s*FRACC/.exec(t);if(m&&+m[1]>=1&&+m[1]<=10)r.frac=String(+m[1]);
+  if(/NAVIDAD/.test(t))r.sorteo='navidad2026';else if(/\bNINO\b/.test(t))r.sorteo='nino2027';
+  m=new RegExp('\\b(\\d{1,2}) DE ('+MESES.join('|')+') DE (\\d{4})').exec(t);
+  if(m&&!r.sorteo)r.sorteo=sorteoPorFecha(m[3]+'-'+String(MESES.indexOf(m[2])+1).padStart(2,'0')+'-'+m[1].padStart(2,'0'));
+  return r;
+}
+/* Código de barras: lector del propio móvil si lo tiene; si no, ZXing */
+let detector=null;
+async function leerCodigo(c){
+  try{
+    if(detector===null){detector=false;if('BarcodeDetector' in window){try{detector=new BarcodeDetector();}catch(e){}}}
+    if(detector){try{const r=await detector.detect(c);if(r&&r.length)return r.map(x=>x.rawValue).sort((a,b)=>b.length-a.length)[0];}catch(e){}}
+    await cargarScript('https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js');
+    const Z=window.ZXing,hints=new Map();hints.set(Z.DecodeHintType.TRY_HARDER,true);
+    const rd=new Z.MultiFormatReader();rd.setHints(hints);
+    for(const cc of [c,rotar(c)]){
+      try{const r=rd.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cc))));if(r&&r.getText())return r.getText();}catch(e){}
+    }
+  }catch(e){}
+  return '';
 }
 
-/* ---------- Red (desde Android para evitar bloqueos del navegador) ---------- */
+/* ================= Red y Gemini ================= */
 let hN=0;const hCb={};
 if(B&&B.http){const prev=window.__httpFin;window.__httpFin=function(id,code,txt){if(hCb[id]){const f=hCb[id];delete hCb[id];f({code,txt});}else if(prev)prev(id,code,txt);};}
 function http(method,url,headers,body){
@@ -449,8 +483,6 @@ function http(method,url,headers,body){
   return fetch(url,{method,headers,body:body||undefined}).then(async r=>({code:r.status,txt:await r.text()})).catch(e=>({code:0,txt:String(e)}));
 }
 function jsonDe(txt){const i=txt.indexOf('{'),j=txt.lastIndexOf('}');if(i<0||j<i)throw new Error('sin json');return JSON.parse(txt.slice(i,j+1));}
-
-/* ---------- Gemini (opcional) ---------- */
 async function gemini(parts,conBusqueda){
   const model=(D.gemModel||'gemini-2.5-flash').trim();
   const body={contents:[{role:'user',parts}],generationConfig:{temperature:0}};
@@ -460,108 +492,249 @@ async function gemini(parts,conBusqueda){
   const j=JSON.parse(r.txt);
   return ((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
 }
-async function leerGemini(blob){
-  busy('Leyendo con Gemini…');
-  const c=await reducir(blob,1600);const b64=c.toDataURL('image/jpeg',.88).split(',')[1];
+const soloNum=v=>{const x=String(v||'').replace(/\D/g,'');return x?String(+x):'';};
+async function leerGemini(c){
+  const b64=(await reducir(c,1600)).toDataURL('image/jpeg',.88).split(',')[1];
   const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:
-    'En la imagen hay uno o varios décimos de la Lotería Nacional de España (o una lista de números). '+
-    'Devuelve SOLO JSON: {"decimos":[{"numero":"12345","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","cantidad":1}]}. '+
-    'El número del décimo tiene 5 cifras y es el más grande impreso; no confundas con serie, fracción, precio ni número de sorteo. '+
-    'Si el mismo número aparece en varios décimos distintos, cuéntalos en cantidad. Si no hay ninguno, {"decimos":[]}.'}]);
+    'En la imagen hay uno o varios décimos de la Lotería Nacional de España. Para cada décimo devuelve SOLO JSON: '+
+    '{"decimos":[{"numero":"12345","serie":"12","fraccion":"3","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null"}]}. '+
+    'El número tiene 5 cifras y es el más grande impreso. La serie y la fracción vienen indicadas en el décimo (por ejemplo "SERIE 045", "FRACCIÓN 7ª"). '+
+    'No confundas con el precio, el número de sorteo (por ejemplo 102/2026) ni el código de barras. Si un dato no se ve, pon "". Si no hay décimos, {"decimos":[]}.'}]);
   const j=jsonDe(txt);
   return (j.decimos||[]).filter(d=>/\d/.test(d.numero||'')).map(d=>{
     let sid=null;
     if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
-    else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=SORTEOS.find(s=>s.fecha===d.fecha)?SORTEOS.find(s=>s.fecha===d.fecha).id:'ln-'+d.fecha;
-    return {num:pad(d.numero),sorteo:sid,cant:Math.max(1,d.cantidad|0||1),alts:[]};
+    else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=sorteoPorFecha(d.fecha);
+    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[]};
   });
 }
+/* Lectura completa de una foto de la galería */
+async function leerFoto(blob){
+  const c=await reducir(blob,1800);
+  const cod=await leerCodigo(c);
+  if(D.gem){try{const r=await leerGemini(c);if(r.length){if(r.length===1)r[0].codigo=cod;return r;}}catch(e){toast('Gemini no respondió; uso el lector normal');}}
+  const w=await lectorCifras();
+  const {data}=await w.recognize(binarizar(await reducir(c,1800)));
+  const nums=candidatos(data);
+  let extra={};try{const t=await lectorTexto();const r=await t.recognize(c);extra=datosTexto(r.data.text||'');}catch(e){}
+  if(!nums.length&&!cod)return [];
+  return [Object.assign({num:nums[0]||'',alts:nums.slice(1,5),codigo:cod},extra)];
+}
 
-/* ---------- Comprobar premios ---------- */
-function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+/* ================= Revisión (fotos / a mano) ================= */
+let revItems=[];
+function abrirRevision(items,titulo,sub){
+  revItems=items;$('revTit').textContent=titulo;$('revSub').textContent=sub||'';
+  $('revSort').innerHTML=opcionesSorteo((items.find(i=>i.sorteo)||{}).sorteo||sorteoPorDefecto());
+  $('revList').innerHTML='';items.forEach(filaRev);$('dRev').classList.add('on');
+}
+function filaRev(it){
+  const div=document.createElement('div');div.className='cand';it.el=div;
+  const u=it.fotoBlob?URL.createObjectURL(it.fotoBlob):'';
+  div.innerHTML='<div class="thumb"'+(u?' style="background-image:url('+u+')"':'')+'>'+(u?'':'🎫')+'</div><div>'+
+    '<div class="f3"><div><label>Número</label><input class="n" data-c="num" inputmode="numeric" maxlength="5" placeholder="00000"></div>'+
+    '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
+    (it.alts&&it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
+    (it.codigo?'<p class="small mono">Código: '+esc(it.codigo)+'</p>':'')+
+    '<button class="x" data-q>Quitar</button></div>';
+  div.querySelectorAll('[data-c]').forEach(i=>i.value=it[i.dataset.c]||'');
+  (it.alts||[]).forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>div.querySelector('[data-c=num]').value=a;div.querySelector('.alts').appendChild(b);});
+  div.querySelector('[data-q]').onclick=()=>{it.quitado=true;div.remove();};
+  $('revList').appendChild(div);return div;
+}
+$('revSort').onchange=()=>selSorteo($('revSort'));
+$('revMas').onclick=()=>{const it={num:''};revItems.push(it);filaRev(it).querySelector('input').focus();};
+$('revNo').onclick=()=>$('dRev').classList.remove('on');
+$('revOk').onclick=async()=>{
+  const sid=$('revSort').value==='__otro'?sorteoPorDefecto():$('revSort').value;
+  const vals=revItems.filter(it=>!it.quitado).map(it=>{const v={it};it.el.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));return v;}).filter(v=>v.num);
+  if(vals.some(v=>v.num.length!==5)&&!await confirmar('Hay números con menos de 5 cifras. Se completarán con ceros delante. ¿Seguir?','Seguir','Corregir'))return;
+  busy('Guardando…');let n=0;
+  for(const v of vals){
+    if(v.it.codigo&&D.decimos.some(d=>d.codigo===v.it.codigo)){toast('El '+pad(v.num)+' ya estaba guardado (mismo código de barras)');continue;}
+    const foto=v.it.fotoBlob?await fotoGuardar(v.it.fotoBlob).catch(()=>null):null;
+    D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo:v.it.codigo,foto}));n++;
+  }
+  busy('');$('dRev').classList.remove('on');save();render();programarAvisos();
+  if(n)toast('Guardado'+(n>1?'s ':' ')+n+' décimo'+(n>1?'s':''));
+};
+$('bMano').onclick=()=>abrirRevision([{num:''}],'Añadir a mano','Escribe el número; la serie y la fracción son opcionales.');
+
+$('bFotos').onclick=()=>{$('fGal').value='';$('fGal').click();};
+$('fGal').onchange=async e=>{
+  const files=[...e.target.files];if(!files.length)return;
+  const items=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      busy('Leyendo foto '+(i+1)+' de '+files.length+'…'+(i===0&&!wDig?' (la primera vez tarda más)':''));
+      const fb=await reducirBlob(files[i],1600);
+      let r=[];try{r=await leerFoto(fb);}catch(err){toast('No se pudo cargar el lector (¿sin internet?)');}
+      if(!r.length)r=[{num:''}];
+      r.forEach(x=>{x.fotoBlob=fb;items.push(x);});
+    }
+  }finally{busy('');}
+  abrirRevision(items,'Revisa '+items.length+' décimo'+(items.length>1?'s':''),'Corrige lo que haga falta. Si el número no es el bueno, toca una alternativa.');
+};
+
+/* ================= Escáner en vivo ================= */
+let stream=null,escaneando=false,lecturas=[],nCiclo=0,codVivo='',guardadosCam=0,track=null,luz=false;
+$('bCam').onclick=async()=>{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Este móvil no deja usar la cámara aquí; usa Fotos');return;}
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});}
+  catch(e){toast('No se pudo abrir la cámara. Usa el botón Fotos.');return;}
+  track=stream.getVideoTracks()[0];luz=false;
+  try{const caps=track.getCapabilities&&track.getCapabilities();if(caps&&caps.focusMode&&caps.focusMode.includes('continuous'))track.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
+  $('vid').srcObject=stream;$('cam').classList.add('on');$('panel').classList.remove('on');
+  guardadosCam=0;$('camCnt').textContent='';$('live').textContent='';
+  $('camStat').textContent=wDig?'Buscando número…':'Preparando el lector… (la primera vez tarda)';
+  try{await lectorCifras();}catch(e){toast('Sin internet no puedo cargar el lector');cerrarCam();return;}
+  if(!stream)return;
+  lectorTexto().catch(()=>{});
+  lecturas=[];codVivo='';escaneando=true;$('camStat').textContent='Buscando número…';bucle();
+};
+function cerrarCam(){escaneando=false;$('cam').classList.remove('on');$('panel').classList.remove('on');if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}render();if(guardadosCam)programarAvisos();}
+$('camNo').onclick=cerrarCam;
+$('camLuz').onclick=()=>{if(!track)return;luz=!luz;track.applyConstraints({advanced:[{torch:luz}]}).catch(()=>{luz=false;toast('Este móvil no deja encender la luz desde aquí');});};
+function fotograma(){const v=$('vid'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);return c;}
+/* Recorta del vídeo justo lo que se ve dentro del recuadro */
+function recorteGuia(){
+  const v=$('vid'),vr=v.getBoundingClientRect(),g=$('guide').getBoundingClientRect();
+  const k=Math.max(vr.width/v.videoWidth,vr.height/v.videoHeight),ox=(vr.width-v.videoWidth*k)/2,oy=(vr.height-v.videoHeight*k)/2;
+  const x=Math.max(0,(g.left-vr.left-ox)/k),y=Math.max(0,(g.top-vr.top-oy)/k),w=Math.min(v.videoWidth-x,g.width/k),h=Math.min(v.videoHeight-y,g.height/k);
+  const s=Math.min(2.5,1100/w),c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
+  c.getContext('2d').drawImage(v,x,y,w,h,0,0,c.width,c.height);return c;
+}
+async function bucle(){
+  while(escaneando){
+    const v=$('vid');
+    if(!v.videoWidth){await espera(200);continue;}
+    try{
+      const {data}=await wDig.recognize(binarizar(recorteGuia()));
+      if(!escaneando)break;
+      const n=candidatos(data)[0]||null;
+      lecturas.push(n);if(lecturas.length>5)lecturas.shift();
+      $('live').textContent=n||'';
+      if(n){
+        const veces=lecturas.filter(x=>x===n).length;
+        $('guide').classList.toggle('ok',veces>=2);
+        if(veces>=2){await detectado(n,lecturas.filter(x=>x&&x!==n));break;}
+      }else $('guide').classList.remove('ok');
+      if(++nCiclo%3===0&&!codVivo)leerCodigo(await reducir(fotograma(),1280)).then(c=>{if(c&&escaneando)codVivo=c;});
+    }catch(e){await espera(400);}
+  }
+}
+$('camShot').onclick=async()=>{
+  if(!stream||!$('vid').videoWidth||$('panel').classList.contains('on'))return;
+  await detectado(lecturas.filter(Boolean).pop()||'',[]);
+};
+async function detectado(num,alts){
+  escaneando=false;$('guide').classList.remove('ok');$('camStat').textContent='¡Leído!';
+  try{navigator.vibrate&&navigator.vibrate(90);}catch(e){}
+  const frame=fotograma(),fotoBlob=await aBlob(await reducir(frame,1600));
+  const it={k:uid(),num,alts:[...new Set(alts)].slice(0,3),codigo:codVivo,fotoBlob,serie:'',frac:'',sorteo:null};
+  mostrarPanel(it,'Buscando serie, fracción y código de barras…');
+  /* En segundo plano: Gemini (si hay clave), lector de texto y código de barras */
+  try{
+    if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(g){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}}catch(e){}}
+    if(!it.codigo)it.codigo=await leerCodigo(await reducir(frame,1800));
+    if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
+  }catch(e){}
+  if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
+}
+function mostrarPanel(it,estado){
+  const p=$('panel'),prev={},misma=p.dataset.k===it.k;
+  if(misma)p.querySelectorAll('[data-c]').forEach(i=>{if(i.dataset.t)prev[i.dataset.c]=i.value;});
+  const prevSort=misma&&$('pSort')&&$('pSort').dataset.t?$('pSort').value:null;
+  p.dataset.k=it.k;
+  const dup=it.codigo&&D.decimos.find(d=>d.codigo===it.codigo);
+  p.innerHTML='<div class="f3"><div><label>Número</label><input class="n" data-c="num" inputmode="numeric" maxlength="5"></div>'+
+    '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
+    (it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
+    '<label>Sorteo</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select>'+
+    '<p class="small mono">'+(estado?'⏳ '+esc(estado):it.codigo?'Código: '+esc(it.codigo):'No he podido leer el código de barras')+'</p>'+
+    (dup?'<p class="pr" style="font-size:14px">⚠️ Este décimo ya está guardado (mismo código de barras)</p>':'')+
+    '<div class="row"><button class="btn gold" id="pOk">Guardar y seguir</button><button class="btn ghost" id="pNo">Repetir</button></div>';
+  p.querySelectorAll('[data-c]').forEach(i=>{const c=i.dataset.c;i.value=prev[c]!=null?prev[c]:(it[c]||'');if(prev[c]!=null)i.dataset.t=1;i.oninput=()=>i.dataset.t=1;});
+  it.alts.forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{const i=p.querySelector('[data-c=num]');i.value=a;i.dataset.t=1;};p.querySelector('.alts').appendChild(b);});
+  if(prevSort)$('pSort').dataset.t=1;
+  $('pSort').onchange=()=>{$('pSort').dataset.t=1;selSorteo($('pSort'));};
+  p.classList.add('on');
+  $('pNo').onclick=seguir;
+  $('pOk').onclick=async()=>{
+    const v={};p.querySelectorAll('[data-c]').forEach(i=>v[i.dataset.c]=i.value.replace(/\D/g,''));
+    if(!v.num){toast('Falta el número');return;}
+    if(dup&&!await confirmar('Este décimo ya está guardado. ¿Guardarlo otra vez?','Guardar','No'))return seguir();
+    const sid=$('pSort').value==='__otro'?sorteoPorDefecto():$('pSort').value;
+    const foto=await fotoGuardar(it.fotoBlob).catch(()=>null);
+    D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo:it.codigo,foto}));save();
+    guardadosCam++;$('camCnt').textContent=guardadosCam+' guardado'+(guardadosCam>1?'s':'');
+    toast('✓ '+pad(v.num)+' guardado. Pon el siguiente décimo');seguir();
+  };
+}
+function seguir(){const p=$('panel');p.classList.remove('on');p.dataset.k='';lecturas=[];codVivo='';$('live').textContent='';
+  $('camStat').textContent='Buscando número…';if(stream&&!escaneando){escaneando=true;bucle();}}
+
+/* ================= Comprobar premios ================= */
 function sorteoActivo(){
   if(D.filtro!=='todos')return sorteo(D.filtro);
-  const us=sorteosUsados().filter(s=>D.decimos.some(d=>d.sorteo===s.id));
-  const lista=us.length?us:SORTEOS;
-  return lista.filter(s=>s.fecha<=hoy()).pop()||lista[0];
+  const us=sorteosUsados().filter(s=>D.decimos.some(d=>d.sorteo===s.id)),l=us.length?us:SORTEOS;
+  return l.filter(s=>s.fecha<=hoy()).pop()||l[0];
 }
 const ESTADOS={0:'El sorteo no ha empezado',1:'Sorteo en marcha',2:'Sorteo terminado (lista provisional)',3:'Lista semioficial',4:'Lista oficial'};
-
 function renderRes(){
-  const s=sorteoActivo();
+  const s=sorteoActivo(),ds=D.decimos.filter(d=>d.sorteo===s.id),nums=[...new Set(ds.map(d=>d.num))];
   $('rTit').textContent=s.nombre;
-  const ds=D.decimos.filter(d=>d.sorteo===s.id);
   const fecha=new Date(s.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const est=D.estado[s.id];
-  $('rInfo').textContent=fecha+' · '+ds.reduce((a,d)=>a+d.cant,0)+' décimos'+(est?' · '+est:'');
-  const g=ds.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
-  const comp=ds.filter(d=>d.premio!=null).length;
-  $('rWon').innerHTML=comp?'<div class="won">'+eur(g)+'</div><div class="small">'+(g>0?'ganado en total':'Por ahora no ha tocado nada')+' · '+comp+' de '+ds.length+' números comprobados</div>':'';
-  const pr=ds.filter(d=>d.premio>0).sort((a,b)=>b.premio-a.premio);
-  $('rOut').innerHTML=pr.map(d=>'<div>🎉 <b class="num" style="font-size:20px">'+d.num+'</b> · <span class="w">'+eur(d.premio)+'</span> × '+d.cant+(d.det?' <span class="badge">'+esc(d.det)+'</span>':'')+'</div>').join('');
+  $('rInfo').textContent=fecha+' · '+ds.length+' décimos de '+nums.length+' números'+(D.estado[s.id]?' · '+D.estado[s.id]:'');
+  const g=ds.reduce((a,d)=>a+(d.premio||0),0),comp=ds.filter(d=>d.premio!=null).length;
+  $('rWon').innerHTML=comp?'<div class="won">'+eur(g)+'</div><div class="small">'+(g>0?'ganado en total':'Por ahora no ha tocado nada')+' · '+comp+' de '+ds.length+' décimos comprobados</div>':'';
+  const pr=nums.map(n=>ds.filter(d=>d.num===n)).filter(x=>x[0].premio>0).sort((a,b)=>b[0].premio-a[0].premio);
+  $('rOut').innerHTML=pr.map(x=>'<div>🎉 <b class="mono" style="font-size:20px">'+x[0].num+'</b> · <span class="pr">'+eur(x[0].premio)+'</span> × '+x.length+(x[0].det?' <span class="badge">'+esc(x[0].det)+'</span>':'')+'</div>').join('');
   $('manualBox').style.display=s.tipo==='navidad'?'':'none';
 }
-
+function ponPremio(s,num,premio,det){D.decimos.forEach(d=>{if(d.sorteo===s.id&&d.num===num){d.premio=premio;d.det=det||null;}});}
 async function comprobar(silencioso){
-  const s=sorteoActivo();
-  const ds=D.decimos.filter(d=>d.sorteo===s.id);
-  if(!ds.length){if(!silencioso)toast('No tienes décimos de '+s.nombre);return;}
+  const s=sorteoActivo(),nums=[...new Set(D.decimos.filter(d=>d.sorteo===s.id).map(d=>d.num))];
+  if(!nums.length){if(!silencioso)toast('No tienes décimos de '+s.nombre);return;}
   if(s.fecha>hoy()){if(!silencioso)toast('El sorteo es el '+s.fecha.split('-').reverse().join('/')+'. Te aviso ese día.');return;}
   let ok=false;
   if(s.api){
-    if(!silencioso)busy('Comprobando '+ds.length+' números…');
     let fallos=0,estado=null;
-    for(let i=0;i<ds.length;i++){
-      if(!silencioso)busy('Comprobando '+(i+1)+' de '+ds.length+'…');
-      const r=await http('GET','https://api.elpais.com/ws/'+s.api+'?n='+(+ds[i].num),{'User-Agent':'Mozilla/5.0'});
-      try{
-        const j=jsonDe(r.txt);
-        if(j.error&&+j.error!==0)throw 0;
-        estado=j.status;
-        if(+j.status>0){ds[i].premio=+j.premio||0;ds[i].det=null;}
-      }catch(e){fallos++;}
+    for(let i=0;i<nums.length;i++){
+      if(!silencioso)busy('Comprobando '+(i+1)+' de '+nums.length+'…');
+      const r=await http('GET','https://api.elpais.com/ws/'+s.api+'?n='+(+nums[i]),{'User-Agent':'Mozilla/5.0'});
+      try{const j=jsonDe(r.txt);if(j.error&&+j.error!==0)throw 0;estado=j.status;if(+j.status>0)ponPremio(s,nums[i],+j.premio||0);}catch(e){fallos++;}
     }
     busy('');
-    if(fallos<ds.length){ok=true;D.estado[s.id]=ESTADOS[estado]||'';
-      if(+estado===0&&!silencioso)toast('El sorteo todavía no ha empezado');}
+    if(fallos<nums.length){ok=true;D.estado[s.id]=ESTADOS[estado]||'';if(+estado===0&&!silencioso)toast('El sorteo todavía no ha empezado');}
   }
-  if(!ok&&D.gem){
-    try{if(!silencioso)busy('Consultando resultados con Gemini…');await comprobarGemini(s,ds);ok=true;}catch(e){}
-    busy('');
-  }
+  if(!ok&&D.gem){try{if(!silencioso)busy('Consultando resultados con Gemini…');await comprobarGemini(s,nums);ok=true;}catch(e){}busy('');}
   if(!ok&&s.tipo==='navidad'&&D.manual[s.id]&&D.manual[s.id].p1){calcularManual();ok=true;}
   save();render();
   if(!ok){if(!silencioso)toast('No he podido conectar con los resultados. Prueba en un rato, usa la web oficial o pon los premios a mano.');return;}
-  const g=ds.reduce((a,d)=>a+(d.premio||0)*d.cant,0);
-  if(g>0){toast('🎉 ¡Te ha tocado! '+eur(g)+' en total');try{B&&B.toast&&silencioso&&B.toast('🎉 ¡Te ha tocado '+eur(g)+'!');}catch(e){}}
-  else if(!silencioso)toast('Comprobado: de momento no ha tocado');
+  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0),0);
+  if(g>0)toast('🎉 ¡Te ha tocado! '+eur(g)+' en total');else if(!silencioso)toast('Comprobado: de momento no ha tocado');
 }
-async function comprobarGemini(s,ds){
-  const nums=ds.map(d=>d.num).join(', ');
-  const txt=await gemini([{text:'Busca los resultados oficiales del sorteo de Lotería Nacional de España "'+s.nombre+'" celebrado el '+s.fecha+
-    '. Para cada uno de estos números di el premio total en euros que corresponde a UN décimo de 20 €, incluyendo pedrea, aproximaciones, centenas, terminaciones y reintegro: '+nums+
-    '. Responde SOLO con JSON {"terminado":true|false,"resultados":[{"numero":"12345","premio":0}]}. Si el sorteo no se ha celebrado o no hay datos, terminado=false.'}],true);
-  const j=jsonDe(txt);
-  if(!j.terminado)throw new Error('sin datos');
-  (j.resultados||[]).forEach(r=>{const d=ds.find(x=>x.num===pad(r.numero));if(d){d.premio=+r.premio||0;d.det='Gemini';}});
+async function comprobarGemini(s,nums){
+  const txt=await gemini([{text:'Busca los resultados oficiales del sorteo de Lotería Nacional de España "'+s.nombre+'" del '+s.fecha+
+    '. Para cada número di el premio total en euros de UN décimo de 20 €, incluyendo pedrea, aproximaciones, centenas, terminaciones y reintegro: '+nums.join(', ')+
+    '. Responde SOLO JSON {"terminado":true|false,"resultados":[{"numero":"12345","premio":0}]}. Si no se ha celebrado o no hay datos, terminado=false.'}],true);
+  const j=jsonDe(txt);if(!j.terminado)throw new Error('sin datos');
+  (j.resultados||[]).forEach(r=>ponPremio(s,pad(r.numero),+r.premio||0,'Gemini'));
   D.estado[s.id]='Consultado con Gemini: confírmalo en la web oficial';
 }
-
-/* Cálculo propio para Navidad a partir de los premios grandes (sin pedrea) */
 function premioNavidad(n,P){
-  const N=+n;let t=0;const det=[];
-  const add=(v,x)=>{t+=v;det.push(x)};
+  const N=+n;let t=0;const det=[];const add=(v,x)=>{t+=v;det.push(x)};
   const ant=x=>(x+99999)%100000,pos=x=>(x+1)%100000;
-  const main=[[P.p1,400000,2000,'1º'],[P.p2,125000,1250,'2º'],[P.p3,50000,960,'3º']].concat((P.p4||[]).map(x=>[x,20000,560,'4º']));
-  main.forEach(([x,p,a,nom])=>{
-    if(x==null||x==='')return;x=+x;
+  [[P.p1,400000,2000,'1º'],[P.p2,125000,1250,'2º'],[P.p3,50000,960,'3º']].concat((P.p4||[]).map(x=>[x,20000,560,'4º'])).forEach(([x,p,a,nom])=>{
+    if(!x)return;x=+x;
     if(N===x)add(p,nom+' premio');
     if(N===ant(x)||N===pos(x))add(a,'aproximación '+nom);
     if(N!==x&&Math.floor(N/100)===Math.floor(x/100))add(100,'centena '+nom);
   });
-  (P.p5||[]).forEach(x=>{if(x!==''&&x!=null&&N===+x)add(6000,'5º premio');});
-  [P.p1,P.p2,P.p3].forEach((x,i)=>{if(x!=null&&x!==''&&N!==+x&&N%100===(+x)%100)add(100,'2 últimas cifras del '+(i+1)+'º');});
-  if(P.p1!=null&&P.p1!==''&&N!==+P.p1&&N%10===(+P.p1)%10)add(20,'reintegro');
+  (P.p5||[]).forEach(x=>{if(x&&N===+x)add(6000,'5º premio');});
+  [P.p1,P.p2,P.p3].forEach((x,i)=>{if(x&&N!==+x&&N%100===(+x)%100)add(100,'2 últimas cifras del '+(i+1)+'º');});
+  if(P.p1&&N!==+P.p1&&N%10===(+P.p1)%10)add(20,'reintegro');
   return {t,det:det.join(', ')};
 }
 function leerManual(){
@@ -569,25 +742,25 @@ function leerManual(){
   return {p1:v('m1'),p2:v('m2'),p3:v('m3'),p4:[v('m4a'),v('m4b')].filter(Boolean),p5:[...$('m5').querySelectorAll('input')].map(i=>i.value.replace(/\D/g,'')).filter(Boolean).map(x=>x.padStart(5,'0'))};
 }
 function calcularManual(){
-  const s=sorteoActivo();const P=D.manual[s.id];if(!P||!P.p1)return;
-  D.decimos.filter(d=>d.sorteo===s.id).forEach(d=>{const r=premioNavidad(d.num,P);d.premio=r.t;d.det=r.det||null;});
+  const s=sorteoActivo(),P=D.manual[s.id];if(!P||!P.p1)return;
+  [...new Set(D.decimos.filter(d=>d.sorteo===s.id).map(d=>d.num))].forEach(n=>{const r=premioNavidad(n,P);ponPremio(s,n,r.t,r.det);});
   D.estado[s.id]='Calculado con los premios escritos a mano (sin pedrea)';
 }
 $('m5').innerHTML=Array.from({length:8},()=>'<input inputmode="numeric" maxlength="5">').join('');
-function pintarManual(){const s=sorteoActivo(),P=D.manual[s.id]||{};$('m1').value=P.p1||'';$('m2').value=P.p2||'';$('m3').value=P.p3||'';$('m4a').value=(P.p4||[])[0]||'';$('m4b').value=(P.p4||[])[1]||'';[...$('m5').querySelectorAll('input')].forEach((i,k)=>i.value=(P.p5||[])[k]||'');}
+function pintarManual(){const P=D.manual[sorteoActivo().id]||{};$('m1').value=P.p1||'';$('m2').value=P.p2||'';$('m3').value=P.p3||'';$('m4a').value=(P.p4||[])[0]||'';$('m4b').value=(P.p4||[])[1]||'';[...$('m5').querySelectorAll('input')].forEach((i,k)=>i.value=(P.p5||[])[k]||'');}
 $('bManual').onclick=()=>{const s=sorteoActivo(),P=leerManual();if(!P.p1){toast('Escribe al menos el 1º premio');return;}D.manual[s.id]=P;calcularManual();save();render();
-  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0)*d.cant,0);toast(g>0?'🎉 Te ha tocado '+eur(g)+' (más la pedrea, si la hay)':'Con esos premios no te toca nada (falta mirar la pedrea)');};
+  const g=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+(d.premio||0),0);toast(g>0?'🎉 Te ha tocado '+eur(g)+' (más la pedrea, si la hay)':'Con esos premios no te toca nada (falta mirar la pedrea)');};
 $('bCheck').onclick=()=>comprobar(false);
-$('bOficial').onclick=()=>{const u='https://www.loteriasyapuestas.es/es/loteria-nacional';if(B&&B.openExternal)B.openExternal(u);else window.open(u);};
+function abrirFuera(u){if(B&&B.openExternal)B.openExternal(u);else window.open(u);}
+$('bOficial').onclick=()=>abrirFuera('https://www.loteriasyapuestas.es/es/loteria-nacional');
+$('aKey').onclick=e=>{e.preventDefault();abrirFuera('https://aistudio.google.com/apikey');};
 
-/* ---------- Avisos del día del sorteo ---------- */
+/* ================= Avisos ================= */
 function programarAvisos(manual){
   if(!B||!B.programarAviso){if(manual)toast('Los avisos solo funcionan en la app instalada');return;}
   let n=0;
   sorteosUsados().forEach(s=>{
-    const cuantos=D.decimos.filter(d=>d.sorteo===s.id).reduce((a,d)=>a+d.cant,0);
-    const id='sorteo-'+s.id;
-    const cuando=new Date(s.fecha+'T14:00:00').getTime();
+    const cuantos=D.decimos.filter(d=>d.sorteo===s.id).length,id='sorteo-'+s.id,cuando=new Date(s.fecha+'T14:00:00').getTime();
     if(!cuantos||cuando<Date.now()){try{B.cancelarAviso(id);}catch(e){}return;}
     try{B.programarAviso(id,cuando,'🎄 Hoy es el sorteo: '+s.nombre,'Tienes '+cuantos+' décimo'+(cuantos>1?'s':'')+'. Abre Mis Décimos y mira si te ha tocado.');n++;}catch(e){}
   });
@@ -595,38 +768,54 @@ function programarAvisos(manual){
 }
 $('bAvisos').onclick=()=>programarAvisos(true);
 
-/* ---------- Ajustes ---------- */
+/* ================= Ajustes ================= */
+function renderCodes(){
+  const c=D.decimos.filter(d=>d.codigo);
+  $('codes').innerHTML=c.length?c.map(d=>'<div><b>'+d.num+'</b> · S '+esc(d.serie||'?')+' · F '+esc(d.frac||'?')+' · '+esc(sorteo(d.sorteo).nombre)+'<br>'+esc(d.codigo)+'</div>').join(''):'<span class="small">Todavía no se ha leído ningún código de barras.</span>';
+}
 $('kGem').value=D.gem||'';$('mGem').value=D.gemModel||'';
-$('bGuardaK').onclick=()=>{D.gem=$('kGem').value.trim();D.gemModel=$('mGem').value.trim();save();toast(D.gem?'Clave guardada':'Sin clave: se usa el lector normal');};
+$('bGuardaK').onclick=()=>{D.gem=$('kGem').value.trim();D.gemModel=$('mGem').value.trim();save();toast(D.gem?(D.gem.startsWith('AIza')?'Clave guardada':'Guardada, pero no parece una clave de Gemini (empiezan por AIza)'):'Sin clave: se usa el lector normal');};
 function textoLista(){
   return sorteosUsados().map(s=>{const ds=D.decimos.filter(d=>d.sorteo===s.id).sort((a,b)=>a.num.localeCompare(b.num));if(!ds.length)return '';
-    return s.nombre+' ('+ds.reduce((a,d)=>a+d.cant,0)+' décimos)\n'+ds.map(d=>d.num+(d.cant>1?' x'+d.cant:'')+(d.premio>0?' → '+eur(d.premio):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
+    return s.nombre+' ('+ds.length+' décimos)\n'+ds.map(d=>d.num+(sf(d)?' ('+sf(d)+')':'')+(d.premio>0?' → '+eur(d.premio):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
 }
-$('bShare').onclick=()=>{const t=textoLista();if(!t){toast('No hay décimos');return;}
-  if(B&&B.share)B.share('Mis décimos',t);else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Lista copiada'));};
-$('bExport').onclick=()=>{const t=JSON.stringify({misDecimos:1,decimos:D.decimos,manual:D.manual},null,1);
+$('bShare').onclick=()=>{const t=textoLista();if(!t){toast('No hay décimos');return;}if(B&&B.share)B.share('Mis décimos',t);else if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Lista copiada'));};
+const aDataUrl=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b);});
+$('bExport').onclick=async()=>{
+  busy('Preparando la copia…');const fotos={};
+  try{for(const d of D.decimos)if(fotoUrl(d.foto)){const b=await (await fetch(URLS[d.foto])).blob();fotos[d.foto]=await aDataUrl(b);}}catch(e){}
+  busy('');
+  const t=JSON.stringify({misDecimos:2,decimos:D.decimos,manual:D.manual,fotos});
   if(window.androidSaveFile)window.androidSaveFile('mis-decimos-'+hoy()+'.json',t,'application/json');
-  else{const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(t);a.download='mis-decimos.json';a.click();}};
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download='mis-decimos.json';a.click();}
+};
 $('bImport').onclick=()=>{$('fImp').value='';$('fImp').click();};
-function restaurar(txt){
-  try{const j=JSON.parse(txt);if(!j.decimos)throw 0;D.decimos=j.decimos;D.manual=j.manual||{};save();render();programarAvisos();toast('Copia cargada: '+D.decimos.length+' números');}
-  catch(e){toast('Ese archivo no es una copia de Mis Décimos');}
+async function restaurar(txt){
+  try{
+    const j=JSON.parse(txt);if(!j.decimos)throw 0;
+    busy('Cargando copia…');
+    if(j.fotos&&db)for(const id in j.fotos){try{const b=await (await fetch(j.fotos[id])).blob();await tx('readwrite',st=>st.put(b,id));URLS[id]=URL.createObjectURL(b);}catch(e){}}
+    D.decimos=j.decimos.flatMap(d=>{const n=d.cant||1;delete d.cant;return Array.from({length:n},(_,i)=>Object.assign({},d,{id:(d.id||uid())+(i?'-'+i:'')}));});
+    D.manual=j.manual||{};save();busy('');render();programarAvisos();toast('Copia cargada: '+D.decimos.length+' décimos');
+  }catch(e){busy('');toast('Ese archivo no es una copia de Mis Décimos');}
 }
 window.restaurarCopiaApp=restaurar;
 $('fImp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>restaurar(r.result);r.readAsText(f);};
-$('bBorrar').onclick=async()=>{if(await confirmar('¿Borrar todos los décimos?')){D.decimos=[];D.estado={};save();render();programarAvisos();}};
+$('bBorrar').onclick=async()=>{if(await confirmar('¿Borrar todos los décimos y sus fotos?')){D.decimos.forEach(d=>fotoBorrar(d.foto));D.decimos=[];D.estado={};save();render();programarAvisos();}};
 
-/* ---------- Inicio ---------- */
-render();pintarManual();programarAvisos();
-/* Si el sorteo ya ha sido y queda algo sin comprobar, comprueba solo al abrir */
-function autoComprobar(){
-  const s=sorteoActivo();
-  if(s.fecha<=hoy()&&D.decimos.some(d=>d.sorteo===s.id&&(d.premio==null||D.estado[s.id]!==ESTADOS[4])))comprobar(true);
-}
-setTimeout(autoComprobar,1200);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoComprobar();});
-/* El día del sorteo, mientras la app esté abierta, vuelve a mirar cada 3 minutos */
-setInterval(()=>{const s=sorteoActivo();if(s.fecha===hoy()&&!document.hidden&&D.estado[s.id]!==ESTADOS[4])comprobar(true);},180000);
+/* ================= Inicio ================= */
+render();pintarManual();programarAvisos();save();
+(async()=>{
+  try{
+    db=await idbOpen();
+    await new Promise(ok=>{const t=db.transaction('f','readonly'),c=t.objectStore('f').openCursor();c.onsuccess=()=>{const cur=c.result;if(cur){URLS[cur.key]=URL.createObjectURL(cur.value);cur.continue();}else ok();};c.onerror=()=>ok();});
+    render();
+  }catch(e){db=null;}
+})();
+function autoComprobar(){const s=sorteoActivo();if(s.fecha<=hoy()&&D.decimos.some(d=>d.sorteo===s.id)&&D.estado[s.id]!==ESTADOS[4])comprobar(true);}
+setTimeout(autoComprobar,1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!stream)autoComprobar();});
+setInterval(()=>{const s=sorteoActivo();if(s.fecha===hoy()&&!document.hidden&&!stream&&D.estado[s.id]!==ESTADOS[4])comprobar(true);},180000);
 }
 </script>
 </body></html>
