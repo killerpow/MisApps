@@ -68,6 +68,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class MainActivity extends Activity {
     private Object extra;
+    private Object escaner;
     private PermissionRequest camRequest;
     private static final int REQ_CAM = 31;
 
@@ -119,6 +120,12 @@ public class MainActivity extends Activity {
             extra = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, web);
             web.addJavascriptInterface(extra, "Salud");
         } catch (Throwable ignored) { extra = null; }
+        // Escáner de documentos (solo en las apps que lo traen, como Mis Décimos)
+        try {
+            Class<?> k = Class.forName("com.juanmi.apps.Escaner");
+            escaner = k.getConstructor(android.app.Activity.class, WebView.class).newInstance(this, web);
+            web.addJavascriptInterface(escaner, "Escaner");
+        } catch (Throwable ignored) { escaner = null; }
         web.setWebViewClient(new Client());
         web.setWebChromeClient(new Chrome());
         web.setDownloadListener((url, ua, cd, mime, len) -> {
@@ -553,6 +560,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (escaner != null) {
+            try {
+                Object ok = escaner.getClass().getMethod("resultado", int.class, int.class, Intent.class).invoke(escaner, requestCode, resultCode, data);
+                if (Boolean.TRUE.equals(ok)) return;
+            } catch (Throwable ignored) {}
+        }
         if (requestCode == REQ_RESTORE) {
             if (resultCode == RESULT_OK && data != null && data.getData() != null) restoreFrom(data.getData());
             return;

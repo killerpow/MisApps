@@ -783,14 +783,29 @@ async function leerGemini(c){
   });
 }
 /* Lectura completa de una foto de la galería */
-async function leerFoto(blob){
+function zonaDe(c,z,ancho){
+  const x=c.width*z[0],y=c.height*z[1],w=c.width*(z[2]-z[0]),h=c.height*(z[3]-z[1]),k=Math.min(2.5,(ancho||1400)/w);
+  const o=document.createElement('canvas');o.width=Math.round(w*k);o.height=Math.round(h*k);o.getContext('2d').drawImage(c,x,y,w,h,0,0,o.width,o.height);return o;
+}
+/* En un escaneado el papel ocupa toda la imagen: se lee la línea del código y el número en su sitio */
+async function leerZonas(c){
+  const out={};
+  try{const wl=await lectorLinea();const {data}=await wl.recognize(binarizar(zonaDe(c,[.30,.78,1,1],1600)));out.pc=parseCodigo(data.text);}catch(e){}
+  try{const w=await lectorCifras();const {data}=await w.recognize(binarizar(zonaDe(c,[.25,.02,.88,.42],1100)));out.nums=candidatos(data);}catch(e){out.nums=[];}
+  return out;
+}
+async function leerFoto(blob,esEscaneo){
   const c=await reducir(blob,1800);
   const cod=await leerCodigo(c);
-  const pcod=parseCodigo(cod,true);
-  if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>{const pc=parseCodigo(x.codTxt);if(pc&&pc.num===x.num)mezclar(x,pc);});if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
+  let pcod=parseCodigo(cod,true);
+  const zonas=esEscaneo&&c.width>c.height?await leerZonas(c):null;
+  /* La línea leída por zonas vale si su número coincide con el leído arriba */
+  if(!pcod&&zonas&&zonas.pc&&zonas.nums.includes(zonas.pc.num))pcod=zonas.pc;
+  if(D.gem){try{const r=await leerGemini(c);if(r.length){r.forEach(x=>{const pc=parseCodigo(x.codTxt);if(pc&&pc.num===x.num)mezclar(x,pc);});
+    if(r.length===1&&!pcod&&zonas&&zonas.pc&&zonas.pc.num===r[0].num)pcod=zonas.pc;if(r.length===1){if(pcod)mezclar(r[0],pcod);else if(cod&&!r[0].codigo)r[0].codigo=cod;}return r;}}catch(e){toast(errGem(e)+' Uso el lector normal.');}}
   const w=await lectorCifras();
   const {data}=await w.recognize(binarizar(await reducir(c,1800)));
-  const nums=candidatos(data);
+  const nums=zonas&&zonas.nums.length?zonas.nums.concat(candidatos(data).filter(n=>!zonas.nums.includes(n))):candidatos(data);
   let extra={};try{const t=await lectorTexto();const r=await t.recognize(c);extra=datosTexto(r.data.text||'');}catch(e){}
   if(!nums.length&&!cod&&!extra.deCodigo)return [];
   const res=Object.assign({num:nums[0]||'',alts:nums.slice(1,5),codigo:cod},extra);
@@ -839,16 +854,17 @@ $('revOk').onclick=async()=>{
 $('bMano').onclick=()=>abrirRevision([{num:''}],'Añadir a mano','Escribe el número; la serie y la fracción son opcionales.');
 
 $('bFotos').onclick=()=>{$('fGal').value='';$('fGal').click();};
-$('fGal').onchange=async e=>{
-  const files=[...e.target.files];if(!files.length)return;
+$('fGal').onchange=e=>{const files=[...e.target.files];if(files.length)procesarImagenes(files,false);};
+async function procesarImagenes(files,esEscaneo){
   const items=[];
   try{
     for(let i=0;i<files.length;i++){
-      busy('Leyendo foto '+(i+1)+' de '+files.length+'…'+(i===0&&!wDig?' (la primera vez tarda más)':''));
-      const fb=await reducirBlob(files[i],1600);
-      let r=[];try{r=await leerFoto(fb);}catch(err){toast('No se pudo cargar el lector (¿sin internet?)');}
+      busy((esEscaneo?'Leyendo décimo ':'Leyendo foto ')+(i+1)+' de '+files.length+'…'+(i===0&&!wDig?' (la primera vez tarda más)':''));
+      const fb=esEscaneo?files[i]:await reducirBlob(files[i],1600);
+      let r=[];try{r=await leerFoto(fb,esEscaneo);}catch(err){toast('No se pudo cargar el lector (¿sin internet?)');}
       if(!r.length)r=[{num:''}];
-      for(const x of r){x.fotoBlob=(await fotoDecimo(files[i],x))||fb;items.push(x);}
+      /* Un escaneado ya viene recto y recortado: se guarda tal cual */
+      for(const x of r){x.fotoBlob=esEscaneo?fb:((await fotoDecimo(files[i],x))||fb);items.push(x);}
     }
   }finally{busy('');}
   abrirRevision(items,'Revisa '+items.length+' décimo'+(items.length>1?'s':''),'Corrige lo que haga falta. Si el número no es el bueno, toca una alternativa.');
@@ -856,7 +872,19 @@ $('fGal').onchange=async e=>{
 
 /* ================= Escáner en vivo ================= */
 let stream=null,escaneando=false,lecturas=[],nCiclo=0,codVivo='',guardadosCam=0,track=null,luz=false;
-$('bCam').onclick=async()=>{
+/* Escáner de documentos de Google (dentro de la app instalada) */
+const ESC=window.Escaner||null;
+window.__escaneado=async lista=>{
+  busy('');if(!lista||!lista.length)return;
+  const blobs=[];for(const u of lista){try{blobs.push(await (await fetch(u)).blob());}catch(e){}}
+  if(blobs.length)procesarImagenes(blobs,true);
+};
+window.__escaneadoError=m=>{busy('');toast('No se pudo abrir el escáner del móvil ('+m+'). Uso el de la app.');abrirEscanerVivo();};
+$('bCam').onclick=()=>{
+  if(ESC&&ESC.escanear){busy('Abriendo el escáner…');setTimeout(()=>{if($('busyTxt').textContent==='Abriendo el escáner…')busy('');},4000);ESC.escanear(30);return;}
+  abrirEscanerVivo();
+};
+async function abrirEscanerVivo(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Este móvil no deja usar la cámara aquí; usa Fotos');return;}
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});}
   catch(e){toast('No se pudo abrir la cámara. Usa el botón Fotos.');return;}
