@@ -68,6 +68,8 @@ import java.nio.charset.StandardCharsets;
  */
 public class MainActivity extends Activity {
     private Object extra;
+    private PermissionRequest camRequest;
+    private static final int REQ_CAM = 31;
 
 
     private static final int REQ_FILE = 10, REQ_LOC = 11, REQ_RESTORE = 12, REQ_STORAGE = 13;
@@ -507,7 +509,18 @@ public class MainActivity extends Activity {
 
         @Override
         public void onPermissionRequest(PermissionRequest request) {
-            runOnUiThread(() -> request.deny());
+            runOnUiThread(() -> {
+                boolean video = false;
+                for (String r : request.getResources())
+                    if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) video = true;
+                if (!video) { request.deny(); return; }
+                if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                } else {
+                    camRequest = request;
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAM);
+                }
+            });
         }
 
         @Override
@@ -564,6 +577,11 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(code, perms, res);
         if (extra != null) {
             try { extra.getClass().getMethod("permisosResultado", int.class).invoke(extra, code); } catch (Throwable ignored) {}
+        }
+        if (code == REQ_CAM && camRequest != null) {
+            boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+            if (ok) camRequest.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE}); else camRequest.deny();
+            camRequest = null;
         }
         if (code == REQ_LOC && geoCallback != null) {
             boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
