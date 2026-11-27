@@ -96,10 +96,12 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 #cam.on{display:flex}
 .camv{position:relative;flex:1;min-height:0;overflow:hidden}
 #vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.guide{position:absolute;left:10%;right:10%;top:32%;height:18%;border:3px solid var(--gold);border-radius:14px;box-shadow:0 0 0 999px #0008;pointer-events:none;transition:border-color .2s}
+.guide{position:absolute;left:4%;right:4%;top:46%;transform:translateY(-50%);aspect-ratio:1.7/1;border:3px solid var(--gold);border-radius:12px;box-shadow:0 0 0 999px #0009;pointer-events:none;transition:border-color .2s}
+.guide:before{content:"";position:absolute;left:34%;right:20%;top:12%;height:22%;border:2px dashed #ffffff88;border-radius:8px}
+.guide:after{content:"";position:absolute;left:36%;right:4%;bottom:4%;height:9%;border:2px dashed #ffffff66;border-radius:6px}
 .guide.ok{border-color:#22c55e}
-.ghint{position:absolute;left:0;right:0;top:calc(32% - 34px);text-align:center;color:#fff;font-size:14px;text-shadow:0 1px 3px #000;z-index:1}
-.live{position:absolute;left:0;right:0;top:calc(50% + 14px);text-align:center;color:#fff;font:800 34px ui-monospace,monospace;letter-spacing:4px;text-shadow:0 2px 6px #000}
+.ghint{position:absolute;left:12px;right:12px;top:calc(46% - 28vw - 52px);text-align:center;color:#fff;font-size:15px;text-shadow:0 1px 3px #000;z-index:1}
+.live{position:absolute;left:0;right:0;top:calc(46% + 28vw + 12px);text-align:center;color:#fff;font:800 34px ui-monospace,monospace;letter-spacing:4px;text-shadow:0 2px 6px #000}
 .camtop{position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));display:flex;justify-content:space-between;gap:10px;color:#fff;font-size:14px;text-shadow:0 1px 3px #000}
 .cambar{display:flex;justify-content:space-around;align-items:center;padding:14px 16px calc(18px + env(safe-area-inset-bottom));background:#000}
 .shot{width:70px;height:70px;border-radius:50%;border:5px solid #fff;background:var(--gold)}
@@ -221,7 +223,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 <div id="cam">
   <div class="camv">
     <video id="vid" playsinline autoplay muted></video>
-    <div class="ghint">Pon el número grande del décimo dentro del recuadro</div>
+    <div class="ghint">Encaja el décimo entero en el recuadro, con el número arriba y la línea del código abajo</div>
     <div class="guide" id="guide"></div>
     <div class="live" id="live"></div>
     <div class="camtop"><span id="camStat">Preparando el escáner…</span><span id="camCnt"></span></div>
@@ -516,12 +518,71 @@ async function recortar(src,caja){
   return aBlob(c,.88);
 }
 /* Para una foto suelta: Gemini solo dice dónde está el décimo */
+/* Homografía: lleva los 4 puntos d (destino) a s (origen) */
+function homografia(d,s){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){const [u,v]=d[i],[x,y]=s[i];A.push([u,v,1,0,0,0,-u*x,-v*x]);b.push(x);A.push([0,0,0,u,v,1,-u*y,-v*y]);b.push(y);}
+  for(let c=0;c<8;c++){let p=c;for(let q=c+1;q<8;q++)if(Math.abs(A[q][c])>Math.abs(A[p][c]))p=q;
+    [A[c],A[p]]=[A[p],A[c]];[b[c],b[p]]=[b[p],b[c]];
+    for(let q=0;q<8;q++){if(q===c)continue;const f=A[q][c]/A[c][c];for(let k=c;k<8;k++)A[q][k]-=f*A[c][k];b[q]-=f*b[c];}}
+  return b.map((v,i)=>v/A[i][i]);
+}
+/* Esquinas [[y,x]×4] de 0 a 1000: arriba-izq, arriba-dcha, abajo-dcha, abajo-izq */
+function esquinasValidas(e){
+  if(!Array.isArray(e)||e.length!==4||!e.every(p=>Array.isArray(p)&&p.length===2&&p.every(n=>isFinite(+n))))return null;
+  const P=e.map(([y,x])=>[Math.min(1000,Math.max(0,+x)),Math.min(1000,Math.max(0,+y))]);
+  let a=0;for(let i=0;i<4;i++){const [x1,y1]=P[i],[x2,y2]=P[(i+1)%4];a+=x1*y2-x2*y1;}
+  a=Math.abs(a)/2/1e6;
+  let sg=0;for(let i=0;i<4;i++){const [ax,ay]=P[i],[bx,by]=P[(i+1)%4],[cx,cy]=P[(i+2)%4];const z=(bx-ax)*(cy-by)-(by-ay)*(cx-bx);sg+=z>0?1:z<0?-1:0;}
+  return a>.06&&Math.abs(sg)===4?P:null;
+}
+function enderezar(img,P){
+  const W0=img.width,H0=img.height,S=P.map(([x,y])=>[x/1000*W0,y/1000*H0]);
+  const dd=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  let w=Math.max(dd(S[0],S[1]),dd(S[3],S[2])),h=Math.max(dd(S[0],S[3]),dd(S[1],S[2]));
+  const k=Math.min(1.6,1600/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+  const H=homografia([[0,0],[w,0],[w,h],[0,h]],S);
+  const sc=img.getContext('2d').getImageData(0,0,W0,H0).data;
+  const out=document.createElement('canvas');out.width=w;out.height=h;
+  const ctx=out.getContext('2d'),od=ctx.createImageData(w,h),o=od.data;
+  for(let v=0;v<h;v++)for(let u=0;u<w;u++){
+    const den=H[6]*u+H[7]*v+1,x=(H[0]*u+H[1]*v+H[2])/den,y=(H[3]*u+H[4]*v+H[5])/den,i=(v*w+u)*4;
+    const x0=Math.floor(x),y0=Math.floor(y);o[i+3]=255;
+    if(x0<0||y0<0||x0>=W0-1||y0>=H0-1){o[i]=o[i+1]=o[i+2]=255;continue;}
+    const fx=x-x0,fy=y-y0,j=(y0*W0+x0)*4,j2=j+W0*4;
+    for(let c=0;c<3;c++)o[i+c]=(sc[j+c]*(1-fx)+sc[j+4+c]*fx)*(1-fy)+(sc[j2+c]*(1-fx)+sc[j2+4+c]*fx)*fy;
+  }
+  ctx.putImageData(od,0,0);return out;
+}
+/* Limpia la luz: el papel claro pasa a blanco y los negros a negro, como un escáner */
+function mejorar(c){
+  const x=c.getContext('2d'),im=x.getImageData(0,0,c.width,c.height),p=im.data,n=p.length/4;
+  const hs=[0,1,2].map(()=>new Uint32Array(256)),hl=new Uint32Array(256);
+  for(let i=0;i<p.length;i+=16){hs[0][p[i]]++;hs[1][p[i+1]]++;hs[2][p[i+2]]++;hl[(p[i]*.3+p[i+1]*.59+p[i+2]*.11)|0]++;}
+  const tot=Math.ceil(n/4),pct=(h,q)=>{let a=0;for(let v=0;v<256;v++){a+=h[v];if(a>=tot*q)return v;}return 255;};
+  const lo=pct(hl,.01),hi=hs.map(h=>pct(h,.9));
+  if(hi.some(v=>v-lo<50))return c;
+  const lut=hi.map(H=>{const t=new Uint8ClampedArray(256);for(let v=0;v<256;v++)t[v]=(v-lo)*255/(H-lo);return t;});
+  for(let i=0;i<p.length;i+=4){p[i]=lut[0][p[i]];p[i+1]=lut[1][p[i+1]];p[i+2]=lut[2][p[i+2]];}
+  x.putImageData(im,0,0);return c;
+}
+/* Foto final del décimo: escaneado con esquinas; si no, recorte con la caja; si no, nada */
+async function fotoDecimo(src,g){
+  try{
+    const c=src instanceof HTMLCanvasElement?src:await reducir(src,2200);
+    const P=esquinasValidas(g&&g.esquinas);
+    if(P)return aBlob(mejorar(enderezar(c,P)),.9);
+    if(g&&g.caja){const b=await recortar(c,g.caja);if(b)return aBlob(mejorar(await reducir(b,1600)),.9);}
+  }catch(e){}
+  return null;
+}
 async function recortarConGemini(blob){
   if(!D.gem)return null;
   try{
     const b64=(await reducir(blob,1200)).toDataURL('image/jpeg',.85).split(',')[1];
-    const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Localiza el décimo de lotería de papel ENTERO en la imagen. Devuelve SOLO JSON {"caja":[ymin,xmin,ymax,xmax]} con valores de 0 a 1000 relativos a la imagen. Si no hay ningún décimo, {"caja":null}.'}]);
-    return await recortar(blob,cajaValida(jsonDe(txt).caja));
+    const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:'Localiza el décimo de lotería de papel ENTERO en la imagen. Devuelve SOLO JSON {"caja":[ymin,xmin,ymax,xmax],"esquinas":[[y,x],[y,x],[y,x],[y,x]]}. '+
+    '"esquinas" son las 4 esquinas del papel en este orden según se lee el décimo: arriba-izquierda, arriba-derecha, abajo-derecha, abajo-izquierda. Todos los valores de 0 a 1000 relativos a la imagen. Si no hay ningún décimo, {"caja":null,"esquinas":null}.'}]);
+    const j=jsonDe(txt);return await fotoDecimo(blob,{caja:cajaValida(j.caja),esquinas:j.esquinas});
   }catch(e){return null;}
 }
 /* Gris + umbral automático (Otsu): cifras negras sobre blanco */
@@ -651,8 +712,9 @@ async function leerGemini(c){
   const b64=(await reducir(c,1600)).toDataURL('image/jpeg',.88).split(',')[1];
   const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:
     'En la imagen hay uno o varios décimos de la Lotería Nacional de España. Para cada décimo devuelve SOLO JSON: '+
-    '{"decimos":[{"numero":"12345","serie":"12","fraccion":"3","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","caja":[ymin,xmin,ymax,xmax]}]}. '+
+    '{"decimos":[{"numero":"12345","serie":"12","fraccion":"3","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","caja":[ymin,xmin,ymax,xmax],"esquinas":[[y,x],[y,x],[y,x],[y,x]]}]}. '+
     '"codigo": copia exactamente los dígitos impresos debajo del código de barras (p. ej. "5102604086>0404657793"), o "" si no se ven. '+
+    '"esquinas": las 4 esquinas del papel [[y,x],[y,x],[y,x],[y,x]] en orden arriba-izquierda, arriba-derecha, abajo-derecha, abajo-izquierda según se lee el décimo, de 0 a 1000. '+
     '"caja" es el rectángulo que encierra el décimo de papel ENTERO (todo su borde), con valores de 0 a 1000 relativos al tamaño de la imagen. '+
     'El número tiene 5 cifras y es el más grande impreso. La serie y la fracción vienen indicadas en el décimo (por ejemplo "SERIE 045", "FRACCIÓN 7ª"). '+
     'No confundas con el precio, el número de sorteo (por ejemplo 102/2026) ni el código de barras. Si un dato no se ve, pon "". Si no hay décimos, {"decimos":[]}.'}]);
@@ -661,7 +723,7 @@ async function leerGemini(c){
     let sid=null;
     if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
     else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=sorteoPorFecha(d.fecha);
-    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),codTxt:d.codigo||''};
+    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||''};
   });
 }
 /* Lectura completa de una foto de la galería */
@@ -727,7 +789,7 @@ $('fGal').onchange=async e=>{
       const fb=await reducirBlob(files[i],1600);
       let r=[];try{r=await leerFoto(fb);}catch(err){toast('No se pudo cargar el lector (¿sin internet?)');}
       if(!r.length)r=[{num:''}];
-      for(const x of r){x.fotoBlob=(x.caja&&await recortar(fb,x.caja).catch(()=>null))||fb;items.push(x);}
+      for(const x of r){x.fotoBlob=(await fotoDecimo(files[i],x))||fb;items.push(x);}
     }
   }finally{busy('');}
   abrirRevision(items,'Revisa '+items.length+' décimo'+(items.length>1?'s':''),'Corrige lo que haga falta. Si el número no es el bueno, toca una alternativa.');
@@ -754,11 +816,13 @@ $('camNo').onclick=cerrarCam;
 $('camLuz').onclick=()=>{if(!track)return;luz=!luz;track.applyConstraints({advanced:[{torch:luz}]}).catch(()=>{luz=false;toast('Este móvil no deja encender la luz desde aquí');});};
 function fotograma(){const v=$('vid'),c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);return c;}
 /* Recorta del vídeo justo lo que se ve dentro del recuadro */
-function recorteGuia(){
+function recorteGuia(margen,ancho){
+  margen=margen||0;
   const v=$('vid'),vr=v.getBoundingClientRect(),g=$('guide').getBoundingClientRect();
   const k=Math.max(vr.width/v.videoWidth,vr.height/v.videoHeight),ox=(vr.width-v.videoWidth*k)/2,oy=(vr.height-v.videoHeight*k)/2;
-  const x=Math.max(0,(g.left-vr.left-ox)/k),y=Math.max(0,(g.top-vr.top-oy)/k),w=Math.min(v.videoWidth-x,g.width/k),h=Math.min(v.videoHeight-y,g.height/k);
-  const s=Math.min(2.5,1100/w),c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
+  const mx=g.width*margen,my=g.height*margen;
+  const x=Math.max(0,(g.left-mx-vr.left-ox)/k),y=Math.max(0,(g.top-my-vr.top-oy)/k),w=Math.min(v.videoWidth-x,(g.width+2*mx)/k),h=Math.min(v.videoHeight-y,(g.height+2*my)/k);
+  const s=Math.min(2.5,(ancho||1400)/w),c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
   c.getContext('2d').drawImage(v,x,y,w,h,0,0,c.width,c.height);return c;
 }
 async function bucle(){
@@ -768,6 +832,8 @@ async function bucle(){
     try{
       const {data}=await wDig.recognize(binarizar(recorteGuia()));
       if(!escaneando)break;
+      const pcv=parseCodigo((data.text||'').replace(/\s+/g,''))||parseCodigo(data.text);
+      if(pcv){$('live').textContent=pcv.num;await detectado(pcv.num,[],pcv,true);break;}
       const n=candidatos(data)[0]||null;
       lecturas.push(n);if(lecturas.length>5)lecturas.shift();
       $('live').textContent=n||'';
@@ -784,11 +850,11 @@ $('camShot').onclick=async()=>{
   if(!stream||!$('vid').videoWidth||$('panel').classList.contains('on'))return;
   await detectado(lecturas.filter(Boolean).pop()||'',[]);
 };
-async function detectado(num,alts,pre){
-  if(pre&&!escaneando)return;
+async function detectado(num,alts,pre,propio){
+  if(pre&&!propio&&!escaneando)return;
   escaneando=false;$('guide').classList.remove('ok');$('camStat').textContent='¡Leído!';
   try{navigator.vibrate&&navigator.vibrate(90);}catch(e){}
-  const frame=fotograma(),fotoBlob=await aBlob(await reducir(frame,1600));
+  const frame=fotograma(),fotoBlob=await aBlob(mejorar(recorteGuia(.04,1600)),.9);
   const it={k:uid(),num,alts:[...new Set(alts)].slice(0,3),codigo:codVivo,fotoBlob,serie:'',frac:'',sorteo:null};
   if(pre)mezclar(it,pre);else{const pc=parseCodigo(codVivo);if(pc)mezclar(it,pc);}
   mostrarPanel(it,'Buscando serie, fracción y código de barras…');
@@ -796,7 +862,7 @@ async function detectado(num,alts,pre){
   try{
     if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';if(g&&!it.deCodigo&&parseCodigo(g.codTxt))mezclar(it,parseCodigo(g.codTxt));
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
-      if(g){const rb=await recortar(frame,g.caja).catch(()=>null);if(rb)it.fotoBlob=rb;}}catch(e){it.aviso=errGem(e);}}
+      if(g){const rb=await fotoDecimo(frame,g);if(rb)it.fotoBlob=rb;}}catch(e){it.aviso=errGem(e);}}
     if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
     if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');if(x.deCodigo&&!it.deCodigo){if(it.num&&it.num!==x.num)it.alts.unshift(it.num);mezclar(it,x);}it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
   }catch(e){}
