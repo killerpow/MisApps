@@ -38,6 +38,7 @@
   function sincro() {
     if (estado() !== 'ok') return;
     try { Salud.leerPasos(dia(0)); Salud.leerPasos(dia(1)); } catch (e) { }
+    try { Salud.leerDistancia(dia(0)); Salud.leerDistancia(dia(1)); } catch (e) { }
     enviar();
   }
 
@@ -53,6 +54,17 @@
     S.steps[d] = n;
     save();
     pintar();
+  };
+  var KM = 'jb-salud-km';
+  function kmDe(d) { try { return (JSON.parse(localStorage.getItem(KM)) || {})[d] || 0; } catch (e) { return 0; } }
+  window.saludKm = function (d, m) {
+    var km = Math.round((+m || 0) / 10) / 100;
+    if (km <= 0 || km === kmDe(d)) return;
+    var o; try { o = JSON.parse(localStorage.getItem(KM)) || {}; } catch (e) { o = {}; }
+    o[d] = km;
+    var ks = Object.keys(o).sort(); while (ks.length > 60) delete o[ks.shift()];
+    try { localStorage.setItem(KM, JSON.stringify(o)); } catch (e) { }
+    if (d === dia(0)) pintar();
   };
   window.saludGuardado = function (id, ok, err) {
     delete pend[id];
@@ -88,6 +100,8 @@
     var tarjeta = stepsCard;
     stepsCard = function () {
       var h = tarjeta.apply(this, arguments);
+      var km = kmDe(dia(0));
+      if (km > 0) h = h.replace('</small></span><span class="mut">›</span></button>', ' · 📏 ' + km.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' km</small></span><span class="mut">›</span></button>');
       if (estado() === 'ok') return h + '<button class="card actbtn" onclick="saludSincronizar()" style="padding:10px 14px"><span style="font-size:20px">🔄</span><span style="flex:1;text-align:left"><b>Sincronizar con Samsung Health</b><small class="mut" style="display:block">Coge ahora los pasos y envía los entrenos pendientes</small></span></button>';
       return h + '<button class="card actbtn" onclick="saludConectar()"><span style="font-size:24px">🔗</span><span style="flex:1;text-align:left"><b>Conectar con Samsung Health</b><small class="mut" style="display:block">Tus pasos se pondrán solos y tus entrenos aparecerán en Samsung Health</small></span><span class="mut">›</span></button>';
     };

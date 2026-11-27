@@ -10,6 +10,8 @@ import android.health.connect.InsertRecordsResponse;
 import android.health.connect.LocalTimeRangeFilter;
 import android.health.connect.TimeInstantRangeFilter;
 import android.health.connect.datatypes.ActiveCaloriesBurnedRecord;
+import android.health.connect.datatypes.DistanceRecord;
+import android.health.connect.datatypes.units.Length;
 import android.health.connect.datatypes.ExerciseSessionRecord;
 import android.health.connect.datatypes.ExerciseSessionType;
 import android.health.connect.datatypes.Metadata;
@@ -34,6 +36,7 @@ public class Salud {
     static final int REQ = 77;
     static final String[] PERMISOS = {
             "android.permission.health.READ_STEPS",
+            "android.permission.health.READ_DISTANCE",
             "android.permission.health.WRITE_EXERCISE",
             "android.permission.health.WRITE_ACTIVE_CALORIES_BURNED"
     };
@@ -100,6 +103,28 @@ public class Salud {
         } catch (Throwable t) {
             js("window.saludError&&window.saludError(" + JSONObject.quote(String.valueOf(t.getMessage())) + ")");
         }
+    }
+
+    /** Distancia total de un día en metros. Responde con window.saludKm(dia, metros). */
+    @JavascriptInterface
+    public void leerDistancia(String dia) {
+        HealthConnectManager m = hc();
+        if (m == null) return;
+        if (act.checkSelfPermission("android.permission.health.READ_DISTANCE") != PackageManager.PERMISSION_GRANTED) return;
+        try {
+            LocalDate d = LocalDate.parse(dia);
+            LocalTimeRangeFilter f = new LocalTimeRangeFilter.Builder()
+                    .setStartTime(d.atStartOfDay()).setEndTime(d.plusDays(1).atStartOfDay()).build();
+            AggregateRecordsRequest<Length> req = new AggregateRecordsRequest.Builder<Length>(f)
+                    .addAggregationType(DistanceRecord.DISTANCE_TOTAL).build();
+            m.aggregate(req, act.getMainExecutor(), new OutcomeReceiver<AggregateRecordsResponse<Length>, HealthConnectException>() {
+                @Override public void onResult(AggregateRecordsResponse<Length> r) {
+                    Length l = r.get(DistanceRecord.DISTANCE_TOTAL);
+                    js("window.saludKm&&window.saludKm(" + JSONObject.quote(dia) + "," + (l == null ? 0 : l.getInMeters()) + ")");
+                }
+                @Override public void onError(HealthConnectException e) { }
+            });
+        } catch (Throwable ignored) { }
     }
 
     private static int tipo(String t) {
