@@ -298,7 +298,7 @@ function fotoBorrar(id){if(!db||!id)return;tx('readwrite',st=>st.delete(id)).cat
 const fotoUrl=id=>id&&URLS[id]||'';
 
 /* ================= Décimos ================= */
-function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,importe:+o.importe||PRECIO,recargo:num2(o.recargo),serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
+function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,sorteoNum:o.sorteoNum||'',importe:+o.importe||PRECIO,recargo:num2(o.recargo),serie:o.serie||'',frac:o.frac||'',codigo:o.codigo||'',foto:o.foto||null,nota:o.nota||'',premio:null,det:null};}
 /* ¿Este décimo ya lo tengo? Mismo código de barras, o mismo número y sorteo con serie y fracción compatibles */
 function buscarIgual(v,sid,codigo){
   if(codigo){const k=D.decimos.find(d=>d.codigo===codigo);if(k)return k;}
@@ -308,7 +308,8 @@ function buscarIgual(v,sid,codigo){
 }
 /* Guarda un décimo; si ya lo tengo y llega con foto, se la pone al que ya está en vez de duplicarlo.
    Devuelve 'nuevo', 'foto' (le ha puesto foto), 'cambiada' o 'repe' (no ha hecho nada) */
-async function guardarDecimo(v,sid,codigo,fotoBlob,recargo){
+async function guardarDecimo(v,sid,codigo,fotoBlob,recargo,extra){
+  extra=extra||{};aprenderSorteo(extra.sorteoNum,sid);
   const ig=buscarIgual(v,sid,codigo);
   const exacto=ig&&(codigo&&ig.codigo===codigo||(v.serie&&v.frac&&ig.serie===v.serie&&ig.frac===v.frac));
   if(ig&&(fotoBlob||exacto)){
@@ -325,7 +326,7 @@ async function guardarDecimo(v,sid,codigo,fotoBlob,recargo){
     }else if(!await confirmar(txt+'. ¿Lo añado otra vez?','Añadir otra vez','No'))return 'repe';
   }
   const foto=fotoBlob?await fotoGuardar(fotoBlob).catch(()=>null):null;
-  D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo,foto,recargo}));
+  D.decimos.push(nuevoDecimo({num:v.num,sorteo:sid,serie:v.serie,frac:v.frac,codigo,foto,recargo,importe:v.importe||extra.importe,sorteoNum:extra.sorteoNum}));
   return 'nuevo';
 }
 const RES={nuevo:'añadido',foto:'le he puesto la foto',cambiada:'foto cambiada',repe:'no se ha añadido'};
@@ -356,6 +357,8 @@ async function selSorteo(sel,prev){
   const id=sorteoPorFecha(f);if(!sel.querySelector('option[value="'+id+'"]'))sel.insertAdjacentHTML('afterbegin','<option value="'+id+'">'+esc(sorteo(id).nombre)+'</option>');
   sel.value=id;return id;
 }
+function aprenderSorteo(num,sid){if(!num||!sid||!/^ln-/.test(sid))return;D.sorteoFechas=D.sorteoFechas||{};if(D.sorteoFechas[num]!==sid){D.sorteoFechas[num]=sid;save();}}
+const sorteoDeNum=num=>num&&D.sorteoFechas&&D.sorteoFechas[num]||null;
 const sf=d=>[d.serie?'S '+d.serie:'',d.frac?'F '+d.frac:''].filter(Boolean).join(' · ');
 /* Dibujo de un décimo con sus datos (para los que no tienen foto) */
 function decimoSVG(d){
@@ -670,6 +673,7 @@ function parseCodigo(t,deBarras){
     let sorteo=null;
     if(sn===102)sorteo=y===2026?'navidad2026':'ln-'+y+'-12-22';
     else if(sn===2)sorteo=y===2027?'nino2027':'ln-'+y+'-01-06';
+    sorteo=sorteo||sorteoDeNum(sn+'/'+String(y).slice(2));
     return {num:m[7],serie:String(serie),frac:String(frac),sorteo,sorteoNum:sn+'/'+String(y).slice(2),codigo:m[1]+m[2]+m[3]+m[4]+m[5]+'>'+m[6]+m[7]+m[8]};
   };
   for(const linea of String(t).split(/[\n\r]+/)){
@@ -684,14 +688,16 @@ function parseCodigo(t,deBarras){
   }
   return null;
 }
-const mezclar=(a,p)=>p?Object.assign(a,{num:p.num,serie:p.serie,frac:p.frac,sorteo:p.sorteo||a.sorteo,codigo:p.codigo,deCodigo:true}):a;
+const mezclar=(a,p)=>p?Object.assign(a,{num:p.num,serie:p.serie,frac:p.frac,sorteo:p.sorteo||a.sorteo,sorteoNum:p.sorteoNum,codigo:p.codigo,deCodigo:true}):a;
 function datosTexto(t){
   t=t.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
   const r={};
-  let m=/SERIE\s*[:.]?\s*(\d{1,3})\b/.exec(t)||/\b(\d{1,3})\s*[ªA°º.]?\s*SERIE/.exec(t);if(m&&+m[1]>0)r.serie=String(+m[1]);
-  m=/FRACCION\s*[:.]?\s*(\d{1,2})\b/.exec(t)||/\b(\d{1,2})\s*[ªA°º.]?\s*FRACC/.exec(t);if(m&&+m[1]>=1&&+m[1]<=10)r.frac=String(+m[1]);
+  /* En los décimos el número va encima de la palabra: "86ª SERIE", "4ª FRACCIÓN" */
+  let m=/\b(\d{1,3})\s*[ªA°º.:]*\s*SERIE/.exec(t)||/SERIE\s*[:.]?\s*(\d{1,3})\b/.exec(t);if(m&&+m[1]>0)r.serie=String(+m[1]);
+  m=/\b(\d{1,2})\s*[ªA°º.:]*\s*FRACC/.exec(t)||/FRACCION\s*[:.]?\s*(\d{1,2})\b/.exec(t);if(m&&+m[1]>=1&&+m[1]<=10)r.frac=String(+m[1]);
   if(/NAVIDAD/.test(t))r.sorteo='navidad2026';else if(/\bNINO\b/.test(t))r.sorteo='nino2027';
-  m=new RegExp('\\b(\\d{1,2}) DE ('+MESES.join('|')+') DE (\\d{4})').exec(t);
+  m=new RegExp('\\b(\\d{1,2}) (?:DE )?('+MESES.join('|')+')(?: DE)? (\\d{4})').exec(t);
+  const pr=/PRECIO\D{0,4}(\d{1,3})/.exec(t)||/\b(\d{1,3}) ?(?:€|EUROS)/.exec(t);if(pr&&+pr[1]>=1&&+pr[1]<=200)r.importe=+pr[1];
   if(m&&!r.sorteo)r.sorteo=sorteoPorFecha(m[3]+'-'+String(MESES.indexOf(m[2])+1).padStart(2,'0')+'-'+m[1].padStart(2,'0'));
   r.codPosible=parseCodigo(t);
   return r;
@@ -745,8 +751,9 @@ async function leerGemini(c){
   const b64=(await reducir(c,1600)).toDataURL('image/jpeg',.88).split(',')[1];
   const txt=await gemini([{inline_data:{mime_type:'image/jpeg',data:b64}},{text:
     'En la imagen hay uno o varios décimos de la Lotería Nacional de España. Para cada décimo devuelve SOLO JSON: '+
-    '{"decimos":[{"numero":"12345","serie":"12","fraccion":"3","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","caja":[ymin,xmin,ymax,xmax],"esquinas":[[y,x],[y,x],[y,x],[y,x]]}]}. '+
+    '{"decimos":[{"numero":"12345","serie":"12","fraccion":"3","sorteo":"navidad|nino|otro","fecha":"AAAA-MM-DD o null","precio":20,"caja":[ymin,xmin,ymax,xmax],"esquinas":[[y,x],[y,x],[y,x],[y,x]]}]}. '+
     '"codigo": copia exactamente los dígitos impresos debajo del código de barras (p. ej. "5102604086>0404657793"), o "" si no se ven. '+
+    '"precio": euros que cuesta el décimo según lo impreso (p. ej. 3, 6, 12, 20). "fecha": la fecha del sorteo impresa en el décimo. '+
     '"esquinas": las 4 esquinas del papel [[y,x],[y,x],[y,x],[y,x]] en orden arriba-izquierda, arriba-derecha, abajo-derecha, abajo-izquierda según se lee el décimo, de 0 a 1000. '+
     '"caja" es el rectángulo que encierra el décimo de papel ENTERO (todo su borde), con valores de 0 a 1000 relativos al tamaño de la imagen. '+
     'El número tiene 5 cifras y es el más grande impreso. La serie y la fracción vienen indicadas en el décimo (por ejemplo "SERIE 045", "FRACCIÓN 7ª"). '+
@@ -756,7 +763,7 @@ async function leerGemini(c){
     let sid=null;
     if(d.sorteo==='navidad')sid='navidad2026';else if(d.sorteo==='nino')sid='nino2027';
     else if(d.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha))sid=sorteoPorFecha(d.fecha);
-    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||''};
+    return {num:pad(d.numero),serie:soloNum(d.serie),frac:soloNum(d.fraccion),sorteo:sid,alts:[],caja:cajaValida(d.caja),esquinas:d.esquinas,codTxt:d.codigo||'',importe:+d.precio>0&&+d.precio<=200?+d.precio:null};
   });
 }
 /* Lectura completa de una foto de la galería */
@@ -807,7 +814,7 @@ $('revOk').onclick=async()=>{
   if(vals.some(v=>v.num.length!==5)&&!await confirmar('Hay números con menos de 5 cifras. Se completarán con ceros delante. ¿Seguir?','Seguir','Corregir'))return;
   const rec=$('revRec').value,cuenta={};
   $('dRev').classList.remove('on');
-  for(const v of vals){const r=await guardarDecimo(v,sid,v.it.codigo,v.it.fotoBlob,rec);cuenta[r]=(cuenta[r]||0)+1;}
+  for(const v of vals){const r=await guardarDecimo(v,sid,v.it.codigo,v.it.fotoBlob,rec,{importe:v.it.importe,sorteoNum:v.it.sorteoNum});cuenta[r]=(cuenta[r]||0)+1;}
   save();render();programarAvisos();
   const t=resumen(cuenta);if(t)toast('✓ '+t);
 };
@@ -912,9 +919,10 @@ async function detectado(num,alts,pre,propio){
   try{
     if(D.gem){try{const r=await leerGemini(frame);const g=r[0];if(!g)it.aviso='Gemini no ve ningún décimo en la foto. Acerca la cámara y que se vea entero.';{const pg=g&&parseCodigo(g.codTxt);if(pg&&!it.deCodigo&&(pg.num===g.num||pg.num===it.num))mezclar(it,pg);}
       if(g&&!it.deCodigo){if(g.num&&g.num!==it.num){if(it.num)it.alts.unshift(it.num);it.num=g.num;}it.serie=g.serie||'';it.frac=g.frac||'';it.sorteo=g.sorteo;}
+      if(g){if(!it.sorteo&&g.sorteo)it.sorteo=g.sorteo;if(!it.importe&&g.importe)it.importe=g.importe;}
       if(g){if($('panel').dataset.k===it.k)mostrarPanel(it,'Enderezando la foto del décimo…');const rb=await fotoDecimo(frame,g);if(rb){it.fotoBlob=rb;it.recto=!!g.enderezado;}}}catch(e){it.aviso=errGem(e);}}
     if(!it.codigo){it.codigo=await leerCodigo(await reducir(frame,1800));const pc=parseCodigo(it.codigo,true);if(pc&&!it.deCodigo){if(it.num&&it.num!==pc.num)it.alts.unshift(it.num);mezclar(it,pc);}}
-    if(!it.serie||!it.frac){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;}
+    if(!it.serie||!it.frac||!it.sorteo||!it.importe){const t=await lectorTexto();const r=await t.recognize(await reducir(frame,1800));const x=datosTexto(r.data.text||'');const pt=x.codPosible;if(pt&&!it.deCodigo&&(pt.num===it.num||it.alts.includes(pt.num)))mezclar(it,pt);it.serie=it.serie||x.serie||'';it.frac=it.frac||x.frac||'';it.sorteo=it.sorteo||x.sorteo||null;it.importe=it.importe||x.importe||null;}
   }catch(e){}
   fin();it.listo=null;
   if($('panel').classList.contains('on')&&$('panel').dataset.k===it.k)mostrarPanel(it,'');
@@ -923,13 +931,14 @@ function mostrarPanel(it,estado){
   const p=$('panel'),prev={},misma=p.dataset.k===it.k;
   if(misma)p.querySelectorAll('[data-c]').forEach(i=>{if(i.dataset.t)prev[i.dataset.c]=i.value;});
   const prevSort=misma&&$('pSort')&&$('pSort').dataset.t?$('pSort').value:null;
-  const prevRec=misma&&$('pRec')?$('pRec').value:null;
+  const prevRec=misma&&$('pRec')?$('pRec').value:null,prevImp=misma&&$('pImp')&&$('pImp').dataset.t?$('pImp').value:null;
   p.dataset.k=it.k;
   const dup=it.codigo&&D.decimos.find(d=>d.codigo===it.codigo);
   p.innerHTML='<div class="f3"><div><label>Número</label><input class="n" data-c="num" inputmode="numeric" maxlength="5"></div>'+
     '<div><label>Serie</label><input data-c="serie" inputmode="numeric"></div><div><label>Fracción</label><input data-c="frac" inputmode="numeric"></div></div>'+
     (it.alts.length?'<div class="alts"><span class="small">¿O es…?</span></div>':'')+
-    '<div class="f3"><div><label>Sorteo</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select></div><div></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
+    '<div class="f3"><div><label>Sorteo'+(it.sorteoNum?' '+esc(it.sorteoNum):'')+'</label><select id="pSort">'+opcionesSorteo(prevSort||it.sorteo||sorteoPorDefecto())+'</select></div><div><label>Precio €</label><input id="pImp" inputmode="decimal"></div><div><label>Recargo €</label><input id="pRec" inputmode="decimal" placeholder="0"></div></div>'+
+    (!estado&&it.sorteoNum&&!it.sorteo?'<p class="pr" style="font-size:14px">⚠️ No sé la fecha del sorteo '+esc(it.sorteoNum)+'. Elígela en Sorteo → "Otro sorteo". La próxima vez lo sabré.</p>':'')+
     (it.recto&&!estado?'<p class="small" style="color:#15803d;font-weight:700">📐 Foto enderezada como un escaneado</p>':'')+
     (it.aviso&&!estado?'<p class="pr" style="font-size:14px">⚠️ '+esc(it.aviso)+'</p>':'')+
     '<p class="small mono">'+(it.deCodigo?'✅ Leído del código del décimo: '+esc(it.codigo)+'<br>':'')+(estado?'⏳ '+esc(estado):it.deCodigo?'':it.codigo?'Código: '+esc(it.codigo):'No he podido leer el código de barras')+'</p>'+
@@ -939,7 +948,10 @@ function mostrarPanel(it,estado){
   it.alts.forEach(a=>{const b=document.createElement('button');b.textContent=a;b.onclick=()=>{const i=p.querySelector('[data-c=num]');i.value=a;i.dataset.t=1;};p.querySelector('.alts').appendChild(b);});
   if(prevSort)$('pSort').dataset.t=1;
   $('pSort').onchange=()=>{$('pSort').dataset.t=1;selSorteo($('pSort'));};
+  $('pImp').oninput=()=>$('pImp').dataset.t=1;if(prevImp!=null)$('pImp').dataset.t=1;
   $('pRec').value=prevRec!=null?prevRec:(recargoUltimo||'');
+  const sAct=sorteo(prevSort||it.sorteo||sorteoPorDefecto());
+  $('pImp').value=prevImp!=null?prevImp:(it.importe||(sAct.tipo==='navidad'||sAct.tipo==='nino'?PRECIO:'')||PRECIO);
   p.classList.add('on');
   $('pNo').onclick=seguir;
   $('pOk').onclick=async()=>{
@@ -948,7 +960,7 @@ function mostrarPanel(it,estado){
     if(!v.num){toast('Falta el número');return;}
     const sid=$('pSort').value==='__otro'?sorteoPorDefecto():$('pSort').value;
     recargoUltimo=num2($('pRec').value);
-    const res=await guardarDecimo(v,sid,it.codigo,it.fotoBlob,recargoUltimo);save();
+    const res=await guardarDecimo(v,sid,it.codigo,it.fotoBlob,recargoUltimo,{importe:num2($('pImp').value)||it.importe,sorteoNum:it.sorteoNum});save();
     if(res!=='repe'){guardadosCam++;$('camCnt').textContent=guardadosCam+' guardado'+(guardadosCam>1?'s':'');}
     toast('✓ '+pad(v.num)+': '+RES[res]+'. Pon el siguiente décimo');seguir();
   };
@@ -999,9 +1011,10 @@ async function comprobar(silencioso){
 }
 async function comprobarGemini(s,nums){
   const txt=await gemini([{text:'Busca los resultados oficiales del sorteo de Lotería Nacional de España "'+s.nombre+'" del '+s.fecha+
-    '. Para cada número di el premio total en euros de UN décimo de 20 €, incluyendo pedrea, aproximaciones, centenas, terminaciones y reintegro: '+nums.join(', ')+
+    '. Para cada número di el premio total en euros que correspondería a un décimo de 20 € (si los décimos de ese sorteo cuestan otra cantidad, calcula la proporción como si costara 20 €), incluyendo pedrea, aproximaciones, centenas, terminaciones y reintegro: '+nums.join(', ')+
     '. Responde SOLO JSON {"terminado":true|false,"resultados":[{"numero":"12345","premio":0}]}. Si no se ha celebrado o no hay datos, terminado=false.'}],true);
   const j=jsonDe(txt);if(!j.terminado)throw new Error('sin datos');
+  /* Gemini da el premio de un décimo de 20 €; gan() lo ajusta al precio de cada décimo */
   (j.resultados||[]).forEach(r=>ponPremio(s,pad(r.numero),+r.premio||0,'Gemini'));
   D.estado[s.id]='Consultado con Gemini: confírmalo en la web oficial';
 }
@@ -1042,7 +1055,7 @@ function programarAvisos(manual){
   if(!B||!B.programarAviso){if(manual)toast('Los avisos solo funcionan en la app instalada');return;}
   let n=0;
   sorteosUsados().forEach(s=>{
-    const cuantos=D.decimos.filter(d=>d.sorteo===s.id).length,id='sorteo-'+s.id,cuando=new Date(s.fecha+'T14:00:00').getTime();
+    const cuantos=D.decimos.filter(d=>d.sorteo===s.id).length,id='sorteo-'+s.id,cuando=new Date(s.fecha+(new Date(s.fecha+'T12:00:00').getDay()===4?'T22:30:00':'T14:00:00')).getTime();
     if(!cuantos||cuando<Date.now()){try{B.cancelarAviso(id);}catch(e){}return;}
     try{B.programarAviso(id,cuando,'🎄 Hoy es el sorteo: '+s.nombre,'Tienes '+cuantos+' décimo'+(cuantos>1?'s':'')+'. Abre Mis Décimos y mira si te ha tocado.');n++;}catch(e){}
   });
