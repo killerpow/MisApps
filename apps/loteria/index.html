@@ -28,7 +28,12 @@ h1 span{color:var(--gold)}
 .big{border:0;border-radius:16px;padding:14px 6px;background:var(--card);box-shadow:0 1px 0 var(--line),0 4px 14px #0000000d;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:14px}
 .big i{font-style:normal;font-size:26px}
 .big.main{background:var(--gold);color:#14213d}
-.ordbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 16px 8px;font-size:14px;color:var(--mut)}
+.ordbar{display:flex;align-items:center;gap:8px;padding:0 16px 8px;font-size:14px;color:var(--mut);flex-wrap:wrap}
+.ordbar .dir{margin-left:auto}
+.thdr{display:flex;justify-content:space-between;align-items:baseline;margin:8px 2px -2px;font-weight:800;font-size:15px}
+.thdr b{font:800 22px ui-monospace,monospace;color:var(--red)}
+.thdr span{font-size:13px;font-weight:500;color:var(--mut)}
+.num .u{color:var(--red)}
 .list{padding:4px 16px 16px;display:grid;gap:10px}
 .dec{background:var(--card);border-radius:14px;display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;padding:8px 12px 8px 8px;border-left:6px solid var(--gold);box-shadow:0 1px 0 var(--line)}
 .dec.win{border-left-color:var(--red);background:linear-gradient(90deg,#d7263d14,var(--card) 60%)}
@@ -125,7 +130,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
     <button class="big" id="bFotos"><i>🖼️</i>Fotos</button>
     <button class="big" id="bMano"><i>✍️</i>A mano</button>
   </div>
-  <div class="ordbar"><span id="ordTxt"></span><button class="chip" id="bOrden"></button></div>
+  <div class="ordbar" id="ordbar"><button class="chip" data-o="term">Por terminación</button><button class="chip" data-o="num">Por número</button><button class="chip dir" id="bOrden"></button></div>
   <div class="list" id="lista"></div>
 </section>
 
@@ -265,6 +270,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){toast(
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const pad=n=>String(n).replace(/\D/g,'').slice(-5).padStart(5,'0');
 D.decimos.forEach(d=>{d.num=pad(d.num);});
+if(!D.ordenPor){D.ordenPor='term';D.orden='desc';}
 const eur=v=>(Math.round(v*100)/100).toLocaleString('es-ES',{maximumFractionDigits:2})+' €';
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -288,8 +294,8 @@ function nuevoDecimo(o){return {id:uid(),num:pad(o.num),sorteo:o.sorteo,importe:
 function grupos(){
   const m=new Map();
   D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).forEach(d=>{const k=d.num+'|'+d.sorteo;if(!m.has(k))m.set(k,[]);m.get(k).push(d);});
-  const dir=D.orden==='desc'?-1:1;
-  return [...m.values()].sort((a,b)=>(+a[0].num-+b[0].num)*dir||(sorteo(a[0].sorteo).fecha<sorteo(b[0].sorteo).fecha?-1:1));
+  const dir=D.orden==='desc'?-1:1,term=D.ordenPor==='term';
+  return [...m.values()].sort((a,b)=>(term?(+a[0].num%10-+b[0].num%10)*dir:0)||(+a[0].num-+b[0].num)*dir||(sorteo(a[0].sorteo).fecha<sorteo(b[0].sorteo).fecha?-1:1));
 }
 function sorteosUsados(){const ids=[...new Set(D.decimos.map(d=>d.sorteo))];SORTEOS.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)});return ids.map(sorteo).sort((a,b)=>a.fecha.localeCompare(b.fecha));}
 function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
@@ -343,25 +349,33 @@ const svgUrl=d=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(decimoSVG
 function render(){
   const gs=grupos(),todos=gs.flat();
   $('sDec').textContent=todos.length;$('sNum').textContent=gs.length;
-  $('ordTxt').textContent=gs.length?gs.length+' números, '+(D.orden==='desc'?'de mayor a menor':'de menor a mayor'):'';$('bOrden').textContent=D.orden==='desc'?'Ordenar 0 → 9':'Ordenar 9 → 0';$('bOrden').style.display=gs.length>1?'':'none';
+  $('ordbar').style.display=gs.length>1?'':'none';
+  $('ordbar').querySelectorAll('[data-o]').forEach(b=>b.classList.toggle('on',b.dataset.o===D.ordenPor));
+  $('bOrden').textContent=D.orden==='desc'?'9 → 0 ⇅':'0 → 9 ⇅';
   const ganado=sumaGan(todos);
   if(ganado>0){$('sEur').textContent=eur(ganado);$('sEurL').textContent='¡premiado!';}
   else{$('sEur').textContent=eur(todos.reduce((a,d)=>a+imp(d),0));$('sEurL').textContent='jugado';}
   $('chips').innerHTML=[{id:'todos',nombre:'Todos'}].concat(sorteosUsados()).map(s=>'<button class="chip'+(D.filtro===s.id?' on':'')+'" data-f="'+esc(s.id)+'">'+esc(s.nombre)+'</button>').join('');
   if(!gs.length)$('lista').innerHTML='<div class="empty"><i>🎫</i>Aún no tienes décimos aquí.<br>Escanéalos con la cámara, elige fotos o escríbelos a mano.</div>';
-  else $('lista').innerHTML=gs.map(g=>{
-    const d=g[0],s=sorteo(d.sorteo),f=g.find(x=>fotoUrl(x.foto));
+  else $('lista').innerHTML=gs.map((g,gi)=>{
+    const d=g[0],s=sorteo(d.sorteo),f=g.find(x=>fotoUrl(x.foto)),u=d.num.slice(-1),term=D.ordenPor==='term';
+    let hdr='';
+    if(term&&(gi===0||gs[gi-1][0].num.slice(-1)!==u)){
+      const mismos=gs.filter(x=>x[0].num.slice(-1)===u);
+      hdr='<div class="thdr"><div>Terminados en <b>'+u+'</b></div><span>'+mismos.length+' número'+(mismos.length>1?'s':'')+' · '+mismos.flat().length+' décimo'+(mismos.flat().length>1?'s':'')+'</span></div>';
+    }
     let st='Sin comprobar',cls='';
     if(d.premio>0){cls=' win';st='<span class="pr">🎉 '+eur(d.premio)+' / décimo</span>';}
     else if(d.premio===0){cls=' lose';st='Sin premio';}
     const series=g.map(sf).filter(Boolean).join(' | ');
-    return '<div class="dec'+cls+'" data-k="'+esc(d.num+'|'+d.sorteo)+'"><div class="thumb"'+(f?' style="background-image:url('+fotoUrl(f.foto)+')"':' style="overflow:hidden"')+'>'+(f?'':decimoSVG(d))+'</div>'+
-      '<div><div class="num">'+d.num+'</div><div class="meta">'+esc(s.nombre)+(series?' · '+esc(series):'')+'<br>'+st+'</div></div>'+
+    return hdr+'<div class="dec'+cls+'" data-k="'+esc(d.num+'|'+d.sorteo)+'"><div class="thumb"'+(f?' style="background-image:url('+fotoUrl(f.foto)+')"':' style="overflow:hidden"')+'>'+(f?'':decimoSVG(d))+'</div>'+
+      '<div><div class="num">'+(term?d.num.slice(0,4)+'<span class="u">'+u+'</span>':d.num)+'</div><div class="meta">'+esc(s.nombre)+(series?' · '+esc(series):'')+'<br>'+st+'</div></div>'+
       '<div class="cnt">×'+g.length+'</div></div>';
   }).join('');
   renderRes();renderCodes();
 }
 $('bOrden').onclick=()=>{D.orden=D.orden==='desc'?'asc':'desc';save();render();};
+$('ordbar').onclick=e=>{const b=e.target.closest('[data-o]');if(!b)return;D.ordenPor=b.dataset.o;save();render();};
 $('chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;D.filtro=b.dataset.f;save();render();pintarManual();};
 $('lista').onclick=e=>{const r=e.target.closest('[data-k]');if(r)abrirVisor(r.dataset.k);};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
