@@ -162,11 +162,12 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
   <div class="box">
     <h2>Lectura de décimos</h2>
     <p>Sin configurar nada, la app lee el número, la serie, la fracción y el código de barras con su propio lector (necesita internet la primera vez). Con una clave gratuita de Google Gemini lee mucho mejor.</p>
-    <label for="kGem">Clave de Gemini (opcional, empieza por AIza)</label>
+    <label for="kGem">Clave de Gemini (opcional)</label>
     <input type="password" id="kGem" placeholder="AIza…" autocomplete="off">
     <label for="mGem">Modelo</label>
-    <input type="text" id="mGem" placeholder="gemini-2.5-flash">
-    <div class="row"><button class="btn" id="bGuardaK">Guardar</button><a class="btn ghost" id="aKey" href="https://aistudio.google.com/apikey">Conseguir clave</a></div>
+    <input type="text" id="mGem" placeholder="Automático (déjalo vacío)">
+    <p id="kEst" class="small" style="font-weight:700"></p>
+    <div class="row"><button class="btn" id="bGuardaK">Guardar y probar</button><a class="btn ghost" id="aKey" href="https://aistudio.google.com/apikey">Conseguir clave</a></div>
   </div>
   <div class="box">
     <h2>Códigos de barras leídos</h2>
@@ -544,14 +545,25 @@ function http(method,url,headers,body){
   return fetch(url,{method,headers,body:body||undefined}).then(async r=>({code:r.status,txt:await r.text()})).catch(e=>({code:0,txt:String(e)}));
 }
 function jsonDe(txt){const i=txt.indexOf('{'),j=txt.lastIndexOf('}');if(i<0||j<i)throw new Error('sin json');return JSON.parse(txt.slice(i,j+1));}
+/* Igual que en Juanmi Booster: prueba varios modelos de Gemini y se queda con el que funcione */
+const MODELOS=['gemini-flash-latest','gemini-2.5-flash','gemini-flash-lite-latest','gemini-2.5-flash-lite','gemini-2.0-flash'];
+let modeloBueno=null;
 async function gemini(parts,conBusqueda){
-  const model=(D.gemModel||'gemini-2.5-flash').trim();
+  const propio=(D.gemModel||'').trim(),pref=propio||modeloBueno;
+  const lista=pref?[pref].concat(MODELOS.filter(x=>x!==pref)):MODELOS;
   const body={contents:[{role:'user',parts}],generationConfig:{temperature:0}};
   if(conBusqueda)body.tools=[{google_search:{}}];else body.generationConfig.responseMimeType='application/json';
-  const r=await http('POST','https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(D.gem),{'Content-Type':'application/json'},JSON.stringify(body));
-  if(r.code!==200)throw new Error('Gemini '+r.code);
-  const j=JSON.parse(r.txt);
-  return ((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
+  let ultimo=new Error('Gemini 0');
+  for(const m of lista){
+    const r=await http('POST','https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(m)+':generateContent?key='+encodeURIComponent(D.gem),{'Content-Type':'application/json'},JSON.stringify(body));
+    if(r.code===404||r.code>=500){ultimo=new Error('Gemini '+r.code);continue;}
+    if(r.code!==200){let msg='';try{msg=JSON.parse(r.txt).error.message||'';}catch(e){}
+      throw new Error('Gemini '+(r.code===429?429:(/API.?key|permission/i.test(msg)||r.code===403)?401:r.code||0));}
+    modeloBueno=m;
+    const j=JSON.parse(r.txt);
+    return ((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
+  }
+  throw ultimo;
 }
 const soloNum=v=>{const x=String(v||'').replace(/\D/g,'');return x?String(+x):'';};
 async function leerGemini(c){
@@ -837,8 +849,25 @@ function renderCodes(){
   const c=D.decimos.filter(d=>d.codigo);
   $('codes').innerHTML=c.length?c.map(d=>'<div><b>'+d.num+'</b> · S '+esc(d.serie||'?')+' · F '+esc(d.frac||'?')+' · '+esc(sorteo(d.sorteo).nombre)+'<br>'+esc(d.codigo)+'</div>').join(''):'<span class="small">Todavía no se ha leído ningún código de barras.</span>';
 }
-$('kGem').value=D.gem||'';$('mGem').value=D.gemModel||'';
-$('bGuardaK').onclick=()=>{D.gem=$('kGem').value.trim();D.gemModel=$('mGem').value.trim();save();toast(D.gem?(D.gem.startsWith('AIza')?'Clave guardada':'Guardada, pero no parece una clave de Gemini (empiezan por AIza)'):'Sin clave: se usa el lector normal');};
+$('kGem').value=D.gem||'';$('mGem').value=D.gemModel||'';if(D.gem)$('kEst').textContent='Hay una clave guardada.';
+/* Guarda la clave y la prueba con una pregunta mínima a Gemini */
+$('bGuardaK').onclick=async()=>{
+  const k=$('kGem').value.replace(/\s+/g,''),m=$('mGem').value.trim();
+  if(!k){D.gem='';D.gemModel=m;save();$('kEst').textContent='Sin clave: se usa el lector normal.';return;}
+  const antes=[D.gem,D.gemModel];D.gem=k;D.gemModel=m;
+  busy('Probando la clave con Google…');let msg,ok=false;
+  try{const t=await gemini([{text:'Responde solo: OK'}]);ok=true;msg='✓ Clave correcta. Gemini funciona.';}
+  catch(e){const c=+String(e.message).replace(/\D/g,'');
+    msg=c===400||c===401||c===403?'✗ Google no acepta esta clave. Revisa que esté copiada entera o saca una nueva.':
+        c===404?'✗ La clave parece buena, pero ningún modelo de Gemini responde. Deja el campo Modelo vacío.':
+        c>=500?'Google está saturado ahora mismo. Prueba en unos minutos.':
+        c===429?'✓ La clave es buena, pero has gastado el cupo gratis por ahora. Prueba más tarde.':
+        'Clave guardada, pero no he podido probarla: no conecto con Google. Prueba otra vez con internet.';
+    ok=c===429||!c||c>=500;}
+  busy('');
+  if(!ok){[D.gem,D.gemModel]=antes;} save();
+  $('kEst').textContent=msg;$('kEst').style.color=ok?'#15803d':'var(--red)';toast(msg);
+};
 function textoLista(){
   return sorteosUsados().map(s=>{const ds=D.decimos.filter(d=>d.sorteo===s.id).sort((a,b)=>a.num.localeCompare(b.num));if(!ds.length)return '';
     return s.nombre+' ('+ds.length+' décimos)\n'+ds.map(d=>d.num+(sf(d)?' ('+sf(d)+')':'')+(imp(d)!==PRECIO?' ['+imp(d)+' €]':'')+(rec(d)?' +'+rec(d)+' € recargo':'')+(d.premio>0?' → '+eur(gan(d)):'')+(d.nota?' · '+d.nota:'')).join('\n');}).filter(Boolean).join('\n\n');
