@@ -295,7 +295,9 @@ function grupos(){
   const m=new Map();
   D.decimos.filter(d=>D.filtro==='todos'||d.sorteo===D.filtro).forEach(d=>{const k=d.num+'|'+d.sorteo;if(!m.has(k))m.set(k,[]);m.get(k).push(d);});
   const dir=D.orden==='desc'?-1:1,term=D.ordenPor==='term';
-  return [...m.values()].sort((a,b)=>(term?(+a[0].num%10-+b[0].num%10)*dir:0)||(+a[0].num-+b[0].num)*dir||(sorteo(a[0].sorteo).fecha<sorteo(b[0].sorteo).fecha?-1:1));
+  /* Por terminación: grupos por la última cifra y, dentro, por decenas, luego centenas… (01, 11, 21…) */
+  const inv=n=>n.slice(0,4).split('').reverse().join('');
+  return [...m.values()].sort((a,b)=>(term?(+a[0].num%10-+b[0].num%10)*dir||(inv(a[0].num)<inv(b[0].num)?-1:inv(a[0].num)>inv(b[0].num)?1:0):(+a[0].num-+b[0].num)*dir)||(sorteo(a[0].sorteo).fecha<sorteo(b[0].sorteo).fecha?-1:1));
 }
 function sorteosUsados(){const ids=[...new Set(D.decimos.map(d=>d.sorteo))];SORTEOS.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)});return ids.map(sorteo).sort((a,b)=>a.fecha.localeCompare(b.fecha));}
 function sorteoPorDefecto(){return D.filtro!=='todos'?D.filtro:(SORTEOS.find(s=>s.fecha>=hoy())||SORTEOS[0]).id;}
